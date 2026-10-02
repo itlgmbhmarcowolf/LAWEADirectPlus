@@ -1,0 +1,80 @@
+# Produkt und Nutzererlebnis
+
+## Produktversprechen
+
+Eine Apotheke erledigt eine LWV-Meldung geführt, fehlerarm und nachvollziehbar: Sie versteht sofort, **welcher Stichtag offen ist**, **welche Angaben fehlen**, **was nach dem Absenden passiert** und **wo die Gutschrift liegt**. Glenmark sieht einen priorisierten Arbeitsvorrat mit Gründen statt einer E-Mail-Sammlung. Das Produkt soll außergewöhnlich hilfreich sein; „bestes System“ wird durch überprüfbare Nutzbarkeit, fachliche Richtigkeit und Verlässlichkeit verfolgt, nicht durch eine unbelegte Marktbehauptung.
+
+## Gestaltungsprinzipien
+
+1. **Eine nächste sinnvolle Aktion:** Jede Übersichtsseite hebt den nächsten Schritt hervor, ohne andere Optionen zu verstecken.
+2. **Erst erklären, dann fordern:** Fachbegriffe wie PZN, Charge, Senkungstermin und Bestand zum Stichtag werden direkt am Feld kurz erklärt.
+3. **Fortschritt sichern:** Entwürfe automatisch und explizit speichern; Zeitpunkt der letzten Speicherung sichtbar; bei Verbindungsfehlern Eingaben lokal vor Verlust schützen und erneuten Versuch anbieten.
+4. **Fehler früh und präzise:** Eingabeformat direkt prüfen; fachliche LAWEA-Prüfung vor finaler Bestätigung anzeigen; Fehlermeldungen nennen Feld, Ursache und Handlung.
+5. **Verbindliche Aktionen bewusst:** Vor Einreichung eine lesbare Zusammenfassung aller Positionen, Belege und Erklärungen; der Benutzer bestätigt bewusst. Nach Einreichung wird die Revision gesperrt.
+6. **Status in Alltagssprache:** Benutzer sehen „Entwurf“, „Eingereicht“, „Wir prüfen“, „Bitte korrigieren“, „Freigegeben“, „Gutschrift verfügbar“. Interne Statuscodes bleiben im System.
+7. **Transparente Verantwortung:** Zeige wer als Nächstes handelt und ob die Apotheke etwas tun muss. Keine Zahlungszusage vor tatsächlicher fachlicher Entscheidung.
+8. **Barrierefrei und responsiv:** Ziel WCAG 2.2 AA, Tastaturbedienung, sichtbarer Fokus, sinnvolle Beschriftungen, Kontrast, Screenreader-Statusmeldungen, keine alleinige Farbcodierung; Orientierung an der [W3C-Spezifikation](https://www.w3.org/TR/WCAG22/).
+
+## Informationsarchitektur
+
+### Öffentlicher Bereich
+
+| Seite | Zweck | Zentrale Elemente |
+| --- | --- | --- |
+| Start | Ziel und Ablauf erklären | „Anmelden“, „Konto erstellen“, Voraussetzungen, Hilfe, Kontakt, Datenschutz/Impressum. |
+| Konto erstellen | Apotheke und Erstadministrator registrieren | Klare Schritte „Apotheke“, „Nachweis“, „Zugang“, „Prüfen“; Feldhilfen; Speicher- und Uploadstatus. |
+| E-Mail bestätigen | Registrierung abschließen | OTP-Eingabe, begrenzte Neusendung, verständliche Ablaufhinweise. |
+| Freigabe ausstehend | Erwartung steuern | Bearbeitungsstand, fehlender Nachweis, sichere Möglichkeit zur Nachreichung, Supportweg. |
+| Login/MFA | Zugang | E-Mail/Passwort, zweiter Faktor, Passwort vergessen, Fehler ohne Benutzeraufzählung. |
+
+### Apothekenbereich
+
+| Seite | Zweck | Zentrale Elemente |
+| --- | --- | --- |
+| Übersicht | Nächste Aufgaben erkennen | Offene Senkungstermine, Entwürfe, Korrekturbedarf, letzte Statusänderungen, Gutschriften. |
+| Meldungen | Stichtage und Vorgänge finden | Tabs „Jetzt einreichen“, „Entwürfe“, „Eingereicht“, „Abgeschlossen“; Filter/Suche; keine leere Historienliste für nie beteiligte Termine. |
+| Meldung erstellen/bearbeiten | Positionen erfassen | Stichtag, PZN-Suche, Charge, Anzahl Packungen, Beleg-Upload, Ansprechpartner, Kommentar, Erklärungsfeld, Zwischenspeichern. |
+| Meldungsdetail | Verlauf verstehen | Revisionen, Prüfungen, eingereichte Daten, sichere Belege, Begründung bei Ablehnung, Gutschrift-Link. |
+| Mitarbeiter | Zugänge verwalten | Tabelle aus U; Admin-Aktionen nur für Unternehmensadministratoren; andere sehen eine eingeschränkte Liste. |
+| Apothekenprofil | Stammdaten prüfen | Adresse, Ansprechpartner, IBAN maskiert, Nachweisstatus; Änderungen mit erneuter Prüfung bei kritischen Stammdaten. |
+| Gutschriften | Dokumente abrufen | Eindeutiger Vorgangsbezug, Datum, Betrag falls vorhanden, Download, Status. |
+| Hilfe | Selbsthilfe | Kontextspezifische Erläuterungen, kurze FAQ, Supportkontakt und Fehlermeldungs-Referenz. |
+
+### Glenmark-/Prüfbereich
+
+Registrierungsprüfung, Nachbearbeitungs-Queue, Vorgangsdetail mit Belegen/Prüfhistorie, Freigabe/Ablehnung mit Begründung, Exportläufe, Import-Fehlerarbeitsvorrat, Audit-Ansicht und regelbezogene Administration. Funktionen und Daten sind rollenabhängig sichtbar; die Oberfläche ist nicht über einen „geheimen“ URL-Pfad geschützt, sondern serverseitig autorisiert.
+
+## Assistenzkonzept – kreativ, aber fachlich kontrolliert
+
+Die Assistenz ist ein **Copilot für das Ausfüllen und Verstehen**. Sie soll proaktiv auf mögliche Lücken hinweisen, ohne Daten zu erfinden oder Schritte zu übernehmen.
+
+| Moment | Hilfreiche Unterstützung | Grenze |
+| --- | --- | --- |
+| Registrierung | Dokument-Check, Erklärung der Betriebserlaubnis, Fortschritt, verständliche Feldbeispiele | Keine automatische Apotheker-Verifizierung ohne zugelassene Quelle oder Prüfung. |
+| PZN-Suche | Synonyme/Produktname/PZN, sichtbare Auswahl und Kennzeichnung der Stichtagsrelevanz | Keine stille PZN-Ersetzung. |
+| Erfassung | Hinweis auf fehlende Charge, ungewöhnliche Packungszahl, doppelverdächtige Position, beschädigte Datei | Keine Mengen oder Chargen aus unsicherer Quelle als Tatsache einsetzen. |
+| Belege | Optionales Auslesen als **Vorschlag** mit Quelle und Konfidenzhinweis; Nutzer bestätigt jede Übernahme | Kein automatisches Einreichen aus Dokumenten. Sensible Inhalte nur in freigegebener Verarbeitung. |
+| Vor Einreichen | Kompakte Prüfzusammenfassung, offene Fehler und Konsequenz der Sperre | Richtigkeitsbestätigung bleibt persönliche Handlung des Nutzers. |
+| Nach Einreichen | Zeitleiste und nächste Aktion in Klartext; bei Ablehnung Grund und konkrete Korrekturschritte | Kein Überschreiben der alten Revision. |
+| Glenmark-Prüfung | Erklärbare Regelhinweise und Hervorhebung relevanter Historie | Entscheidung und Begründung nur durch berechtigte Rolle, sofern Auto-Freigabe nicht ausdrücklich freigegeben. |
+
+**Implementierungsstufen:** V1 nutzt deterministische, testbare Hilfen und kontextuelle Texte. Optionale generative Assistenz oder OCR wird erst nach Datenschutz-, Datenqualitäts-, Kosten- und Freigabeentscheidung aktiviert. Kein offener Chat als Ersatz für strukturierte Pflichtfelder. Ausgabe der Assistenz ist nie alleiniger Beleg für eine fachliche Entscheidung.
+
+## Beispiel für die Kernreise
+
+1. Administrator legt Konto an, verifiziert E-Mail und sieht „Prüfung ausstehend“.
+2. Prüfer gibt Apotheke frei; Administrator meldet sich mit MFA an.
+3. Übersicht zeigt „Senkungstermin 01.10.2026 – noch 3 Tage einreichbar“ **nur, wenn das tatsächlich konfigurierte Fenster dies ergibt**.
+4. Mitarbeiter fügt Positionen hinzu. Nach jeder PZN/Charge zeigt das System „geprüft“ oder einen konkreten Fehler. Entwurf bleibt erhalten.
+5. Vor Einreichen zeigt die Zusammenfassung alle Positionen und Belege. Nach Bestätigung wird die Revision unveränderlich; Empfangsnummer erscheint sofort und per neutraler E-Mail.
+6. Eine Regelabweichung bringt den Vorgang in Glenmarks Queue. Bei Ablehnung sieht die Apotheke den Grund im Portal, erstellt eine neue Revision und reicht erneut ein.
+7. Nach Freigabe und zugeordneter Gutschrift erscheint das Dokument im eigenen Bereich mit Benachrichtigung.
+
+## Messbare UX-Ziele für die Abnahme
+
+- Ein Erstnutzer findet im moderierten Test ohne Anleitung den nächsten offenen Stichtag, speichert einen Entwurf und reicht eine gültige Meldung ein.
+- Die Testperson erkennt vor dem finalen Klick, dass die eingereichte Revision gesperrt ist und eine Korrektur erst nach Ablehnung möglich wird.
+- Jede Fehlermeldung ermöglicht eine Handlung; keine Eingaben verschwinden bei fachlichem Validierungsfehler oder technischem Timeout.
+- Die wichtigsten Reisen sind bei Desktop- und schmaler Smartphone-Breite ohne horizontales Scrollen der gesamten Seite möglich.
+- Tastatur- und Screenreader-Test decken Registrierung, OTP, PZN-Suche, Upload, Positionsliste, Bestätigung und Korrektur ab.
+- Analytics messen Abbruchpunkte, Zeit bis zur ersten erfolgreichen Meldung, Validierungsfehler, Wiederaufnahme von Entwürfen und Supportfälle. Keine PZN-/Chargen-/IBAN-Werte in Telemetrie.
