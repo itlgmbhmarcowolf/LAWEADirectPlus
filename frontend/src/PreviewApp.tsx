@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Role, Status, User } from './types'
 import { statusLabel } from './types'
 import { Button, Icon, Notice, PageTitle, Shell, StatusPill } from './ui'
+import { PreviewLogin } from './PreviewLogin'
 
 // Ausschließlich fiktive, flüchtige Konzeptdaten. Dieser Einstiegspunkt importiert keine API.
 type PreviewMember = { name: string; email: string; admin: boolean; status: string }
@@ -21,6 +22,7 @@ const roleLabels: { role: Role; label: string }[] = [
 const term = '30.09.2026'
 
 export function PreviewApp() {
+  const [signedIn, setSignedIn] = useState(false)
   const [role, setRole] = useState<Role>('PHARMACY_ADMIN')
   const [page, setPage] = useState('dashboard')
   const [claim, setClaim] = useState<PreviewClaim>(initialClaim)
@@ -37,7 +39,7 @@ export function PreviewApp() {
   const user: User = { id: 'preview', name: role === 'PHARMACY_ADMIN' ? 'Julia Berger' : role === 'PHARMACY_STAFF' ? 'Maria Keller' : role === 'REVIEWER' ? 'Glenmark Prüfung' : 'Glenmark Finance', email: 'vorschau@beispiel.test', role, organizationId: pharmacy ? 'preview-pharmacy' : null, organizationName: pharmacy ? 'Rosen-Apotheke am Markt' : null }
   const navigate = (target: string) => { setPage(target); setMessage(''); setConfirmSubmit(false) }
   const switchRole = (next: Role) => { setRole(next); navigate(next.startsWith('PHARMACY') ? 'dashboard' : next === 'REVIEWER' ? 'review' : 'finance') }
-  const reset = () => { setClaim(initialClaim()); setMembers(initialMembers()); setExported(false); setRegistrationApproved(false); switchRole('PHARMACY_ADMIN'); setMessage('Die Vorschau wurde zurückgesetzt.') }
+  const reset = () => { setClaim(initialClaim()); setMembers(initialMembers()); setExported(false); setRegistrationApproved(false); switchRole('PHARMACY_ADMIN'); setSignedIn(false); setMessage('') }
   const updateClaim = (change: Partial<PreviewClaim>) => setClaim(current => ({ ...current, ...change }))
   const submit = () => {
     if (!claim.pzn || !claim.charge.trim() || !Number.isInteger(Number(claim.quantity)) || Number(claim.quantity) < 1 || !claim.evidence || !claim.contact.trim() || !claim.declaration) {
@@ -48,6 +50,8 @@ export function PreviewApp() {
   }
   const filteredMembers = members.filter(member => `${member.name} ${member.email} ${member.status}`.toLocaleLowerCase('de').includes(search.toLocaleLowerCase('de')))
   const claimNumber = 'LV-2026-BEISPIEL-01'
+
+  if (!signedIn) return <PreviewLogin onAuthenticated={nextRole => { switchRole(nextRole); setSignedIn(true) }}/>
 
   let content: React.ReactNode
   if (pharmacy && page === 'dashboard') content = <>
