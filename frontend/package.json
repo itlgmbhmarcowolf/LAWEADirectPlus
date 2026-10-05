@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "npm run build && vite preview --configLoader runner --host 127.0.0.1",
     "build": "tsc -b && vite build --configLoader runner",
+    "build:public-preview": "node scripts/build-public-preview.mjs",
     "preview": "vite preview --configLoader runner --host 127.0.0.1"
   },
   "dependencies": {

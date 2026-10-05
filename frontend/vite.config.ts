@@ -13,5 +13,8 @@ export default defineConfig({
     port: 4173,
     proxy: { '/api': 'http://127.0.0.1:3001' }
   },
-  build: { outDir: 'dist' }
+  build: {
+    outDir: 'dist',
+    rollupOptions: process.env.PUBLIC_PREVIEW_BUILD === '1' ? { input: 'preview.html' } : undefined
+  }
 })
