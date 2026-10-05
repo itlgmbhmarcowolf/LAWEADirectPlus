@@ -113,7 +113,6 @@ export function PreviewLogin({ onAuthenticated }: { onAuthenticated: (role: Role
   return <div className="auth-layout preview-login-layout">
     <section className="auth-intro"><div className="auth-brand"><span>LAWEA</span> direkt <em>Plus</em></div><div className="auth-intro-copy"><span className="preview-login-eyebrow">Konzeptvorschau · Glenmark</span><h1>Lagerwertverluste. Klar geregelt.</h1><p>Ein Ort für Senkungstermine, Meldungen, Prüfung und Gutschriften.</p><div className="auth-steps"><span><Icon name="shield"/> Apotheke verifizieren</span><span><Icon name="file"/> Meldung erfassen</span><span><Icon name="check"/> Bearbeitung verfolgen</span></div></div><div className="auth-footer">LAWEA direkt Plus · Öffentliche Demo mit fiktiven Daten</div></section>
     <section className="auth-panel"><div className="auth-card">
-      <div className="demo-note"><strong>Konzeptvorschau</strong><span>Nur fiktive Angaben eingeben. Es werden keine Daten gesendet oder gespeichert.</span></div>
       {error ? <Notice tone="warning">{error}</Notice> : null}
       {notice ? <Notice tone="info">{notice}</Notice> : null}
 
