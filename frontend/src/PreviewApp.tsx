@@ -3,7 +3,7 @@ import type { Role, Status, User } from './types'
 import { statusLabel } from './types'
 import { Button, Icon, Notice, PageTitle, Shell, StatusPill } from './ui'
 import { PreviewLogin } from './PreviewLogin'
-import { PreviewClaimAside, PreviewClaimEditor } from './PreviewClaimEditor'
+import { PreviewClaimAside, PreviewClaimEditor, previewProductNames } from './PreviewClaimEditor'
 
 // Ausschließlich fiktive, flüchtige Konzeptdaten. Dieser Einstiegspunkt importiert keine API.
 type PreviewMember = { name: string; email: string; admin: boolean; status: string }
@@ -50,8 +50,8 @@ export function PreviewApp() {
   const updateItem = (id: number, change: Partial<PreviewItem>) => setClaim(current => ({ ...current, items: current.items.map(item => item.id === id ? { ...item, ...change } : item) }))
   const removeItem = (id: number) => setClaim(current => ({ ...current, items: current.items.filter(item => item.id !== id) }))
   const submit = () => {
-    if (!claim.items.length || claim.items.some(item => !item.pzn || !item.charge.trim() || !Number.isInteger(Number(item.quantity)) || Number(item.quantity) < 1) || !claim.evidence || !claim.contact.trim() || !claim.declaration) {
-      setMessage('Bitte ergänzen Sie PZN, Charge, Packungszahl, Beispielbeleg, Kontakt und Bestätigung.')
+    if (!claim.items.length || claim.items.some(item => !previewProductNames[item.pzn] || !item.charge.trim() || !Number.isInteger(Number(item.quantity)) || Number(item.quantity) < 1) || !claim.evidence || !claim.contact.trim() || !claim.declaration) {
+      setMessage('Bitte geben Sie eine gültige Beispiel-PZN sowie Charge, Packungszahl, Beispielbeleg, Kontakt und Bestätigung an.')
       return
     }
     setConfirmSubmit(true)
@@ -60,7 +60,7 @@ export function PreviewApp() {
   const claimNumber = 'LV-2026-BEISPIEL-01'
   const credits = claim.status === 'COMPLETED' ? [{ claimNumber, reference: 'BEISPIEL-GS-01', provided: 'In dieser Sitzung', description: 'Aus dem simulierten Prüf- und Finance-Ablauf erzeugte Beispielgutschrift.' }, ...sampleCredits] : sampleCredits
   const checks = [
-    { label: 'Positionen', done: claim.items.length > 0 && claim.items.every(item => item.pzn && item.charge.trim() && Number.isInteger(Number(item.quantity)) && Number(item.quantity) > 0) },
+    { label: 'Positionen', done: claim.items.length > 0 && claim.items.every(item => previewProductNames[item.pzn] && item.charge.trim() && Number.isInteger(Number(item.quantity)) && Number(item.quantity) > 0) },
     { label: 'Nachweis', done: claim.evidence },
     { label: 'Kontakt', done: Boolean(claim.contact.trim()) },
     { label: 'Bestätigung', done: claim.declaration }
