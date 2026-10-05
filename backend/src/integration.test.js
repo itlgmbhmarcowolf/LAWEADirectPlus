@@ -64,7 +64,7 @@ test('vollständiger Demo-Prozess mit Rollen, Mandantentrennung und unveränderl
     assert.equal(original.claim.status, 'DRAFT')
     await call({ cookie: admin.cookie, csrf: '' }, `/claims/${claimId}/submit`, 'POST', { key: crypto.randomUUID() }, 403)
     await call(admin, `/members/${adminUser.id}/disable`, 'POST', {}, 409)
-    await call(admin, `/members/${adminUser.id}/role`, 'POST', { role: 'PHARMACY_STAFF' }, 409)
+    await call(admin, `/members/${adminUser.id}/role`, 'POST', { role: 'PHARMACY_STAFF' }, 403)
 
     const registration = await call(other, '/register', 'POST', formWithFile('license', {
       pharmacyName: 'Test-Apotheke Süd', street: 'Testweg 1', zip: '80331', city: 'München',
@@ -101,6 +101,11 @@ test('vollständiger Demo-Prozess mit Rollen, Mandantentrennung und unveränderl
     await call(staff, '/members/verify', 'POST', { challengeId: accepted.challengeId, code: accepted.demoCode })
     const staffUser = await login(staff, 'neu@rosen-apotheke.test')
     assert.equal(staffUser.role, 'PHARMACY_STAFF')
+    await call(admin, `/members/${staffUser.id}/role`, 'POST', { role: 'PHARMACY_ADMIN' })
+    await call(admin, `/members/${adminUser.id}/role`, 'POST', { role: 'PHARMACY_STAFF' }, 403)
+    assert.equal(db.prepare('SELECT role FROM users WHERE id=?').get(adminUser.id).role, 'PHARMACY_ADMIN')
+    await call(admin, `/members/${staffUser.id}/role`, 'POST', { role: 'PHARMACY_STAFF' })
+    await login(staff, 'neu@rosen-apotheke.test')
     assert.equal((await call(admin, '/bootstrap')).invitations.length, 0)
     await call(staff, '/members/invite', 'POST', { name: 'Unzulässig', email: 'x@test.test', role: 'PHARMACY_ADMIN' }, 403)
     assert.equal((await call(staff, `/claims/${claimId}`)).claim.id, claimId)

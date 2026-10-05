@@ -36,7 +36,7 @@ function MemberMenu({ member, currentUserId, adminCount, onAction }: {
     <button type="button" className="team-more" aria-label={`Aktionen für ${member.name}`} aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen(value => !value)}><Icon name="more" size={19}/></button>
     {open ? <div className="team-menu-list" role="menu">
       {member.status === 'ACTIVE' ? <>
-        <button role="menuitem" disabled={own || lastAdmin} title={lastAdmin ? 'Mindestens ein Administrator muss aktiv bleiben.' : own ? 'Eigene Rolle hier nicht ändern.' : undefined} onClick={() => choose('role')}>{member.role === 'PHARMACY_ADMIN' ? 'Adminrecht entfernen' : 'Zum Administrator machen'}</button>
+        {!own ? <button role="menuitem" disabled={lastAdmin} title={lastAdmin ? 'Mindestens ein Administrator muss aktiv bleiben.' : undefined} onClick={() => choose('role')}>{member.role === 'PHARMACY_ADMIN' ? 'Adminrecht entfernen' : 'Zum Administrator machen'}</button> : null}
         <button role="menuitem" onClick={() => choose('reset')}>Passwort-Reset senden</button>
         <div className="team-menu-separator"/>
         <button role="menuitem" className="team-menu-danger" disabled={own || lastAdmin} title={lastAdmin ? 'Mindestens ein Administrator muss aktiv bleiben.' : own ? 'Eigenen Zugang hier nicht sperren.' : undefined} onClick={() => choose('disable')}>Zugang sperren</button>

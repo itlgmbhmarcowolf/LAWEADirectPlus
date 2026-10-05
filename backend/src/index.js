@@ -426,6 +426,7 @@ app.post('/api/members/:id/role', requireUser, requireRole('PHARMACY_ADMIN'), re
   const role = parse(z.object({ role: z.enum(['PHARMACY_ADMIN', 'PHARMACY_STAFF']) }).strict(), req.body).role
   const target = db.prepare('SELECT * FROM users WHERE id=? AND organization_id=?').get(req.params.id, req.session.organization_id)
   if (!target || target.status !== 'ACTIVE') throw problem(404, 'Mitarbeiter nicht gefunden.')
+  if (target.id === req.session.uid) throw problem(403, 'Die eigene Rolle kann hier nicht geändert werden.', 'SELF_ROLE_CHANGE')
   db.transaction(() => {
     if (target.role === 'PHARMACY_ADMIN' && role !== target.role) {
       const n = db.prepare("SELECT count(*) AS n FROM users WHERE organization_id=? AND role='PHARMACY_ADMIN' AND status='ACTIVE'").get(target.organization_id).n
