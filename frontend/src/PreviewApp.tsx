@@ -15,12 +15,6 @@ const initialMembers = (): PreviewMember[] => [
   { name: 'Maria Keller', email: 'maria@beispiel-apotheke.test', admin: false, status: 'Aktiv' },
   { name: 'Tim Neumann', email: 'tim@beispiel-apotheke.test', admin: false, status: 'Einladung offen' }
 ]
-const roleLabels: { role: Role; label: string }[] = [
-  { role: 'PHARMACY_ADMIN', label: 'Apotheke' },
-  { role: 'PHARMACY_STAFF', label: 'Mitarbeiter' },
-  { role: 'REVIEWER', label: 'Glenmark Prüfung' },
-  { role: 'FINANCE', label: 'Glenmark Finance' }
-]
 const term = '30.09.2026'
 type PreviewCredit = { claimNumber: string; reference: string; provided: string; description: string }
 // Frei erfundene Datensätze für die öffentliche, statische Konzeptvorschau.
@@ -104,7 +98,7 @@ export function PreviewApp() {
   return <Shell user={user} page={page} demo onNavigate={navigate} onLogout={reset} aside={pharmacy && page.startsWith('claim:') ? <PreviewClaimAside/> : undefined}>
     {message ? <Notice tone={message.startsWith('Bitte') || message.startsWith('Mindestens') || message.startsWith('Diese Adresse') ? 'warning' : 'info'}>{message}</Notice> : null}
     {content}
-    <footer className="content-footer preview-footer"><div><Icon name="shield" size={15}/> Öffentliche Konzeptvorschau mit fiktiven Daten.</div><div className="preview-footer-roles" aria-label="Demo-Perspektive wechseln"><span>Demo-Perspektive:</span>{roleLabels.map(option => <button key={option.role} className={role === option.role ? 'active' : ''} onClick={() => switchRole(option.role)} aria-pressed={role === option.role}>{option.label}</button>)}</div></footer>
+    <footer className="content-footer"><Icon name="shield" size={15}/> Öffentliche Konzeptvorschau mit fiktiven Daten.</footer>
     {selectedCredit ? <div className="modal-backdrop" role="presentation" onClick={() => setSelectedCredit(null)}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="preview-credit-title" onClick={event => event.stopPropagation()}><span className="small-overline">Fiktives Dokumentmuster</span><h2 id="preview-credit-title">Beispielgutschrift</h2><p>{selectedCredit.description}</p><div className="confirm-summary"><div><span>Vorgang</span><strong>{selectedCredit.claimNumber}</strong></div><div><span>Referenz</span><strong>{selectedCredit.reference}</strong></div><div><span>Bereitgestellt</span><strong>{selectedCredit.provided}</strong></div></div><p className="muted">Dies ist nur eine Vorschau. Ein PDF oder eine echte Gutschrift wird nicht bereitgestellt.</p><div className="modal-actions"><Button onClick={() => setSelectedCredit(null)}>Schließen</Button></div></div></div> : null}
     {confirmSubmit ? <div className="modal-backdrop"><div className="modal" role="dialog" aria-modal="true" aria-labelledby="preview-confirm-title"><h2 id="preview-confirm-title">Beispielmeldung einreichen?</h2><p>In dieser Vorschau ändert sich nur der sichtbare Status im Browser. Eine echte Meldung wird nicht gespeichert oder versendet.</p><div className="confirm-summary"><div><span>Termin</span><strong>{term}</strong></div><div><span>Positionen</span><strong>{claim.items.length}</strong></div><div><span>Nachweis</span><strong>{claim.evidence ? 'Beispielbeleg' : 'Fehlt'}</strong></div></div><div className="modal-actions"><Button variant="secondary" onClick={() => setConfirmSubmit(false)}>Zurück</Button><Button onClick={() => { updateClaim({ status: 'MANUAL_REVIEW' }); setConfirmSubmit(false); setMessage('Beispielmeldung eingereicht. Wechseln Sie zur Glenmark-Prüfung, um den Ablauf fortzusetzen.') }}>Einreichung simulieren</Button></div></div></div> : null}
   </Shell>

@@ -11,9 +11,7 @@ const previewPassword = 'Vorschau!2026'
 const previewCode = '123456'
 const accounts: { role: Role; label: string; email: string }[] = [
   { role: 'PHARMACY_ADMIN', label: 'Apotheke', email: 'apotheke@beispiel.test' },
-  { role: 'PHARMACY_STAFF', label: 'Mitarbeiterin', email: 'mitarbeiterin@beispiel.test' },
-  { role: 'REVIEWER', label: 'Glenmark Prüfung', email: 'pruefung@beispiel.test' },
-  { role: 'FINANCE', label: 'Glenmark Finance', email: 'finance@beispiel.test' }
+  { role: 'PHARMACY_STAFF', label: 'Mitarbeiterin', email: 'mitarbeiterin@beispiel.test' }
 ]
 const emptyRegistration = (): Registration => ({ pharmacyName: '', street: '', zip: '', city: '', owner: '', phone: '', iban: '', homepage: '', name: '' })
 
