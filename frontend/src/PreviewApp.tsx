@@ -8,6 +8,7 @@ import { PreviewMembers } from './PreviewMembers'
 import { PreviewClaims, PreviewSampleClaimDetail, sampleClaims } from './PreviewClaims'
 import { PreviewCredits } from './PreviewCredits'
 import { AccountSettings } from './AccountSettings'
+import { PreviewDashboard } from './PreviewDashboard'
 import './preview-terms.css'
 
 // Ausschließlich fiktive, flüchtige Konzeptdaten. Dieser Einstiegspunkt importiert keine API.
@@ -97,12 +98,7 @@ export function PreviewApp() {
 
   let content: React.ReactNode
   if (page === 'account') content = <AccountSettings key={ownUser.email} user={ownUser} onSave={saveOwnSettings} emailEditable preview viewingAs={viewedMember?.name} onReturn={returnToAdmin}/>
-  else if (pharmacy && page === 'dashboard') content = <>
-    <PageTitle title={'Guten Tag, ' + user.name} subtitle="Ihr Überblick über Senkungstermine und Meldungen." action={<Button icon="arrow" onClick={() => navigate('claims')}>Meldungen ansehen</Button>}/>
-    <section className="preview-open-terms" aria-label="Offene Beispieltermine"><div className="section-header"><div><h2>Zwei Termine zur Erfassung</h2><p>Jeder Senkungstermin hat einen eigenen Beispielentwurf.</p></div><span className="preview-count">{openTerms.filter(term => claims[term.iso].status === 'DRAFT').length} offen</span></div>{openTerms.map(term => <div className="preview-hero" key={term.iso}><div className="preview-hero-icon"><Icon name="calendar" size={34}/></div><div><span className="small-overline">{claims[term.iso].status === 'DRAFT' ? 'Offener Beispieltermin' : statusLabel[claims[term.iso].status]}</span><h2>Preissenkung am {term.date}</h2><p>{term.number} · {claims[term.iso].status === 'DRAFT' ? 'Betroffene Packungen erfassen und nach eigener Prüfung einreichen.' : 'Der Beispielvorgang kann angesehen werden.'}</p></div><Button onClick={() => navigate(`claim:${term.iso}`)} icon="arrow">{claims[term.iso].status === 'DRAFT' ? claims[term.iso].items.length ? 'Entwurf fortsetzen' : 'Meldung erfassen' : 'Vorgang ansehen'}</Button></div>)}</section>
-    <div className="preview-grid"><section className="preview-stat"><span>Offene Meldungen</span><strong>{openTerms.filter(term => claims[term.iso].status === 'DRAFT').length} Beispieltermine</strong><small>15.09. und 01.10.2026</small></section><section className="preview-stat"><span>Nächster Schritt</span><strong>Termin auswählen</strong><small>Die Entwürfe bleiben beim Wechsel getrennt erhalten.</small></section><section className="preview-stat"><span>Team</span><strong>{members.length} Personen</strong><small><button className="text-button" onClick={() => navigate('members')}>Zugänge verwalten →</button></small></section></div>
-    <section className="data-section"><div className="section-header"><h2>So läuft die Meldung ab</h2></div><div className="preview-journey"><span>1 · Erfassen</span><span>2 · Prüfen</span><span>3 · Einreichen</span><span>4 · Glenmark Entscheidung</span><span>5 · Gutschrift</span></div></section>
-  </>
+  else if (pharmacy && page === 'dashboard') content = <PreviewDashboard name={user.name} organizationName={user.organizationName || 'Ihre Apotheke'} terms={openTerms.map(term => ({ ...term, claim: claims[term.iso] }))} navigate={navigate}/>
   else if (pharmacy && page === 'claims') content = <PreviewClaims currentClaims={openTerms.map(term => ({ number: term.number, termDate: term.iso, status: claims[term.iso].status, positionCount: claims[term.iso].items.length }))} navigate={navigate}/>
   else if (pharmacy && page.startsWith('claim:')) content = <PreviewClaimEditor claim={claim} term={term} claimNumber={claimNumber} checks={checks} completedChecks={completedChecks} nextHint={nextHint} navigate={navigate} updateClaim={updateClaim} addItem={addItem} updateItem={updateItem} removeItem={removeItem} submit={submit} discard={() => { updateClaim(initialClaim()); navigate('claims'); setMessage('Beispielentwurf verworfen.') }} setMessage={setMessage}/>
   else if (pharmacy && page.startsWith('sample:')) { const sample = sampleClaims.find(item => item.number === page.slice(7)); content = sample ? <PreviewSampleClaimDetail claim={sample} navigate={navigate}/> : <Notice tone="warning">Beispielmeldung nicht gefunden.</Notice> }
