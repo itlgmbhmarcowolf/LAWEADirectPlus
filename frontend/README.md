@@ -13,7 +13,7 @@ Die lokale Oberfläche zeigt fiktive Demo-Zugänge und OTPs. Produktive Anbindun
 
 ## Konzeptvorschau für Vercel
 
-`npm run build:public-preview` erzeugt in `dist/` einen eigenständigen statischen Mockup-Build. Dieser startet auf einer simulierten Anmeldeseite: fiktiven Demo-Zugang wählen, Beispielpasswort nutzen, sichtbaren Beispielcode eingeben. Danach zeigt `PreviewApp.tsx` Rollen und Abläufe mit nur flüchtigen Browser-Simulationen. Weder echte Authentifizierung noch API, Backend, E-Mail-Versand, Dateiupload oder DATEV-Export sind enthalten. Keine echten Kundendaten eingeben.
+`npm run build:public-preview` erzeugt in `dist/` einen eigenständigen statischen Mockup-Build. Die Vorschau enthält eine simulierte Anmeldung und die vollständige Zugangsreise: Apothekenkonto erstellen, Beispielnachweis wählen, E-Mail-Code eingeben, Freigabe simulieren, Nachweis nachreichen, Passwort zurücksetzen und Mitarbeiter-Einladung annehmen. Danach zeigt `PreviewApp.tsx` Rollen und Abläufe mit nur flüchtigen Browser-Simulationen. Der Beispielcode ist `123456`; für die eingeblendeten Demo-Zugänge gilt `Vorschau!2026`. Weder echte Authentifizierung noch API, Backend, E-Mail-Versand, Dateiupload oder DATEV-Export sind enthalten. Keine echten Kundendaten eingeben. Ein Neuladen oder Abmelden setzt die Vorschau zurück.
 
 - **Vercel Drop:** Den Ordner `frontend/dist/` hochladen. Dieser Vorgang veröffentlicht direkt auf einer öffentlichen Produktions-URL; er ist nur für das ausdrücklich fiktive Mockup geeignet.
 - **Vercel Git-Import:** Im gemeinsamen Repository `frontend` als Root Directory setzen. `vercel.json` führt den Vorschau-Build aus und veröffentlicht `dist/`. Die neuen Dateien müssen zuvor auf GitHub gepusht sein.

@@ -23,6 +23,7 @@ const term = '30.09.2026'
 
 export function PreviewApp() {
   const [signedIn, setSignedIn] = useState(false)
+  const [profile, setProfile] = useState<{ name: string; email: string; organizationName: string } | null>(null)
   const [role, setRole] = useState<Role>('PHARMACY_ADMIN')
   const [page, setPage] = useState('dashboard')
   const [claim, setClaim] = useState<PreviewClaim>(initialClaim)
@@ -36,10 +37,10 @@ export function PreviewApp() {
   const [registrationApproved, setRegistrationApproved] = useState(false)
   const [claimTab, setClaimTab] = useState('open')
   const pharmacy = role.startsWith('PHARMACY')
-  const user: User = { id: 'preview', name: role === 'PHARMACY_ADMIN' ? 'Julia Berger' : role === 'PHARMACY_STAFF' ? 'Maria Keller' : role === 'REVIEWER' ? 'Glenmark Prüfung' : 'Glenmark Finance', email: 'vorschau@beispiel.test', role, organizationId: pharmacy ? 'preview-pharmacy' : null, organizationName: pharmacy ? 'Rosen-Apotheke am Markt' : null }
+  const user: User = { id: 'preview', name: pharmacy && profile ? profile.name : role === 'PHARMACY_ADMIN' ? 'Julia Berger' : role === 'PHARMACY_STAFF' ? 'Maria Keller' : role === 'REVIEWER' ? 'Glenmark Prüfung' : 'Glenmark Finance', email: pharmacy && profile ? profile.email : 'vorschau@beispiel.test', role, organizationId: pharmacy ? 'preview-pharmacy' : null, organizationName: pharmacy ? profile?.organizationName || 'Rosen-Apotheke am Markt' : null }
   const navigate = (target: string) => { setPage(target); setMessage(''); setConfirmSubmit(false) }
   const switchRole = (next: Role) => { setRole(next); navigate(next.startsWith('PHARMACY') ? 'dashboard' : next === 'REVIEWER' ? 'review' : 'finance') }
-  const reset = () => { setClaim(initialClaim()); setMembers(initialMembers()); setExported(false); setRegistrationApproved(false); switchRole('PHARMACY_ADMIN'); setSignedIn(false); setMessage('') }
+  const reset = () => { setClaim(initialClaim()); setMembers(initialMembers()); setProfile(null); setExported(false); setRegistrationApproved(false); switchRole('PHARMACY_ADMIN'); setSignedIn(false); setMessage('') }
   const updateClaim = (change: Partial<PreviewClaim>) => setClaim(current => ({ ...current, ...change }))
   const submit = () => {
     if (!claim.pzn || !claim.charge.trim() || !Number.isInteger(Number(claim.quantity)) || Number(claim.quantity) < 1 || !claim.evidence || !claim.contact.trim() || !claim.declaration) {
@@ -51,11 +52,11 @@ export function PreviewApp() {
   const filteredMembers = members.filter(member => `${member.name} ${member.email} ${member.status}`.toLocaleLowerCase('de').includes(search.toLocaleLowerCase('de')))
   const claimNumber = 'LV-2026-BEISPIEL-01'
 
-  if (!signedIn) return <PreviewLogin onAuthenticated={nextRole => { switchRole(nextRole); setSignedIn(true) }}/>
+  if (!signedIn) return <PreviewLogin onAuthenticated={(nextRole, newProfile) => { setProfile(newProfile || null); setMembers(newProfile ? [{ name: newProfile.name, email: newProfile.email, admin: true, status: 'Aktiv' }] : initialMembers()); switchRole(nextRole); setSignedIn(true) }}/>
 
   let content: React.ReactNode
   if (pharmacy && page === 'dashboard') content = <>
-    <PageTitle title="Guten Tag, Julia Berger" subtitle="Ihr Überblick über Senkungstermine und Meldungen." action={<Button icon="arrow" onClick={() => navigate('claims')}>Meldungen ansehen</Button>}/>
+    <PageTitle title={'Guten Tag, ' + user.name} subtitle="Ihr Überblick über Senkungstermine und Meldungen." action={<Button icon="arrow" onClick={() => navigate('claims')}>Meldungen ansehen</Button>}/>
     <div className="preview-hero"><div className="preview-hero-icon"><Icon name="calendar" size={34}/></div><div><span className="small-overline">Offener Beispieltermin</span><h2>Preissenkung am {term}</h2><p>Erfassen Sie betroffene Packungen und reichen Sie die Meldung nach eigener Prüfung ein.</p></div><Button onClick={() => navigate('claim:preview')} icon="arrow">{claim.status === 'DRAFT' ? 'Meldung erfassen' : 'Vorgang ansehen'}</Button></div>
     <div className="preview-grid"><section className="preview-stat"><span>Aktueller Vorgang</span><strong><StatusPill status={claim.status}/></strong><small>{claimNumber}</small></section><section className="preview-stat"><span>Nächster Schritt</span><strong>{claim.status === 'DRAFT' ? 'Angaben vervollständigen' : claim.status === 'REJECTED' ? 'Neue Revision prüfen' : claim.status === 'MANUAL_REVIEW' ? 'Glenmark prüft' : claim.status === 'APPROVED' ? 'Abwicklung' : 'Gutschrift ansehen'}</strong><small>Der Assistent erklärt die nötigen Angaben.</small></section><section className="preview-stat"><span>Team</span><strong>{members.length} Personen</strong><small><button className="text-button" onClick={() => navigate('members')}>Zugänge verwalten →</button></small></section></div>
     <section className="data-section"><div className="section-header"><h2>So läuft die Meldung ab</h2></div><div className="preview-journey"><span>1 · Erfassen</span><span>2 · Prüfen</span><span>3 · Einreichen</span><span>4 · Glenmark Entscheidung</span><span>5 · Gutschrift</span></div></section>
