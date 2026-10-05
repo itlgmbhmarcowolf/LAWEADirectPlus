@@ -8,6 +8,7 @@ import { PreviewMembers } from './PreviewMembers'
 import { PreviewClaims, PreviewSampleClaimDetail, sampleClaims } from './PreviewClaims'
 import { PreviewCredits } from './PreviewCredits'
 import { AccountSettings } from './AccountSettings'
+import './preview-terms.css'
 
 // Ausschließlich fiktive, flüchtige Konzeptdaten. Dieser Einstiegspunkt importiert keine API.
 export type PreviewMember = { name: string; email: string; admin: boolean; status: string }
@@ -19,12 +20,15 @@ const initialMembers = (): PreviewMember[] => [
   { name: 'Maria Keller', email: 'mitarbeiterin@beispiel.test', admin: false, status: 'Aktiv' },
   { name: 'Tim Neumann', email: 'tim@beispiel-apotheke.test', admin: false, status: 'Einladung offen' }
 ]
-const term = '01.10.2026'
-const termIso = '2026-10-01'
+const openTerms = [
+  { iso: '2026-10-01', date: '01.10.2026', number: 'LV-2026-BEISPIEL-01' },
+  { iso: '2026-09-15', date: '15.09.2026', number: 'LV-2026-BEISPIEL-02' }
+] as const
+const initialClaims = (): Record<string, PreviewClaim> => Object.fromEntries(openTerms.map(term => [term.iso, initialClaim()]))
 export type PreviewCredit = { claimNumber: string; reference: string; provided: string; description: string }
 // Frei erfundene Datensätze für die öffentliche, statische Konzeptvorschau.
 const sampleCredits: PreviewCredit[] = [
-  { claimNumber: 'LV-DEMO-2026-014', reference: 'GS-DEMO-2026-014', provided: '18.09.2026', description: 'Muster-Gutschrift für eine abgeschlossene Lagerwertverlustmeldung.' },
+  { claimNumber: 'LV-DEMO-2026-014', reference: 'GS-DEMO-2026-014', provided: '18.08.2026', description: 'Muster-Gutschrift für eine abgeschlossene Lagerwertverlustmeldung.' },
   { claimNumber: 'LV-DEMO-2026-009', reference: 'GS-DEMO-2026-009', provided: '04.08.2026', description: 'Weiteres Muster für die Darstellung mehrerer Gutschriften.' }
 ]
 
@@ -35,14 +39,20 @@ export function PreviewApp() {
   const [signedInEmail, setSignedInEmail] = useState('apotheke@beispiel.test')
   const [viewAsEmail, setViewAsEmail] = useState<string | null>(null)
   const [page, setPage] = useState('dashboard')
-  const [claim, setClaim] = useState<PreviewClaim>(initialClaim)
+  const [claims, setClaims] = useState<Record<string, PreviewClaim>>(initialClaims)
+  const [activeTermIso, setActiveTermIso] = useState<string>(openTerms[0].iso)
   const [members, setMembers] = useState<PreviewMember[]>(initialMembers)
   const [message, setMessage] = useState('')
   const [confirmSubmit, setConfirmSubmit] = useState(false)
-  const [exported, setExported] = useState(false)
+  const [exportedTerms, setExportedTerms] = useState<string[]>([])
   const [registrationApproved, setRegistrationApproved] = useState(false)
   const [nextItemId, setNextItemId] = useState(1)
   const [selectedCredit, setSelectedCredit] = useState<PreviewCredit | null>(null)
+  const activeTerm = openTerms.find(term => term.iso === activeTermIso) || openTerms[0]
+  const claim = claims[activeTerm.iso]
+  const term = activeTerm.date
+  const claimNumber = activeTerm.number
+  const exported = exportedTerms.includes(activeTerm.iso)
   const effectiveRole: Role = viewAsEmail ? 'PHARMACY_STAFF' : role
   const pharmacy = effectiveRole.startsWith('PHARMACY')
   const signedInMember = members.find(member => member.email === signedInEmail)
@@ -50,9 +60,9 @@ export function PreviewApp() {
   const identity = pharmacy ? viewedMember || signedInMember : undefined
   const user: User = { id: identity?.email || 'preview', name: identity?.name || (role === 'REVIEWER' ? 'Glenmark Prüfung' : 'Glenmark Finance'), email: identity?.email || 'vorschau@beispiel.test', role: effectiveRole, organizationId: pharmacy ? 'preview-pharmacy' : null, organizationName: pharmacy ? profile?.organizationName || 'Rosen-Apotheke am Markt' : null }
   const ownUser: User = { ...user, id: signedInEmail, name: signedInMember?.name || user.name, email: signedInEmail, role }
-  const navigate = (target: string) => { setPage(target); setMessage(''); setConfirmSubmit(false) }
+  const navigate = (target: string) => { const termIso = target.startsWith('claim:') ? target.slice(6) : ''; if (openTerms.some(term => term.iso === termIso)) setActiveTermIso(termIso); setPage(target); setMessage(''); setConfirmSubmit(false) }
   const switchRole = (next: Role) => { setViewAsEmail(null); setRole(next); navigate(next.startsWith('PHARMACY') ? 'dashboard' : next === 'REVIEWER' ? 'review' : 'finance') }
-  const reset = () => { setClaim(initialClaim()); setNextItemId(1); setMembers(initialMembers()); setProfile(null); setSignedInEmail('apotheke@beispiel.test'); setExported(false); setRegistrationApproved(false); setSelectedCredit(null); switchRole('PHARMACY_ADMIN'); setSignedIn(false); setMessage('') }
+  const reset = () => { setClaims(initialClaims()); setActiveTermIso(openTerms[0].iso); setNextItemId(1); setMembers(initialMembers()); setProfile(null); setSignedInEmail('apotheke@beispiel.test'); setExportedTerms([]); setRegistrationApproved(false); setSelectedCredit(null); switchRole('PHARMACY_ADMIN'); setSignedIn(false); setMessage('') }
   const switchToMember = (email: string) => { if (role !== 'PHARMACY_ADMIN' || !members.some(member => member.email === email && !member.admin && member.status === 'Aktiv')) return; setViewAsEmail(email); navigate('dashboard') }
   const returnToAdmin = () => { setViewAsEmail(null); navigate('dashboard') }
   const saveOwnSettings = (name: string, email: string) => {
@@ -62,10 +72,10 @@ export function PreviewApp() {
     setSignedInEmail(email)
     if (profile) setProfile({ ...profile, name, email })
   }
-  const updateClaim = (change: Partial<PreviewClaim>) => setClaim(current => ({ ...current, ...change }))
-  const addItem = () => { setClaim(current => ({ ...current, items: [...current.items, { id: nextItemId, pzn: '', charge: '', quantity: '' }] })); setNextItemId(current => current + 1) }
-  const updateItem = (id: number, change: Partial<PreviewItem>) => setClaim(current => ({ ...current, items: current.items.map(item => item.id === id ? { ...item, ...change } : item) }))
-  const removeItem = (id: number) => setClaim(current => ({ ...current, items: current.items.filter(item => item.id !== id) }))
+  const updateClaim = (change: Partial<PreviewClaim>) => setClaims(current => ({ ...current, [activeTerm.iso]: { ...current[activeTerm.iso], ...change } }))
+  const addItem = () => { setClaims(current => ({ ...current, [activeTerm.iso]: { ...current[activeTerm.iso], items: [...current[activeTerm.iso].items, { id: nextItemId, pzn: '', charge: '', quantity: '' }] } })); setNextItemId(current => current + 1) }
+  const updateItem = (id: number, change: Partial<PreviewItem>) => setClaims(current => ({ ...current, [activeTerm.iso]: { ...current[activeTerm.iso], items: current[activeTerm.iso].items.map(item => item.id === id ? { ...item, ...change } : item) } }))
+  const removeItem = (id: number) => setClaims(current => ({ ...current, [activeTerm.iso]: { ...current[activeTerm.iso], items: current[activeTerm.iso].items.filter(item => item.id !== id) } }))
   const submit = () => {
     if (!claim.items.length || claim.items.some(item => !previewProductNames[item.pzn] || !item.charge.trim() || !Number.isInteger(Number(item.quantity)) || Number(item.quantity) < 1) || !claim.evidence || !claim.contact.trim() || !claim.declaration) {
       setMessage('Bitte geben Sie eine gültige Beispiel-PZN sowie Charge, Packungszahl, Beispielbeleg, Kontakt und Bestätigung an.')
@@ -73,8 +83,7 @@ export function PreviewApp() {
     }
     setConfirmSubmit(true)
   }
-  const claimNumber = 'LV-2026-BEISPIEL-01'
-  const credits = claim.status === 'COMPLETED' ? [{ claimNumber, reference: 'BEISPIEL-GS-01', provided: 'In dieser Sitzung', description: 'Aus dem simulierten Prüf- und Finance-Ablauf erzeugte Beispielgutschrift.' }, ...sampleCredits] : sampleCredits
+  const credits = [...openTerms.filter(term => claims[term.iso].status === 'COMPLETED').map(term => ({ claimNumber: term.number, reference: `BEISPIEL-GS-${term.number.slice(-2)}`, provided: 'In dieser Sitzung', description: 'Aus dem simulierten Prüf- und Finance-Ablauf erzeugte Beispielgutschrift.' })), ...sampleCredits]
   const checks = [
     { label: 'Positionen', done: claim.items.length > 0 && claim.items.every(item => previewProductNames[item.pzn] && item.charge.trim() && Number.isInteger(Number(item.quantity)) && Number(item.quantity) > 0) },
     { label: 'Nachweis', done: claim.evidence },
@@ -90,20 +99,20 @@ export function PreviewApp() {
   if (page === 'account') content = <AccountSettings key={ownUser.email} user={ownUser} onSave={saveOwnSettings} emailEditable preview viewingAs={viewedMember?.name} onReturn={returnToAdmin}/>
   else if (pharmacy && page === 'dashboard') content = <>
     <PageTitle title={'Guten Tag, ' + user.name} subtitle="Ihr Überblick über Senkungstermine und Meldungen." action={<Button icon="arrow" onClick={() => navigate('claims')}>Meldungen ansehen</Button>}/>
-    <div className="preview-hero"><div className="preview-hero-icon"><Icon name="calendar" size={34}/></div><div><span className="small-overline">Offener Beispieltermin</span><h2>Preissenkung am {term}</h2><p>Erfassen Sie betroffene Packungen und reichen Sie die Meldung nach eigener Prüfung ein.</p></div><Button onClick={() => navigate('claim:preview')} icon="arrow">{claim.status === 'DRAFT' ? 'Meldung erfassen' : 'Vorgang ansehen'}</Button></div>
-    <div className="preview-grid"><section className="preview-stat"><span>Aktueller Vorgang</span><strong><StatusPill status={claim.status}/></strong><small>{claimNumber}</small></section><section className="preview-stat"><span>Nächster Schritt</span><strong>{claim.status === 'DRAFT' ? 'Angaben vervollständigen' : claim.status === 'REJECTED' ? 'Neue Revision prüfen' : claim.status === 'MANUAL_REVIEW' ? 'Glenmark prüft' : claim.status === 'APPROVED' ? 'Abwicklung' : 'Gutschrift ansehen'}</strong><small>Der Assistent erklärt die nötigen Angaben.</small></section><section className="preview-stat"><span>Team</span><strong>{members.length} Personen</strong><small><button className="text-button" onClick={() => navigate('members')}>Zugänge verwalten →</button></small></section></div>
+    <section className="preview-open-terms" aria-label="Offene Beispieltermine"><div className="section-header"><div><h2>Zwei Termine zur Erfassung</h2><p>Jeder Senkungstermin hat einen eigenen Beispielentwurf.</p></div><span className="preview-count">{openTerms.filter(term => claims[term.iso].status === 'DRAFT').length} offen</span></div>{openTerms.map(term => <div className="preview-hero" key={term.iso}><div className="preview-hero-icon"><Icon name="calendar" size={34}/></div><div><span className="small-overline">{claims[term.iso].status === 'DRAFT' ? 'Offener Beispieltermin' : statusLabel[claims[term.iso].status]}</span><h2>Preissenkung am {term.date}</h2><p>{term.number} · {claims[term.iso].status === 'DRAFT' ? 'Betroffene Packungen erfassen und nach eigener Prüfung einreichen.' : 'Der Beispielvorgang kann angesehen werden.'}</p></div><Button onClick={() => navigate(`claim:${term.iso}`)} icon="arrow">{claims[term.iso].status === 'DRAFT' ? claims[term.iso].items.length ? 'Entwurf fortsetzen' : 'Meldung erfassen' : 'Vorgang ansehen'}</Button></div>)}</section>
+    <div className="preview-grid"><section className="preview-stat"><span>Offene Meldungen</span><strong>{openTerms.filter(term => claims[term.iso].status === 'DRAFT').length} Beispieltermine</strong><small>15.09. und 01.10.2026</small></section><section className="preview-stat"><span>Nächster Schritt</span><strong>Termin auswählen</strong><small>Die Entwürfe bleiben beim Wechsel getrennt erhalten.</small></section><section className="preview-stat"><span>Team</span><strong>{members.length} Personen</strong><small><button className="text-button" onClick={() => navigate('members')}>Zugänge verwalten →</button></small></section></div>
     <section className="data-section"><div className="section-header"><h2>So läuft die Meldung ab</h2></div><div className="preview-journey"><span>1 · Erfassen</span><span>2 · Prüfen</span><span>3 · Einreichen</span><span>4 · Glenmark Entscheidung</span><span>5 · Gutschrift</span></div></section>
   </>
-  else if (pharmacy && page === 'claims') content = <PreviewClaims currentStatus={claim.status} currentNumber={claimNumber} currentTerm={termIso} navigate={navigate}/>
+  else if (pharmacy && page === 'claims') content = <PreviewClaims currentClaims={openTerms.map(term => ({ number: term.number, termDate: term.iso, status: claims[term.iso].status, positionCount: claims[term.iso].items.length }))} navigate={navigate}/>
   else if (pharmacy && page.startsWith('claim:')) content = <PreviewClaimEditor claim={claim} term={term} claimNumber={claimNumber} checks={checks} completedChecks={completedChecks} nextHint={nextHint} navigate={navigate} updateClaim={updateClaim} addItem={addItem} updateItem={updateItem} removeItem={removeItem} submit={submit} discard={() => { updateClaim(initialClaim()); navigate('claims'); setMessage('Beispielentwurf verworfen.') }} setMessage={setMessage}/>
   else if (pharmacy && page.startsWith('sample:')) { const sample = sampleClaims.find(item => item.number === page.slice(7)); content = sample ? <PreviewSampleClaimDetail claim={sample} navigate={navigate}/> : <Notice tone="warning">Beispielmeldung nicht gefunden.</Notice> }
   else if (pharmacy && page === 'members') content = <PreviewMembers members={members} setMembers={setMembers} currentEmail={user.email} canManage={effectiveRole === 'PHARMACY_ADMIN'} setMessage={setMessage}/>
-  else if (pharmacy && (page === 'credits' || page.startsWith('credits:'))) content = <PreviewCredits credits={credits} selectedClaimNumber={page.startsWith('credits:') ? page.slice(8) : undefined} currentClaimNumber={claimNumber} navigate={navigate} onShowDocument={setSelectedCredit}/>
+  else if (pharmacy && (page === 'credits' || page.startsWith('credits:'))) content = <PreviewCredits credits={credits} selectedClaimNumber={page.startsWith('credits:') ? page.slice(8) : undefined} currentClaims={openTerms.map(term => ({ number: term.number, termDate: term.iso }))} navigate={navigate} onShowDocument={setSelectedCredit}/>
   else if (pharmacy) content = <><PageTitle title="Hilfe" subtitle="Die wichtigsten Fragen zur Meldung."/><div className="preview-grid"><section className="data-section"><h2>Welche Charge?</h2><p>Die Nummer wird frei von der Packung eingetragen. Sie muss vorhanden sein; es gibt keine Chargenvalidierung.</p></section><section className="data-section"><h2>Wann sehe ich Termine?</h2><p>Neue Senkungstermine werden nach dem Login im Portal angezeigt. Es gibt keine Terminankündigung per E-Mail.</p></section><section className="data-section"><h2>Kann ich korrigieren?</h2><p>Eine eingereichte Revision ist unveränderlich. Nach Ablehnung kann eine neue Revision angelegt werden, sofern die Frist offen ist.</p></section></div></>
   else if (role === 'REVIEWER' && page === 'review') content = <><PageTitle title="Arbeitsvorrat" subtitle="Beispielmeldungen zur fachlichen Prüfung."/><section className="data-section"><div className="section-header"><h2>{claimNumber}</h2><StatusPill status={claim.status}/></div><div className="preview-summary"><div><span>Apotheke</span><strong>Rosen-Apotheke am Markt</strong></div><div><span>Stichtag</span><strong>{term}</strong></div><div><span>Positionen</span><strong>{claim.status === 'DRAFT' ? 'Noch nicht eingereicht' : claim.items.length}</strong></div></div>{claim.status === 'MANUAL_REVIEW' ? <><p>{claim.items.length} Positionen · Die Charge wird fachlich nicht validiert.</p><div className="preview-actions"><Button variant="secondary" onClick={() => { updateClaim({ status: 'REJECTED', reason: 'Bitte den Bestandsnachweis erläutern (Beispielgrund).' }); setMessage('Ablehnung simuliert. Die Apotheke kann eine neue Revision erstellen.') }}>Mit Beispielgrund ablehnen</Button><Button onClick={() => { updateClaim({ status: 'APPROVED' }); setMessage('Freigabe simuliert. Finance kann nun den weiteren Ablauf ansehen.') }}>Freigabe simulieren</Button></div></> : <p className="muted">{claim.status === 'DRAFT' ? 'Die Beispielmeldung wurde noch nicht eingereicht.' : 'Für diese Beispielmeldung ist derzeit keine Prüfung offen.'}</p>}</section></>
   else if (role === 'REVIEWER' && page === 'registrations') content = <><PageTitle title="Registrierungen" subtitle="Betriebserlaubnis und Angaben vor Freigabe prüfen."/><section className="data-section"><div className="section-header"><h2>Stadt-Apotheke Nord (Beispiel)</h2><span className="preview-badge">{registrationApproved ? 'Freigegeben' : 'Wartet auf Prüfung'}</span></div><p>Ort: Beispielstadt · Antragsteller: Max Beispiel · Betriebserlaubnis: fiktives Beispieldokument</p>{!registrationApproved ? <Button onClick={() => { setRegistrationApproved(true); setMessage('Registrierung nur in der Vorschau freigegeben. Keine E-Mail versendet.') }}>Freigabe simulieren</Button> : null}</section></>
   else if (page === 'audit') content = <><PageTitle title="Audit" subtitle="Nachvollziehbarkeit von Entscheidungen und Revisionen."/><section className="data-section"><div className="preview-timeline"><div><strong>Registrierung</strong><p>{registrationApproved ? 'Beispielkonto freigegeben' : 'Beispielkonto wartet auf Prüfung'}</p></div><div><strong>Meldung</strong><p>{statusLabel[claim.status]} · {claimNumber}</p></div><div><strong>Export</strong><p>{exported ? 'Demo-CSV simuliert' : 'Noch kein Export simuliert'}</p></div></div></section></>
-  else content = <><PageTitle title="Abwicklung" subtitle="Freigegebene Beispielmeldungen und Gutschriften."/><section className="data-section"><div className="section-header"><h2>{claimNumber}</h2><StatusPill status={claim.status}/></div><p>Die echte DATEV-Spezifikation und externe Gutschrift-Schnittstelle sind noch offen. Diese Ansicht zeigt nur den geplanten Ablauf.</p><div className="preview-actions"><Button variant="secondary" disabled={claim.status !== 'APPROVED' || exported} onClick={() => { setExported(true); setMessage('Demo-CSV-Export simuliert. Keine DATEV-Datei erzeugt.') }}>Demo-CSV-Export simulieren</Button><Button disabled={claim.status !== 'APPROVED' || !exported} onClick={() => { updateClaim({ status: 'COMPLETED' }); setMessage('Beispielgutschrift zugeordnet. Kein Dokument importiert.') }}>Gutschrift simulieren</Button></div></section></>
+  else content = <><PageTitle title="Abwicklung" subtitle="Freigegebene Beispielmeldungen und Gutschriften."/><section className="data-section"><div className="section-header"><h2>{claimNumber}</h2><StatusPill status={claim.status}/></div><p>Die echte DATEV-Spezifikation und externe Gutschrift-Schnittstelle sind noch offen. Diese Ansicht zeigt nur den geplanten Ablauf.</p><div className="preview-actions"><Button variant="secondary" disabled={claim.status !== 'APPROVED' || exported} onClick={() => { setExportedTerms(current => [...current, activeTerm.iso]); setMessage('Demo-CSV-Export simuliert. Keine DATEV-Datei erzeugt.') }}>Demo-CSV-Export simulieren</Button><Button disabled={claim.status !== 'APPROVED' || !exported} onClick={() => { updateClaim({ status: 'COMPLETED' }); setMessage('Beispielgutschrift zugeordnet. Kein Dokument importiert.') }}>Gutschrift simulieren</Button></div></section></>
 
   return <Shell user={user} page={page} demo onNavigate={navigate} onLogout={reset} account={{ onSettings: () => navigate('account'), switchable: role === 'PHARMACY_ADMIN' && !viewAsEmail ? members.filter(member => !member.admin && member.status === 'Aktiv').map(member => ({ id: member.email, name: member.name, email: member.email })) : [], onSwitch: switchToMember, viewingAs: viewedMember?.name, onReturn: returnToAdmin }} aside={pharmacy && page.startsWith('claim:') ? <PreviewClaimAside/> : undefined}>
     {message ? <Notice tone={message.startsWith('Bitte') || message.startsWith('Mindestens') || message.startsWith('Diese Adresse') ? 'warning' : 'info'}>{message}</Notice> : null}
