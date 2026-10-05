@@ -1,8 +1,9 @@
-import { useState, type ReactNode, type ButtonHTMLAttributes } from 'react'
+import { useEffect, useRef, useState, type ReactNode, type ButtonHTMLAttributes } from 'react'
 import type { Status, User } from './types'
 import { statusLabel } from './types'
+import './account.css'
 
-type IconName = 'home' | 'file' | 'users' | 'credit' | 'help' | 'shield' | 'logout' | 'arrow' | 'calendar' | 'check' | 'alert' | 'plus' | 'upload' | 'trash' | 'search' | 'menu' | 'clock' | 'download' | 'settings' | 'mail' | 'more' | 'close' | 'userPlus' | 'refresh' | 'unlock'
+type IconName = 'home' | 'file' | 'users' | 'credit' | 'help' | 'shield' | 'logout' | 'arrow' | 'chevron' | 'calendar' | 'check' | 'alert' | 'plus' | 'upload' | 'trash' | 'search' | 'menu' | 'clock' | 'download' | 'settings' | 'mail' | 'more' | 'close' | 'userPlus' | 'refresh' | 'unlock'
 export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
   const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true as const }
   const path: Record<IconName, ReactNode> = {
@@ -14,6 +15,7 @@ export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
     shield: <><path d="M12 2 4 5v6c0 5 3.4 8.7 8 11 4.6-2.3 8-6 8-11V5z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></>,
     logout: <><path d="M10 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5M14 7l5 5-5 5M8 12h11"/></>,
     arrow: <><path d="M4 12h16m-6-6 6 6-6 6"/></>,
+    chevron: <path d="m6 9 6 6 6-6"/>,
     calendar: <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/></>,
     check: <><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></>,
     alert: <><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 17h.01"/></>,
@@ -43,8 +45,20 @@ export function Notice({ children, tone = 'info' }: { children: ReactNode; tone?
 export function Empty({ title, description, action }: { title: string; description: string; action?: ReactNode }) { return <div className="empty"><div className="empty-icon"><Icon name="file" size={27}/></div><h3>{title}</h3><p>{description}</p>{action}</div> }
 export function PageTitle({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) { return <header className="page-title"><div><h1>{title}</h1>{subtitle ? <p>{subtitle}</p> : null}</div>{action}</header> }
 
-export function Shell({ user, page, demo = false, onNavigate, onLogout, children, aside }: { user: User; page: string; demo?: boolean; onNavigate: (page: string) => void; onLogout: () => void; children: ReactNode; aside?: ReactNode }) {
+type AccountControls = { onSettings: () => void; switchable?: { id: string; name: string; email: string }[]; onSwitch?: (id: string) => void; viewingAs?: string; onReturn?: () => void }
+
+export function Shell({ user, page, demo = false, onNavigate, onLogout, children, aside, account }: { user: User; page: string; demo?: boolean; onNavigate: (page: string) => void; onLogout: () => void; children: ReactNode; aside?: ReactNode; account?: AccountControls }) {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
+  const accountRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!accountOpen) return
+    const outside = (event: PointerEvent) => { if (!accountRef.current?.contains(event.target as Node)) setAccountOpen(false) }
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') setAccountOpen(false) }
+    document.addEventListener('pointerdown', outside)
+    document.addEventListener('keydown', escape)
+    return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', escape) }
+  }, [accountOpen])
   const pharmacy = user.role.startsWith('PHARMACY')
   const links: { key: string; label: string; icon: IconName }[] = pharmacy ? [
     { key: 'dashboard', label: 'Übersicht', icon: 'home' },
@@ -60,10 +74,12 @@ export function Shell({ user, page, demo = false, onNavigate, onLogout, children
     { key: 'finance', label: 'Abwicklung', icon: 'credit' },
     { key: 'audit', label: 'Audit', icon: 'shield' }
   ]
-  const navigate = (key: string) => { onNavigate(key); setMobileOpen(false) }
+  const navigate = (key: string) => { onNavigate(key); setMobileOpen(false); setAccountOpen(false) }
+  const initials = user.name.split(/\s+/).filter(Boolean).map(part => part[0]).slice(0, 2).join('').toUpperCase()
   return <div className="app-shell">
     <div className="demo-bar"><strong>Demo-Modus</strong><span>Fiktive Daten · Externe Schnittstellen sind nicht verbunden</span></div>
-    <header className="topbar"><button className="mobile-menu icon-button" onClick={() => setMobileOpen(v => !v)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="brand"><span>LAWEA</span> direkt <em>Plus</em></div><div className="brand-tagline">Lagerwertverluste einfach melden.</div><div className="topbar-spacer"/><div className="topbar-organization">{user.organizationName || 'Glenmark Bearbeitung'}</div><div className="topbar-user"><span className="avatar">{user.name.split(' ').map(x => x[0]).slice(0, 2).join('')}</span><span>{user.name}</span></div></header>
-    <div className="shell-body"><nav className={`sidebar ${mobileOpen ? 'sidebar-open' : ''}`} aria-label="Hauptnavigation"><div className="nav-links">{links.map(link => <button key={link.key} className={`nav-link ${page === link.key || (page.startsWith('claim:') && link.key === 'claims') ? 'active' : ''}`} onClick={() => navigate(link.key)}><Icon name={link.icon}/><span>{link.label}</span></button>)}</div><div className="nav-bottom"><button className="nav-link" onClick={onLogout}><Icon name="logout"/><span>{demo && pharmacy ? 'Abmelden · Demo zurücksetzen' : 'Abmelden'}</span></button></div></nav><main className={`main-content ${aside ? 'has-aside' : ''}`}><div className="content-inner">{children}</div></main>{aside ? <aside className="assistant-rail">{aside}</aside> : null}</div>
+    <header className="topbar"><button className="mobile-menu icon-button" onClick={() => setMobileOpen(v => !v)} aria-label="Menü öffnen"><Icon name="menu"/></button><div className="brand"><span>LAWEA</span> direkt <em>Plus</em></div><div className="brand-tagline">Lagerwertverluste einfach melden.</div><div className="topbar-spacer"/><div className="topbar-organization">{user.organizationName || 'Glenmark Bearbeitung'}</div><div className="topbar-account" ref={accountRef}><button type="button" className="topbar-account-trigger" aria-label={`Profilmenü für ${user.name} öffnen`} aria-haspopup="menu" aria-expanded={accountOpen} onClick={() => setAccountOpen(value => !value)}><span className="avatar">{initials}</span><span className="topbar-account-name">{user.name}</span><Icon name="chevron" size={16}/></button>{accountOpen ? <div className="account-menu" role="menu" aria-label="Profil und Konto"><div className="account-menu-identity"><span className="avatar">{initials}</span><div><strong>{user.name}</strong><span>{user.email}</span><small>{account?.viewingAs ? 'Mitarbeiteransicht · Demo' : user.role === 'PHARMACY_ADMIN' ? 'Unternehmensadministrator' : user.role === 'PHARMACY_STAFF' ? 'Mitarbeiter' : user.role === 'REVIEWER' ? 'Prüfung' : 'Finance'}</small></div></div>{account ? <div className="account-menu-actions"><button role="menuitem" onClick={() => { setAccountOpen(false); account.onSettings() }}><Icon name="settings" size={18}/> Kontoeinstellungen <Icon name="arrow" size={16}/></button>{account.viewingAs && account.onReturn ? <button role="menuitem" onClick={() => { setAccountOpen(false); account.onReturn?.() }}><Icon name="shield" size={18}/> Zur Adminansicht zurück</button> : null}</div> : null}{account?.switchable?.length && account.onSwitch && !account.viewingAs ? <div className="account-switch-list"><span>Ansicht als Mitarbeiter testen</span>{account.switchable.map(member => <button role="menuitem" key={member.id} onClick={() => { setAccountOpen(false); account.onSwitch?.(member.id) }}><span className="account-mini-avatar">{member.name.split(/\s+/).map(part => part[0]).slice(0, 2).join('').toUpperCase()}</span><span><strong>{member.name}</strong><small>{member.email}</small></span><Icon name="arrow" size={15}/></button>)}</div> : null}<div className="account-menu-bottom"><button role="menuitem" onClick={() => { setAccountOpen(false); onLogout() }}><Icon name="logout" size={18}/> Abmelden</button></div></div> : null}</div></header>
+    {account?.viewingAs && account.onReturn ? <div className="account-view-banner" role="status"><Icon name="users" size={18}/><span>Sie sehen die Vorschau als <strong>{account.viewingAs}</strong>. Sie bleiben als Administrator angemeldet.</span><button onClick={account.onReturn}>Zur Adminansicht</button></div> : null}
+    <div className="shell-body"><nav className={`sidebar ${mobileOpen ? 'sidebar-open' : ''}`} aria-label="Hauptnavigation"><div className="nav-links">{links.map(link => <button key={link.key} className={`nav-link ${page === link.key || (page.startsWith('claim:') && link.key === 'claims') || (page.startsWith('sample:') && link.key === 'claims') || (page.startsWith('credits:') && link.key === 'credits') ? 'active' : ''}`} onClick={() => navigate(link.key)}><Icon name={link.icon}/><span>{link.label}</span></button>)}</div><div className="nav-bottom"><button className="nav-link" onClick={onLogout}><Icon name="logout"/><span>{demo && pharmacy ? 'Abmelden · Demo zurücksetzen' : 'Abmelden'}</span></button></div></nav><main className={`main-content ${aside ? 'has-aside' : ''}`}><div className="content-inner">{children}</div></main>{aside ? <aside className="assistant-rail">{aside}</aside> : null}</div>
   </div>
 }
