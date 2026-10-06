@@ -19,7 +19,7 @@ Die lokale Demo gibt OTPs und Links bewusst an den Browser zurück, nutzt einen 
 
 ## Verbindliche Arbeit vor Produktivbetrieb
 
-1. LAWEA-Datenvertrag, NGDA/N-Connect-Verfahren und fachliche Regeln aus `06-offene-entscheidungen.md` bestätigen; keine Demo-PZN, Demo-Chargen oder Demo-Fristen übernehmen.
+1. LAWEA-Datenvertrag, NGDA/N-Connect-Verfahren und fachliche Regeln aus `06-offene-entscheidungen.md` bestätigen; keine Demo-PZN oder Demo-Fristen übernehmen. Chargen werden laut aktueller Nutzerentscheidung frei erfasst und nicht validiert.
 2. Transaktions-E-Mail mit Zustellbarkeit, Wiederholung und Geheimhaltung der Codes anbinden; keine OTPs oder Reset-Links in API-Antworten; verteilte Rate Limits und Konto-Schutz einrichten.
 3. Uploads in Quarantäne speichern, Malware-Scan und PDF/Bild-Validierung durchführen, erst danach Belege für Prüfer freigeben. Aufbewahrung und Löschung verbindlich festlegen.
 4. HTTPS/TLS, `Secure`-Cookies, Reverse-Proxy-Konfiguration, zentrale Geheimnisverwaltung/KMS, Schlüsselrotation, Datenbank-/Datei-Backup, Restore-Test, Monitoring und Incident-Prozess etablieren.

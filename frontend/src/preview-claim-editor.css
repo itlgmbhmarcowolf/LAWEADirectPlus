@@ -1,0 +1,16 @@
+.preview-claim-editor{width:100%}
+.preview-claim-heading{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 22px}
+.preview-claim-heading h1{margin:0;color:#102e51;font-size:32px;letter-spacing:-.035em;line-height:1.15}
+.preview-claim-heading span{color:#5e7288;font-size:14px;font-weight:650}
+.preview-claim-section{padding:23px 24px 24px;margin-bottom:16px;border:1px solid #d9e6eb;border-radius:12px;background:#fff;box-shadow:0 8px 24px rgba(21,58,79,.045)}
+.preview-claim-section>h2{margin:0 0 16px;color:#102e51;font-size:21px;letter-spacing:-.02em}
+.preview-claim-section .position-header{border-radius:7px 7px 0 0}
+.preview-claim-section .position-row:last-of-type{border-radius:0 0 7px 7px}
+.preview-claim-section .add-row{width:auto;min-height:43px;margin-top:13px;padding:9px 15px;border:1px solid #b9d8e0;border-radius:7px;background:#eef8fa}
+.preview-claim-section .add-row:hover{background:#e1f2f6}
+.preview-position-help{margin:12px 0 0;padding:10px 13px;border-left:3px solid #58b5c6;border-radius:0 6px 6px 0;background:#f1f9fb;color:#385d72;font-size:12px;line-height:1.5}
+.preview-claim-section .preview-evidence-zone{max-width:420px;min-height:84px}
+.preview-hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.preview-claim-section .check-field{margin:16px 0 0;padding-top:15px;border-top:1px solid #e6eef1}
+@media(min-width:1100px){.preview-claim-details{display:grid;grid-template-columns:1fr 1fr;gap:16px}.preview-claim-details .preview-claim-section{min-width:0}}
+@media(max-width:620px){.preview-claim-heading{display:block;margin-bottom:19px}.preview-claim-heading h1{font-size:28px}.preview-claim-heading span{display:block;margin-top:5px}.preview-claim-section{padding:16px;margin-bottom:13px}.preview-claim-section>h2{font-size:19px}.preview-claim-section .position-row:last-of-type{border-radius:5px}.preview-claim-section .add-row{width:100%;justify-content:center}.preview-claim-section .preview-evidence-zone{max-width:none}}

@@ -6,10 +6,10 @@ Eine Apotheke erledigt eine LWV-Meldung geführt, fehlerarm und nachvollziehbar:
 
 ## Gestaltungsprinzipien
 
-1. **Eine nächste sinnvolle Aktion:** Jede Übersichtsseite hebt den nächsten Schritt hervor, ohne andere Optionen zu verstecken.
+1. **Stichtage zuerst:** Die Apothekenübersicht zeigt eine einfache Liste aus Stichtag und Meldungsstand. Ein Klick öffnet den zugehörigen Vorgang; weitere Hinweise stehen erst dort.
 2. **Erst erklären, dann fordern:** Fachbegriffe wie PZN, Charge, Senkungstermin und Bestand zum Stichtag werden direkt am Feld kurz erklärt.
 3. **Fortschritt sichern:** Entwürfe automatisch und explizit speichern; Zeitpunkt der letzten Speicherung sichtbar; bei Verbindungsfehlern Eingaben lokal vor Verlust schützen und erneuten Versuch anbieten.
-4. **Fehler früh und präzise:** Eingabeformat direkt prüfen; fachliche LAWEA-Prüfung vor finaler Bestätigung anzeigen; Fehlermeldungen nennen Feld, Ursache und Handlung.
+4. **Fehler früh und präzise:** Eingabeformat und Pflichtfelder direkt prüfen; fachliche PZN-/Stichtagsprüfung vor finaler Bestätigung anzeigen; Fehlermeldungen nennen Feld, Ursache und Handlung. Für Chargen genügt eine nichtleere Eingabe.
 5. **Verbindliche Aktionen bewusst:** Vor Einreichung eine lesbare Zusammenfassung aller Positionen, Belege und Erklärungen; der Benutzer bestätigt bewusst. Nach Einreichung wird die Revision gesperrt.
 6. **Status in Alltagssprache:** Benutzer sehen „Entwurf“, „Eingereicht“, „Wir prüfen“, „Bitte korrigieren“, „Freigegeben“, „Gutschrift verfügbar“. Interne Statuscodes bleiben im System.
 7. **Transparente Verantwortung:** Zeige wer als Nächstes handelt und ob die Apotheke etwas tun muss. Keine Zahlungszusage vor tatsächlicher fachlicher Entscheidung.
@@ -31,13 +31,13 @@ Eine Apotheke erledigt eine LWV-Meldung geführt, fehlerarm und nachvollziehbar:
 
 | Seite | Zweck | Zentrale Elemente |
 | --- | --- | --- |
-| Übersicht | Nächste Aufgaben erkennen | Offene Senkungstermine, Entwürfe, Korrekturbedarf, letzte Statusänderungen, Gutschriften. |
-| Meldungen | Stichtage und Vorgänge finden | Tabs „Jetzt einreichen“, „Entwürfe“, „Eingereicht“, „Abgeschlossen“; Filter/Suche; keine leere Historienliste für nie beteiligte Termine. |
-| Meldung erstellen/bearbeiten | Positionen erfassen | Stichtag, PZN-Suche, Charge, Anzahl Packungen, Beleg-Upload, Ansprechpartner, Kommentar, Erklärungsfeld, Zwischenspeichern. |
-| Meldungsdetail | Verlauf verstehen | Revisionen, Prüfungen, eingereichte Daten, sichere Belege, Begründung bei Ablehnung, Gutschrift-Link. |
-| Mitarbeiter | Zugänge verwalten | Tabelle aus U; Admin-Aktionen nur für Unternehmensadministratoren; andere sehen eine eingeschränkte Liste. |
+| Übersicht | Stichtag und Stand sofort erkennen | Schlichte anklickbare Liste der sichtbaren Stichtage, neueste zuerst, 15 pro Seite. Bei Bedarf kann auf 10 pro Seite gewechselt und unten geblättert werden. Die Browserseite scrollt normal. Offene Termine und ältere Termine mit eigener Meldung bleiben sichtbar; historische Termine ohne Teilnahme werden nicht gezeigt. Die Konzeptvorschau ergänzt ausdrücklich fiktive ältere Vorgänge, damit das Blättern erlebbar ist. Der produktive Rückblick und die Fristen bleiben fachlich zu klären. |
+| Meldungen | Stichtage und Vorgänge finden | Bereiche „Neu“, „Entwürfe“, „Eingereicht“ und „Ausgezahlt“, jeweils neueste zuerst und mit 15 Vorgängen pro Seite. Kein Datumsfilter. „Eingereicht“ enthält alle eigenen Einreichungen einschließlich später ausgezahlter Vorgänge. Ein Klick öffnet den schreibgeschützten eingereichten Vorgang oder einen bearbeitbaren Entwurf. |
+| Meldung erstellen/bearbeiten | Positionen erfassen | Kompakter Stichtag im Kopf, dann direkt Positionen. Kurze Feldhilfe erscheint erst nach „Position hinzufügen“; danach Nachweis und optionaler Kommentar. Kein separates Ansprechpartner-Feld: Die einreichende Person steht über die Anmeldung fest. Richtigkeitsbestätigung, Zwischenspeichern und bewusste Prüfung vor Einreichung bleiben erhalten. |
+| Meldungsdetail | Verlauf verstehen | Eingereichte Positionen und Kommentar schreibgeschützt ansehen, eigene Nachweise erneut herunterladen, Revisionen und Prüfungen nachvollziehen, Begründung bei Ablehnung und Gutschrift-Link öffnen. |
+| Profilmenü | Eigenen Zugang und Mitarbeiter verwalten | Oben rechts führt „Profil bearbeiten“ zu persönlichen Angaben und zur Kennwortänderung auf einer Seite; Unternehmensadministratoren öffnen dort auch die Mitarbeiterverwaltung. Kein eigener Mitarbeiterpunkt in der Seitennavigation. |
 | Apothekenprofil | Stammdaten prüfen | Adresse, Ansprechpartner, IBAN maskiert, Nachweisstatus; Änderungen mit erneuter Prüfung bei kritischen Stammdaten. |
-| Gutschriften | Dokumente abrufen | Eindeutiger Vorgangsbezug, Datum, Betrag falls vorhanden, Download, Status. |
+| Gutschriften | Dokumente abrufen | Eigener Punkt in der Seitennavigation mit Liste der bereitgestellten Gutschriften. Jeder Eintrag führt zur Meldung; die abgeschlossene Meldung führt zur zugehörigen Gutschrift und deren Download. |
 | Hilfe | Selbsthilfe | Kontextspezifische Erläuterungen, kurze FAQ, Supportkontakt und Fehlermeldungs-Referenz. |
 
 ### Glenmark-/Prüfbereich
@@ -65,10 +65,10 @@ Die Assistenz ist ein **Copilot für das Ausfüllen und Verstehen**. Sie soll pr
 1. Administrator legt Konto an, verifiziert E-Mail und sieht „Prüfung ausstehend“.
 2. Prüfer gibt Apotheke frei; Administrator meldet sich mit MFA an.
 3. Übersicht zeigt „Senkungstermin 01.10.2026 – noch 3 Tage einreichbar“ **nur, wenn das tatsächlich konfigurierte Fenster dies ergibt**.
-4. Mitarbeiter fügt Positionen hinzu. Nach jeder PZN/Charge zeigt das System „geprüft“ oder einen konkreten Fehler. Entwurf bleibt erhalten.
+4. Mitarbeiter fügt Positionen hinzu. Das System prüft die PZN zum Stichtag und zeigt bei einer leeren Chargennummer einen konkreten Fehler. Es behauptet keine fachliche Chargenprüfung. Der Entwurf bleibt erhalten.
 5. Vor Einreichen zeigt die Zusammenfassung alle Positionen und Belege. Nach Bestätigung wird die Revision unveränderlich; Empfangsnummer erscheint sofort und per neutraler E-Mail.
 6. Eine Regelabweichung bringt den Vorgang in Glenmarks Queue. Bei Ablehnung sieht die Apotheke den Grund im Portal, erstellt eine neue Revision und reicht erneut ein.
-7. Nach Freigabe und zugeordneter Gutschrift erscheint das Dokument im eigenen Bereich mit Benachrichtigung.
+7. Nach Freigabe und zugeordneter Gutschrift erscheint das Dokument direkt in der abgeschlossenen Meldung mit Benachrichtigung.
 
 ## Messbare UX-Ziele für die Abnahme
 

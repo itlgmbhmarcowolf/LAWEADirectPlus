@@ -150,7 +150,7 @@ function createSession(res, userId) {
 function userPayload(s) { return { id: s.uid, name: s.name, email: s.email, role: s.role, organizationId: s.organization_id, organizationName: s.org_name } }
 function pharmacyClaim(req, claimId, editable = false) {
   if (!z.uuid().safeParse(claimId).success) throw problem(404, 'Meldung nicht gefunden.')
-  const claim = db.prepare('SELECT * FROM claims WHERE id=? AND organization_id=?').get(claimId, req.session.organization_id)
+  const claim = db.prepare('SELECT * FROM claims WHERE id=? AND organization_id=? AND demo_archived_at IS NULL').get(claimId, req.session.organization_id)
   if (!claim) throw problem(404, 'Meldung nicht gefunden.')
   if (editable && claim.status !== 'DRAFT') throw problem(409, 'Diese eingereichte Version ist gesperrt.')
   return claim
@@ -211,10 +211,43 @@ app.post('/api/auth/verify', (req, res) => {
   res.json({ user: userPayload(user), csrf })
 })
 app.post('/api/auth/logout', requireUser, requireCsrf, (req, res) => {
-  db.prepare('DELETE FROM sessions WHERE token_hash=?').run(req.session.token_hash)
+  db.transaction(() => {
+    // Nur lokale Demo: Einreichungen bleiben unverändert im Archiv, während die Apotheke neu üben kann.
+    if (DEMO && req.session.organization_id && req.session.role.startsWith('PHARMACY_')) {
+      const archived = db.prepare('UPDATE claims SET demo_archived_at=? WHERE organization_id=? AND demo_archived_at IS NULL')
+        .run(now(), req.session.organization_id)
+      audit(req.session.uid, req.session.organization_id, 'organization', req.session.organization_id, 'DEMO_RESET_ON_LOGOUT', `${archived.changes} Meldungen archiviert`)
+    }
+    db.prepare('DELETE FROM sessions WHERE token_hash=?').run(req.session.token_hash)
+  })()
   res.clearCookie('lawea_session', { path: '/' })
   res.json({ ok: true })
 })
+
+app.post('/api/account/name', requireUser, requireCsrf, (req, res) => {
+  const { name } = parse(z.object({ name: required() }).strict(), req.body)
+  db.transaction(() => {
+    db.prepare('UPDATE users SET name=? WHERE id=?').run(name, req.session.uid)
+    audit(req.session.uid, req.session.organization_id, 'user', req.session.uid, 'OWN_NAME_CHANGED')
+  })()
+  res.json({ name })
+})
+
+app.post('/api/account/password', requireUser, requireCsrf, asyncRoute(async (req, res) => {
+  const input = parse(z.object({ currentPassword: z.string().min(1).max(128), newPassword: password, newPasswordAgain: password }).strict(), req.body)
+  if (input.newPassword !== input.newPasswordAgain) throw problem(400, 'Neue Kennwörter stimmen nicht überein.')
+  if (input.currentPassword === input.newPassword) throw problem(400, 'Bitte ein neues Kennwort wählen.')
+  const user = db.prepare('SELECT password_hash,email FROM users WHERE id=?').get(req.session.uid)
+  if (!user || !(await verify(user.password_hash, input.currentPassword))) throw problem(401, 'Aktuelles Kennwort ist nicht korrekt.')
+  const passwordHash = await hash(input.newPassword, { memoryCost: 19456, timeCost: 2, parallelism: 1 })
+  db.transaction(() => {
+    db.prepare('UPDATE users SET password_hash=? WHERE id=?').run(passwordHash, req.session.uid)
+    db.prepare('DELETE FROM sessions WHERE user_id=? AND token_hash<>?').run(req.session.uid, req.session.token_hash)
+    audit(req.session.uid, req.session.organization_id, 'user', req.session.uid, 'OWN_PASSWORD_CHANGED')
+    mail(user.email, 'Kennwort geändert', 'Das Kennwort Ihres Zugangs wurde geändert. Wenn Sie das nicht selbst veranlasst haben, wenden Sie sich an den Support.')
+  })()
+  res.json({ ok: true })
+}))
 
 app.post('/api/register', upload.single('license'), asyncRoute(async (req, res) => {
   limited(`register:${req.ip}`, 4, 3600000)
@@ -293,12 +326,12 @@ app.get('/api/bootstrap', requireUser, (req, res) => {
   const products = db.prepare('SELECT pzn,name,maker FROM products ORDER BY name').all()
   if (s.organization_id) {
     const org = db.prepare('SELECT * FROM organizations WHERE id=?').get(s.organization_id)
-    const claims = db.prepare('SELECT c.*,t.date AS term_date,t.label AS term_label FROM claims c JOIN terms t ON t.id=c.term_id WHERE c.organization_id=? ORDER BY c.updated_at DESC').all(s.organization_id).map(claimView)
+    const claims = db.prepare('SELECT c.*,t.date AS term_date,t.label AS term_label FROM claims c JOIN terms t ON t.id=c.term_id WHERE c.organization_id=? AND c.demo_archived_at IS NULL ORDER BY c.updated_at DESC').all(s.organization_id).map(claimView)
     const members = db.prepare('SELECT id,name,email,role,status FROM users WHERE organization_id=? ORDER BY name').all(s.organization_id)
     const invitations = s.role === 'PHARMACY_ADMIN' ? db.prepare(`SELECT id,name,email,role,expires_at,created_by
       FROM invitations WHERE organization_id=? AND consumed_at IS NULL AND revoked_at IS NULL AND expires_at>?
       ORDER BY expires_at ASC`).all(s.organization_id, now()) : []
-    const credits = db.prepare("SELECT cr.id,cr.claim_id,cr.reference,cr.created_at,cr.published_at,cr.document_id,c.number AS claim_number FROM credits cr JOIN claims c ON c.id=cr.claim_id WHERE cr.organization_id=? AND cr.status='PUBLISHED' ORDER BY cr.published_at DESC").all(s.organization_id)
+    const credits = db.prepare("SELECT cr.id,cr.claim_id,cr.reference,cr.created_at,cr.published_at,cr.document_id,c.number AS claim_number FROM credits cr JOIN claims c ON c.id=cr.claim_id WHERE cr.organization_id=? AND cr.status='PUBLISHED' AND c.demo_archived_at IS NULL ORDER BY cr.published_at DESC").all(s.organization_id)
     const ownTermIds = new Set(claims.map(c => c.term_id))
     const visibleTerms = terms.filter(t => isOpen(t) || ownTermIds.has(t.id))
     res.json({ user: userPayload(s), organization: { id: org.id, name: org.name, street: org.street, zip: org.zip, city: org.city, owner: org.owner, phone: org.phone, ibanMasked: maskIban(decrypt(org.iban_enc)), status: org.status }, terms: visibleTerms, products, claims, members, invitations, credits, demo: DEMO })
@@ -306,14 +339,14 @@ app.get('/api/bootstrap', requireUser, (req, res) => {
     const pending = s.role === 'REVIEWER' ? db.prepare("SELECT o.id,o.name,o.city,o.owner,o.created_at,o.license_document_id,u.name AS applicant,u.email FROM organizations o JOIN users u ON u.organization_id=o.id WHERE o.status='PENDING_APPROVAL' AND u.role='PHARMACY_ADMIN'").all() : []
     const claims = db.prepare(`SELECT c.*,o.name AS organization_name,t.date AS term_date,t.label AS term_label
       FROM claims c JOIN organizations o ON o.id=c.organization_id JOIN terms t ON t.id=c.term_id
-      WHERE c.status IN ('MANUAL_REVIEW','APPROVED','REJECTED','COMPLETED') ORDER BY c.updated_at DESC`).all().map(row => s.role === 'REVIEWER' ? claimView(row) : {
+      WHERE c.demo_archived_at IS NULL AND c.status IN ('MANUAL_REVIEW','APPROVED','REJECTED','COMPLETED') ORDER BY c.updated_at DESC`).all().map(row => s.role === 'REVIEWER' ? claimView(row) : {
         id: row.id, number: row.number, organization_id: row.organization_id, organization_name: row.organization_name,
         term_id: row.term_id, term_date: row.term_date, term_label: row.term_label, status: row.status,
         revision_no: row.revision_no, updated_at: row.updated_at, submitted_at: row.submitted_at,
         export_run_id: row.export_run_id
       })
-    const exports = s.role === 'FINANCE' ? db.prepare('SELECT id,created_at,count,sha256,status FROM export_runs ORDER BY created_at DESC').all() : []
-    const creditQueue = s.role === 'FINANCE' ? db.prepare('SELECT id,reference,status,reason,claim_id,document_id,created_at FROM credits ORDER BY created_at DESC').all() : []
+    const exports = s.role === 'FINANCE' ? db.prepare('SELECT e.id,e.created_at,e.count,e.sha256,e.status FROM export_runs e WHERE EXISTS (SELECT 1 FROM claims c WHERE c.export_run_id=e.id AND c.demo_archived_at IS NULL) ORDER BY e.created_at DESC').all() : []
+    const creditQueue = s.role === 'FINANCE' ? db.prepare('SELECT cr.id,cr.reference,cr.status,cr.reason,cr.claim_id,cr.document_id,cr.created_at FROM credits cr WHERE cr.claim_id IS NULL OR EXISTS (SELECT 1 FROM claims c WHERE c.id=cr.claim_id AND c.demo_archived_at IS NULL) ORDER BY cr.created_at DESC').all() : []
     res.json({ user: userPayload(s), pending, claims, terms, products, exports, creditQueue, demo: DEMO })
   }
 })
@@ -328,6 +361,7 @@ app.get('/api/documents/:id', requireUser, (req, res, next) => {
     if (!z.uuid().safeParse(req.params.id).success) throw problem(404, 'Dokument nicht gefunden.')
     const doc = db.prepare('SELECT * FROM documents WHERE id=?').get(req.params.id)
     if (!doc) throw problem(404, 'Dokument nicht gefunden.')
+    if (doc.claim_id && !db.prepare('SELECT 1 FROM claims WHERE id=? AND demo_archived_at IS NULL').get(doc.claim_id)) throw problem(404, 'Dokument nicht gefunden.')
     const s = req.session
     const allowed = s.organization_id
       ? doc.organization_id === s.organization_id && doc.kind !== 'LICENSE' && (doc.kind === 'CREDIT' || !doc.removed_at)
@@ -473,7 +507,7 @@ app.post('/api/claims', requireUser, requireRole('PHARMACY_ADMIN', 'PHARMACY_STA
   const { termId } = parse(z.object({ termId: z.string().min(1).max(80) }).strict(), req.body)
   const term = db.prepare('SELECT * FROM terms WHERE id=?').get(termId)
   if (!isOpen(term)) throw problem(409, 'Dieser Senkungstermin ist nicht einreichbar.')
-  const existing = db.prepare("SELECT id FROM claims WHERE organization_id=? AND term_id=? AND status<>'CANCELLED' ORDER BY created_at DESC LIMIT 1").get(req.session.organization_id, termId)
+  const existing = db.prepare("SELECT id FROM claims WHERE organization_id=? AND term_id=? AND demo_archived_at IS NULL AND status<>'CANCELLED' ORDER BY created_at DESC LIMIT 1").get(req.session.organization_id, termId)
   if (existing) return res.json({ id: existing.id, existing: true })
   const claimId = id(), current = now(), number = `LWV-DEMO-${new Date().getUTCFullYear()}-${claimId.slice(0, 8).toUpperCase()}`
   const initial = { items: [], contactName: req.session.name, contactEmail: req.session.email, comment: '', declaration: false }
@@ -485,7 +519,7 @@ app.post('/api/claims', requireUser, requireRole('PHARMACY_ADMIN', 'PHARMACY_STA
 app.get('/api/claims/:id', requireUser, (req, res) => {
   let claim
   if (req.session.organization_id) claim = pharmacyClaim(req, req.params.id)
-  else if (req.session.role === 'REVIEWER') claim = db.prepare('SELECT * FROM claims WHERE id=?').get(req.params.id)
+  else if (req.session.role === 'REVIEWER') claim = db.prepare('SELECT * FROM claims WHERE id=? AND demo_archived_at IS NULL').get(req.params.id)
   if (!claim) throw problem(404, 'Meldung nicht gefunden.')
   const documents = db.prepare('SELECT id,kind,original_name,mime,size,scan_status,created_at,removed_at FROM documents WHERE claim_id=? ORDER BY created_at').all(claim.id)
   const revisions = db.prepare('SELECT revision_no,status,submitted_at,decision_at,decision_reason,snapshot_json FROM claim_revisions WHERE claim_id=? ORDER BY revision_no DESC').all(claim.id).map(r => ({ ...r, snapshot: JSON.parse(r.snapshot_json), snapshot_json: undefined }))
@@ -497,7 +531,9 @@ app.put('/api/claims/:id/draft', requireUser, requireRole('PHARMACY_ADMIN', 'PHA
   const claim = pharmacyClaim(req, req.params.id, true)
   const input = parse(draftSchema, req.body)
   if (input.version !== claim.version) throw problem(409, 'Der Entwurf wurde inzwischen geändert. Bitte laden Sie ihn neu.', 'VERSION_CONFLICT')
-  const { version, ...draft } = input
+  const { version, ...draftInput } = input
+  // Der Kontakt stammt aus der authentifizierten Sitzung, nicht aus einem Formularfeld.
+  const draft = { ...draftInput, contactName: req.session.name, contactEmail: req.session.email }
   const changed = db.prepare("UPDATE claims SET draft_json=?, version=version+1, updated_at=? WHERE id=? AND version=? AND status='DRAFT'")
     .run(JSON.stringify(draft), now(), claim.id, version)
   if (!changed.changes) throw problem(409, 'Der Entwurf wurde inzwischen geändert.', 'VERSION_CONFLICT')
@@ -524,14 +560,13 @@ app.post('/api/claims/:id/cancel', requireUser, requireRole('PHARMACY_ADMIN', 'P
   audit(req.session.uid, claim.organization_id, 'claim', claim.id, 'CANCELLED')
   res.json({ ok: true })
 })
-function validateSubmission(claim) {
+function validateSubmission(claim, submitter) {
   const term = db.prepare('SELECT * FROM terms WHERE id=?').get(claim.term_id)
   if (!isOpen(term)) throw problem(409, 'Die Einreichungsfrist ist abgelaufen. Ihr Entwurf bleibt erhalten.')
-  const draft = JSON.parse(claim.draft_json)
+  const draft = { ...JSON.parse(claim.draft_json), contactName: submitter.name, contactEmail: submitter.email }
   const errors = []
   if (!draft.items.length) errors.push('Mindestens eine Position erfassen.')
-  if (!draft.contactName?.trim()) errors.push('Ansprechpartner angeben.')
-  if (!email.safeParse(draft.contactEmail).success) errors.push('E-Mail des Ansprechpartners prüfen.')
+  if (!draft.contactName?.trim() || !email.safeParse(draft.contactEmail).success) errors.push('Angemeldete Person konnte nicht zugeordnet werden.')
   if (!draft.declaration) errors.push('Richtigkeit der Angaben bestätigen.')
   const docs = db.prepare("SELECT id,scan_status FROM documents WHERE claim_id=? AND kind='EVIDENCE' AND removed_at IS NULL").all(claim.id)
   if (!docs.length) errors.push('Mindestens einen Nachweis hochladen.')
@@ -541,12 +576,12 @@ function validateSubmission(claim) {
     const product = db.prepare('SELECT * FROM products WHERE pzn=?').get(item.pzn)
     if (!product) { errors.push(`Position ${index + 1}: PZN unbekannt.`); continue }
     if (!db.prepare('SELECT 1 FROM term_products WHERE term_id=? AND pzn=?').get(claim.term_id, item.pzn)) errors.push(`Position ${index + 1}: PZN ist zu diesem Termin nicht betroffen.`)
-    if (!JSON.parse(product.valid_charges).includes(item.charge.trim().toUpperCase())) errors.push(`Position ${index + 1}: Charge wurde von der Demo-LAWEA-Prüfung nicht bestätigt.`)
+    if (!item.charge.trim()) errors.push(`Position ${index + 1}: Chargennummer eingeben.`)
     if (!Number.isInteger(item.quantity) || item.quantity < 1) errors.push(`Position ${index + 1}: Bestand muss eine positive ganze Packungszahl sein.`)
     const key = `${item.pzn}:${item.charge.trim().toUpperCase()}`
     if (seen.has(key)) errors.push(`Position ${index + 1}: PZN und Charge sind doppelt.`)
     seen.add(key)
-    const other = db.prepare("SELECT draft_json FROM claims WHERE organization_id=? AND term_id=? AND id<>? AND status NOT IN ('DRAFT','CANCELLED','REJECTED')").all(claim.organization_id, claim.term_id, claim.id)
+    const other = db.prepare("SELECT draft_json FROM claims WHERE organization_id=? AND term_id=? AND id<>? AND demo_archived_at IS NULL AND status NOT IN ('DRAFT','CANCELLED','REJECTED')").all(claim.organization_id, claim.term_id, claim.id)
     if (other.some(c => JSON.parse(c.draft_json).items.some(i => i.pzn === item.pzn && i.charge.trim().toUpperCase() === item.charge.trim().toUpperCase()))) errors.push(`Position ${index + 1}: Diese PZN/Charge wurde bereits eingereicht.`)
   }
   if (errors.length) throw problem(422, errors.join(' '), 'CLAIM_INVALID')
@@ -554,19 +589,20 @@ function validateSubmission(claim) {
 }
 app.post('/api/claims/:id/submit', requireUser, requireRole('PHARMACY_ADMIN', 'PHARMACY_STAFF'), requireCsrf, (req, res) => {
   const key = parse(z.object({ key: actionKey }).strict(), req.body).key
+  pharmacyClaim(req, req.params.id)
   const scope = `submit:${req.params.id}`
   const previous = db.prepare('SELECT result_json FROM idempotency WHERE scope=? AND key=?').get(scope, key)
   if (previous) return res.json(JSON.parse(previous.result_json))
   const result = db.transaction(() => {
     const claim = pharmacyClaim(req, req.params.id, true)
-    const { draft, docIds } = validateSubmission(claim)
+    const { draft, docIds } = validateSubmission(claim, req.session)
     const submittedAt = now()
     const snapshot = { ...draft, documentIds: docIds, termId: claim.term_id, submittedAt }
     const flags = draft.items.filter(i => i.quantity > 25).map(i => ({ pzn: i.pzn, rule: 'DEMO_QUANTITY_SAMPLE', note: 'Demo-Beispielgrenze; fachlich nicht freigegeben' }))
     const ruleResult = { version: 'DEMO-1', flags, automaticApproval: false, adapter: 'DEMO_LAWEA' }
     db.prepare(`INSERT INTO claim_revisions VALUES (?,?,?,?,?,?,?,?,?,?)`).run(claim.id, claim.revision_no, JSON.stringify(snapshot), digest(JSON.stringify(snapshot)), 'MANUAL_REVIEW', req.session.uid, submittedAt, null, null, null)
-    db.prepare("UPDATE claims SET status='MANUAL_REVIEW',rule_result=?,submitted_at=?,updated_at=? WHERE id=?")
-      .run(JSON.stringify(ruleResult), submittedAt, submittedAt, claim.id)
+    db.prepare("UPDATE claims SET status='MANUAL_REVIEW',draft_json=?,rule_result=?,submitted_at=?,updated_at=? WHERE id=?")
+      .run(JSON.stringify(draft), JSON.stringify(ruleResult), submittedAt, submittedAt, claim.id)
     audit(req.session.uid, claim.organization_id, 'claim', claim.id, 'SUBMITTED', `Revision ${claim.revision_no}`)
     mail(req.session.email, 'Ihre Meldung ist eingegangen', `Ihre Meldung ${claim.number} zum Senkungstermin wurde eingereicht. Details sehen Sie im Portal.`)
     const payload = { id: claim.id, number: claim.number, status: 'MANUAL_REVIEW', revision: claim.revision_no }
@@ -590,7 +626,7 @@ app.post('/api/claims/:id/revise', requireUser, requireRole('PHARMACY_ADMIN', 'P
 app.post('/api/review/claims/:id/decision', requireUser, requireRole('REVIEWER'), requireCsrf, (req, res) => {
   const input = parse(z.object({ decision: z.enum(['APPROVE', 'REJECT']), reason: z.string().trim().max(2000).optional() }).strict(), req.body)
   if (input.decision === 'REJECT' && !input.reason) throw problem(400, 'Bei Ablehnung ist ein Grund erforderlich.')
-  const claim = db.prepare("SELECT * FROM claims WHERE id=? AND status='MANUAL_REVIEW'").get(req.params.id)
+  const claim = db.prepare("SELECT * FROM claims WHERE id=? AND status='MANUAL_REVIEW' AND demo_archived_at IS NULL").get(req.params.id)
   if (!claim) throw problem(404, 'Vorgang nicht im Arbeitsvorrat.')
   const status = input.decision === 'APPROVE' ? 'APPROVED' : 'REJECTED'
   db.transaction(() => {
@@ -610,7 +646,7 @@ app.post('/api/finance/exports', requireUser, requireRole('FINANCE'), requireCsr
   if (old) return res.json(JSON.parse(old.result_json))
   const result = db.transaction(() => {
     const rows = db.prepare(`SELECT c.id,c.number,c.organization_id,t.date AS term_date
-      FROM claims c JOIN terms t ON t.id=c.term_id WHERE c.status='APPROVED' AND c.export_run_id IS NULL ORDER BY c.submitted_at`).all()
+      FROM claims c JOIN terms t ON t.id=c.term_id WHERE c.status='APPROVED' AND c.export_run_id IS NULL AND c.demo_archived_at IS NULL ORDER BY c.submitted_at`).all()
     if (!rows.length) throw problem(409, 'Keine freigegebenen, noch nicht exportierten Vorgänge.')
     const content = ['DEMO-NICHT-DATEV;Vorgangsnummer;Apotheke-ID;Stichtag',
       ...rows.map(r => `DEMO;${r.number};${r.organization_id};${r.term_date}`)].join('\r\n') + '\r\n'
@@ -636,7 +672,7 @@ app.get('/api/finance/exports/:id/download', requireUser, requireRole('FINANCE')
 })
 app.post('/api/finance/credits', requireUser, requireRole('FINANCE'), requireCsrf, upload.single('file'), (req, res) => {
   const reference = parse(z.object({ reference: required(100) }).strict(), req.body).reference
-  const claim = db.prepare('SELECT * FROM claims WHERE number=?').get(reference)
+  const claim = db.prepare('SELECT * FROM claims WHERE number=? AND demo_archived_at IS NULL').get(reference)
   const existing = claim ? db.prepare("SELECT 1 FROM credits WHERE claim_id=? AND status IN ('READY','PUBLISHED')").get(claim.id) : null
   const ready = Boolean(claim && claim.status === 'APPROVED' && claim.export_run_id && !existing)
   const documentId = saveDocument(req.file, { organizationId: ready ? claim.organization_id : null, claimId: ready ? claim.id : null, kind: 'CREDIT', userId: req.session.uid })
@@ -649,7 +685,7 @@ app.post('/api/finance/credits', requireUser, requireRole('FINANCE'), requireCsr
 app.post('/api/finance/credits/:id/publish', requireUser, requireRole('FINANCE'), requireCsrf, (req, res) => {
   const credit = db.prepare("SELECT * FROM credits WHERE id=? AND status='READY'").get(req.params.id)
   if (!credit) throw problem(404, 'Gutschrift nicht zur Veröffentlichung bereit.')
-  const claim = db.prepare("SELECT * FROM claims WHERE id=? AND status='APPROVED'").get(credit.claim_id)
+  const claim = db.prepare("SELECT * FROM claims WHERE id=? AND status='APPROVED' AND demo_archived_at IS NULL").get(credit.claim_id)
   if (!claim) throw problem(409, 'Vorgang ist nicht freigegeben.')
   db.transaction(() => {
     db.prepare("UPDATE credits SET status='PUBLISHED',published_at=? WHERE id=?").run(now(), credit.id)

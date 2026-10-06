@@ -1,6 +1,6 @@
 # Fachliche Anforderungen und Akzeptanzkriterien
 
-**Geltung:** Glenmark-LWV für Apotheken. GH ist als möglicher späterer Organisationstyp vorgemerkt, ohne aktivierten Fachprozess. „Muss“ aus P S. 9 FR-01–16 ist berücksichtigt; FR-03 (Mehrbenutzerfähigkeit) wird durch U verbindlich. Fachlich offene Varianten stehen in `06-offene-entscheidungen.md`.
+**Geltung:** Glenmark-LWV für Apotheken. GH ist als möglicher späterer Organisationstyp vorgemerkt, ohne aktivierten Fachprozess. „Muss“ aus P S. 9 FR-01–16 ist berücksichtigt, mit der dokumentierten Abweichung zu FR-06: keine Chargenvalidierung; FR-03 (Mehrbenutzerfähigkeit) wird durch U verbindlich. Fachlich offene Varianten stehen in `06-offene-entscheidungen.md`.
 
 ## Rollen und Rechte
 
@@ -40,11 +40,13 @@ Eine Person kann mehrere Rollen haben, aber jede Aktion prüft ihre konkrete Ber
 
 ## Senkungstermine und Meldungen
 
-**TRM-01:** Das Portal zeigt alle aktuell einreichbaren Glenmark-Stichtage. Historische Stichtage erscheinen einer Apotheke nur, wenn sie daran teilgenommen hat; Entwürfe nach Fristende bleiben lesbar. Die Zahl angezeigter Monate ist konfigurierbar und von den Einreichungsfenstern getrennt.
+**TRM-01:** Das Portal zeigt angemeldeten Apotheken alle aktuell einreichbaren Glenmark-Stichtage. Historische Stichtage erscheinen einer Apotheke nur, wenn sie daran teilgenommen hat; Entwürfe nach Fristende bleiben lesbar. Die Zahl angezeigter Monate ist konfigurierbar und von den Einreichungsfenstern getrennt. Es gibt keine Kampagnen und keine aktive Benachrichtigung zu neu verfügbaren Senkungsterminen: Apotheken sehen diese ausschließlich nach dem Login. Auch noch nicht registrierte Apotheken werden nicht über neue Termine informiert (Marco, Rückmeldung vom 05.10.2026).
 
-**CLM-01:** Ein Stichtag kann eine Meldung mit mehreren Positionen besitzen. Pro Position: PZN, Charge, Bestand zum Stichtag als nichtnegative ganze Anzahl Packungen; null ist fachlich zu prüfen (Voreinstellung: keine Einreichung mit 0). Ein Ansprechpartner ist erforderlich. Kommentar ist optional. Mindestens ein Nachweis pro Meldung ist erforderlich, sofern die Fachregel keine engere Zuordnung pro Position verlangt. Mehrere Dateien sind möglich; erlaubte Typen mindestens PDF/JPEG/PNG. Jede Datei gehört sichtbar zur Meldung oder Position.
+**TRM-02:** Preissenkungsstichtage fallen nach direkter Nutzerangabe ausschließlich auf den 1. oder 15. eines Monats. Der bisherige fiktive Vorschautermin 30.09.2026 wird als 01.10.2026 dargestellt. Für produktiv eingehende Termindaten bleibt die fachliche Quellvalidierung Teil des noch fehlenden LAWEA-Vertrags; das Portal darf einen abweichenden externen Termin nicht stillschweigend verschieben.
 
-**CLM-02:** PZN-Autocomplete durchsucht das gesamte Glenmark-Sortiment. Eine PZN ohne relevante Senkung darf angezeigt, aber für diesen Stichtag nicht eingereicht werden. Die Charge wird beim Einreichen über LAWEA validiert. Formale Fehler verhindern das Absenden und zeigen betroffene Felder. Konfigurierbare Duplikatregel prüft dieselbe Apotheke + PZN + Charge + Stichtag auch über bestehende Meldungen hinweg.
+**CLM-01:** Ein Stichtag kann eine Meldung mit mehreren Positionen besitzen. Pro Position: PZN, Charge, Bestand zum Stichtag als nichtnegative ganze Anzahl Packungen; null ist fachlich zu prüfen (Voreinstellung: keine Einreichung mit 0). Es gibt kein zusätzliches Ansprechpartner-Feld: Name und E-Mail der einreichenden Person werden serverseitig aus der authentifizierten Sitzung für die Revision übernommen. Kommentar ist optional. Mindestens ein Nachweis pro Meldung ist erforderlich, sofern die Fachregel keine engere Zuordnung pro Position verlangt. Mehrere Dateien sind möglich; erlaubte Typen mindestens PDF/JPEG/PNG. Jede Datei gehört sichtbar zur Meldung oder Position.
+
+**CLM-02:** PZN-Autocomplete durchsucht das gesamte Glenmark-Sortiment. Eine PZN ohne relevante Senkung darf angezeigt, aber für diesen Stichtag nicht eingereicht werden. Die Apotheke gibt die Chargennummer selbst ein; sie muss beim Absenden nicht leer sein. Es gibt keine Chargenliste, automatische Chargenvorbelegung oder fachliche Chargenvalidierung. Formale Fehler verhindern das Absenden und zeigen betroffene Felder. Konfigurierbare Duplikatregel prüft dieselbe Apotheke + PZN + Charge + Stichtag auch über bestehende Meldungen hinweg. Diese direkte Nutzerentscheidung weicht von P FR-06 ab; siehe `01-quellenabgleich.md`.
 
 **CLM-03:** Benutzer können Entwürfe speichern, fortsetzen und verwerfen. Autosave ist zusätzlich eine UX-Funktion, kein Ersatz für serverseitige Persistenz. Verwerfen setzt `Storniert` und behält den Audit-Nachweis. Beim Absenden werden Frist, PZN, Charge, Pflichteingaben, Nachweise und Richtigkeitsbestätigung **serverseitig erneut** geprüft. Das Absenden besitzt einen Idempotenzschlüssel. Danach entsteht eine unveränderliche Revision mit Zeitstempel, Einreichendem und Vorgangsnummer.
 
@@ -60,7 +62,7 @@ Eine Person kann mehrere Rollen haben, aber jede Aktion prüft ihre konkrete Ber
 
 **FIN-01:** Nur freigegebene, noch nicht in einem abgeschlossenen Exportlauf enthaltene Vorgänge sind DATEV-exportfähig. Finance startet einen Exportlauf, sieht Anzahl und Kontrollsummen und lädt die Datei herunter. Wiederholung desselben Laufs erzeugt dieselbe fachliche Auswahl bzw. verhindert Dubletten. Format und Sammellogik sind Integrationsvertrag, nicht zu erfinden.
 
-**FIN-02:** Gutschriftenimport verarbeitet Dokument und eindeutigen Zuordnungsschlüssel. Erst bei eindeutiger Zuordnung und Freigabe erscheint die Gutschrift im separaten Bereich der Apotheke. Nicht zuordenbare oder doppelte Dokumente bleiben im Fehlerarbeitsvorrat und werden nicht veröffentlicht. Gutschriftbereitstellung setzt den Vorgang auf `Abgeschlossen`; neutraler E-Mail-Hinweis mit Portal-Link.
+**FIN-02:** Gutschriftenimport verarbeitet Dokument und eindeutigen Zuordnungsschlüssel. Erst bei eindeutiger Zuordnung und Freigabe erscheint die Gutschrift in der zugehörigen Meldung und in der Gutschriftenliste der Apotheke. Beide Ansichten verlinken aufeinander. Nicht zuordenbare oder doppelte Dokumente bleiben im Fehlerarbeitsvorrat und werden nicht veröffentlicht. Gutschriftbereitstellung setzt den Vorgang auf `Abgeschlossen`; neutraler E-Mail-Hinweis mit Portal-Link.
 
 ## Statusmodell
 
@@ -79,14 +81,14 @@ Jeder Übergang wird im Backend geprüft. `SUBMITTED` kann nach technischer Prü
 
 ## Benachrichtigungen
 
-Registrierung/E-Mail-Code, Freigabe oder Nachforderung, Einladung, Meldung eingereicht, Glenmark-Aufgabe, Ablehnung, optional Freigabe und Gutschrift verfügbar. E-Mails enthalten höchstens Vorgangsnummer, Stichtag und einen sicheren Portal-Link, keine PZN, Charge, Beträge, IBAN oder Ablehnungsdetails. Zustellversuche und Versandstatus werden protokolliert; ein Mailfehler rollt die fachliche Aktion nicht zurück, sondern erzeugt einen wiederholbaren Versandauftrag.
+Registrierung/E-Mail-Code, Freigabe oder Nachforderung, Einladung, Meldung eingereicht, Glenmark-Aufgabe, Ablehnung, optional Freigabe und Gutschrift verfügbar. Für das Erscheinen eines neuen Senkungstermins wird **keine** E-Mail oder andere aktive Ankündigung erzeugt. E-Mails zu den genannten transaktionalen Ereignissen enthalten höchstens Vorgangsnummer, Stichtag und einen sicheren Portal-Link, keine PZN, Charge, Beträge, IBAN oder Ablehnungsdetails. Zustellversuche und Versandstatus werden protokolliert; ein Mailfehler rollt die fachliche Aktion nicht zurück, sondern erzeugt einen wiederholbaren Versandauftrag.
 
 ## Fachliche Akzeptanzszenarien
 
 1. Eine ungeprüfte Apotheke kann trotz bestätigter E-Mail keine Meldung anlegen; nach dokumentierter Freigabe und MFA kann sie nur eigene Daten sehen.
 2. Der erste Administrator lädt einen Mitarbeiter ein; dieser setzt Passwort, bestätigt OTP und kann eine Meldung anlegen. Der letzte Admin kann weder deaktiviert noch herabgestuft werden.
 3. Eine Meldung mit mehreren gültigen Positionen und Belegen wird als Entwurf gespeichert, wieder geöffnet und genau einmal eingereicht. Danach bleibt diese Revision unveränderlich.
-4. Unpassende PZN, ungültige Charge, fehlender Ansprechpartner, fehlende Erklärung, fehlender Beleg und abgelaufene Frist erzeugen jeweils konkrete, feldnahe Fehler und keine Einreichung.
+4. Unpassende PZN, leere Charge, fehlende Erklärung, fehlender Beleg und abgelaufene Frist erzeugen jeweils konkrete, feldnahe Fehler und keine Einreichung. Ein vom Client gesendeter fremder Ansprechpartner darf die authentifizierte Identität nicht überschreiben.
 5. LAWEA-Timeout erhält Daten und erlaubt sichere Wiederholung; doppelter Klick erzeugt keine zweite Meldung.
 6. Regelabweichung führt nachweisbar in den Glenmark-Arbeitsvorrat. Ablehnung ohne Grund ist unmöglich. Nach Ablehnung kann eine neue Revision erneut geprüft werden.
 7. Freigegebene Vorgänge erscheinen genau einmal im DATEV-Export. Unzuordenbare Gutschriften bleiben privat im Fehlerarbeitsvorrat. Zugeordnete Gutschriften sieht nur die richtige Apotheke.
