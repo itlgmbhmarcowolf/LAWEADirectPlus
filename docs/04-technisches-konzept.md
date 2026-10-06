@@ -14,7 +14,7 @@ flowchart LR
   API --> DB[(Transaktionsdatenbank)]
   API --> DOC[(Privater Dokumentenspeicher)]
   API --> Q[Aufträge / Outbox]
-  API <--> L[LAWEA: PZN, Stichtag, Charge, Betrag]
+  API <--> L[LAWEA: PZN, Stichtag, ggf. Betrag]
   API <--> N[NGDA / N-Connect optional]
   Q --> M[E-Mail-Service]
   Q --> D[DATEV-Export / Gutschriftenimport]
@@ -26,8 +26,8 @@ flowchart LR
 | --- | --- | --- |
 | Identity | Benutzer, Passwort, MFA, Sitzungen, Einladungen | Portal für Zugang; N-Connect optional als bestätigte externe Identität |
 | Organization | Apothekenstammdaten, Nachweis, Freigabe, Mitarbeiter | Portal, mit gekennzeichneter NGDA-Quelle für übernommene Daten |
-| Campaign/Term | Glenmark-PZN-Katalog, Senkungstermine und Einreichungsfenster als synchronisierte Sicht | LAWEA bzw. vertraglich festgelegte Schnittstelle |
-| Claim | Meldungen, Positionen, Revisionen, Erklärungen, Status | Portal; fachliche Preis-/Chargenresultate aus LAWEA |
+| Senkungstermin | Glenmark-PZN-Katalog, Senkungstermine und Einreichungsfenster als synchronisierte Sicht; keine Kampagnen oder Versandaufträge beim Erscheinen eines Termins | LAWEA bzw. vertraglich festgelegte Schnittstelle |
+| Claim | Meldungen, Positionen, Revisionen, Erklärungen, Status | Portal; fachliche PZN-/Stichtagsdaten und ggf. Preisresultate aus LAWEA |
 | Rules/Review | formale Prüfung, konfigurierbare Regeln, Arbeitsvorrat, Entscheidungen | Portal-Regelversion plus LAWEA-Prüfergebnis |
 | Documents | Betriebserlaubnis, Belege, Gutschriften, Versionen und Zugriff | privater Speicher mit Portal-Metadaten |
 | Settlement | Exportläufe, Importjobs, Zuordnung und Veröffentlichungen | Portal, externe DATEV-Buchung außerhalb des Systems |
@@ -42,7 +42,7 @@ flowchart LR
 - `Product`: PZN, Name, Glenmark-Zuordnung, externer Schlüssel, Katalogversion.
 - `Claim`: `id`, `organization_id`, `term_id`, Vorgangsnummer, aktuelle Revisionsnummer, Gesamtstatus, Ansprechpartner, optional Kommentar, Erstellung/Änderung. Ein fachlich definierter Schlüssel verhindert versehentliche parallele doppelte Meldungen.
 - `ClaimRevision`: `claim_id`, Revisionsnummer, Status, unveränderlicher Snapshot aller Positionen, Erklärungszeitpunkt/-benutzer, Einreichungszeitpunkt/-benutzer, Prüfresultate. Eine neue Revision wird nur aus `REJECTED` eröffnet.
-- `ClaimItem`: Revision, PZN, Charge, Packungszahl, LAWEA-Prüfkennung/-version, berechneter Betrag falls geliefert.
+- `ClaimItem`: Revision, PZN, frei erfasste Charge, Packungszahl, PZN-/Stichtagsprüfergebnis, berechneter Betrag falls geliefert. Keine Chargenvalidierung oder automatische Chargenauswahl.
 - `Document`: Organisation, fachlicher Bezug, Typ, sichere Speicherkennung, Originalname, MIME/Größe, Prüfsumme, Prüfstatus, Version, Uploadzeitpunkt/-benutzer; keine öffentliche Objekt-URL.
 - `RuleEvaluation`: Regelversion, Eingangsreferenz, Ergebnis, Schwellenwert-Snapshot, Bearbeitungsbedarf, Zeitstempel.
 - `Decision`: Revision, Entscheidung, Pflichtgrund bei Ablehnung, Berechtigter, Zeitstempel.
@@ -77,7 +77,7 @@ Routen sind Beispiele für Implementierung und Dokumentation, keine Zusage eines
 
 | Adapter | Benötigte Vereinbarung | Verhalten ohne Vertrag/bei Ausfall |
 | --- | --- | --- |
-| LAWEA | PZN-Katalog, Stichtage/Fenster, PZN-Stichtag-Zuordnung, Charge und ggf. Betrag, Antwort-/Timeout-Semantik | Demo-Adapter lokal; produktiv keine positive Prüfung erfinden. Timeout → `CHECK_PENDING` oder Entwurf erhalten und erneut prüfen. |
+| LAWEA | PZN-Katalog, Stichtage/Fenster, PZN-Stichtag-Zuordnung und ggf. Betrag, Antwort-/Timeout-Semantik | Demo-Adapter lokal; produktiv keine positive PZN-/Stichtagsprüfung erfinden. Keine Chargenvalidierung. Timeout → `CHECK_PENDING` oder Entwurf erhalten und erneut prüfen. |
 | NGDA/N-Connect | Identitäts-/Apothekenattribute, Consent, Login- oder Verifizierungsfluss, Fehlerfälle | Manuelle Betriebserlaubnisroute. |
 | E-Mail | Absenderdomäne, Vorlagen, Zustellstatus, Webhook/Retry | Fachaktion bleibt gespeichert, Mail in Retry-/Fehlerliste. |
 | DATEV | konkretes Dateiformat, Kodierung, Spalten, Dezimalformat, Sammel- und Kontrollsummenregeln | Kein als DATEV-kompatibel deklarierter Produktivexport; Demo-Datei klar markieren. |

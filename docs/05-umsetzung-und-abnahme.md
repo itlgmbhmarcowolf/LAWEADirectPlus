@@ -11,7 +11,7 @@ Jedes Paket endet mit einer vorführbaren Nutzerreise, Backend-Regeln, passenden
 | 2. Mitarbeiter und Termine | Einladen, Passwort/OTP, Adminschutz, Stichtagsübersicht und Historie | Zwei Mitarbeiter derselben Apotheke arbeiten; fremde Apotheke ist unsichtbar; letzter Admin kann nicht entfernt werden. |
 | 3. Meldung | PZN-Autocomplete, Positionen, Charge/Bestand, Belege, Ansprechpartner, Kommentar, Erklärung, Entwurf/Autosave/Verwerfen, Einreichen | Ein gültiger mehrteiliger Vorgang wird einmal eingereicht; Fehler und Timeout erhalten die Eingaben. |
 | 4. Prüfung | LAWEA-Adapter, Regelversionen, Arbeitsvorrat, Freigabe, Ablehnung mit Grund, neue Revision | Regelabweichung wird geprüft; Apotheke korrigiert abgelehnte Meldung nachvollziehbar. |
-| 5. Abwicklung | DATEV-Exportlauf, Gutschriftenimport/-zuordnung, separater Bereich, E-Mails und Fehlerqueue | Wiederholter Export dupliziert nichts; zugeordnete Gutschrift erscheint nur beim richtigen Mandanten. |
+| 5. Abwicklung | DATEV-Exportlauf, Gutschriftenimport/-zuordnung, Gutschriftenliste und Abruf aus der zugehörigen Meldung, E-Mails und Fehlerqueue | Wiederholter Export dupliziert nichts; zugeordnete Gutschrift erscheint nur beim richtigen Mandanten und ist gegenseitig mit der Meldung verlinkt. |
 | 6. Produktqualität | Zugänglichkeit, mobile Optimierung, Nutzertests, Audit, Monitoring, Datenschutz-/Sicherheitsprüfung, Betriebshandbuch | Vollständige Reise mit echten Testintegrationen, Freigaben und dokumentierten Restpunkten. |
 
 ## Nachweis pro fachlicher PDF-Anforderung
@@ -20,14 +20,14 @@ Jedes Paket endet mit einer vorführbaren Nutzerreise, Backend-Regeln, passenden
 | --- | --- | --- |
 | FR-01/02 | Registrierung, Nachweisprüfung, N-Connect-Adapter und Stammdatenquelle | Manuelle Freigabe klappt; externe Bestätigung im Testsystem übernimmt Daten; Ausfall schaltet niemanden frei. |
 | FR-03 + U | Mitarbeiterverwaltung mit Unternehmensadministrator | Einladung/OTP, Listenrechte und letzter-Admin-Schutz. |
-| FR-04 | Offene/historische Stichtage | Unbeteiligte Vergangenheit ist verborgen; eigene Teilnahme sichtbar. |
+| FR-04 + M | Offene/historische Stichtage ohne Kampagnenversand | Angemeldete Apotheke sieht neue offene Termine; unbeteiligte Vergangenheit ist verborgen und eigene Teilnahme sichtbar. Das Erscheinen eines Termins erzeugt keine E-Mail oder andere aktive Ankündigung. |
 | FR-05 | Glenmark-PZN-Autocomplete | Alle Katalog-PZN auswählbar; irrelevante PZN beim Einreichen abgelehnt. |
-| FR-06/07 | Chargenadapter und Bestandsfeld | Ungültige Charge/Packungszahl verhindern Einreichen; Timeout erhält Entwurf. |
+| FR-06/07 | Freies Chargenpflichtfeld und Bestandsfeld; dokumentierte Abweichung zu FR-06 | Leere oder nur aus Leerzeichen bestehende Charge und ungültige Packungszahl verhindern Einreichen. Eine beliebige nichtleere Charge wird nicht gegen eine Liste validiert. |
 | FR-08/09 | Mehrfach-Upload und Erklärung | Kein Absenden ohne erforderliche Nachweise/Bestätigung. |
 | FR-10 | Entwurf und Verwerfen | Entwurf wird fortgesetzt, Storno ist historisch sichtbar. |
 | FR-11 | Versioniertes Regelwerk | Schwellenregel ist konfigurierbar und Entscheidung erklärbar/auditiert. |
 | FR-12/13 | Glenmark-Queue, Ablehnung und Revision | Historie/Belege sichtbar; Ablehnung ohne Grund unmöglich; Korrektur erneut prüfbar. |
-| FR-14/15 | Exportlauf und Gutschriftenbereich | Idempotenter Export; eindeutige Zuordnung; Fehlerqueue bei unklarem Import. |
+| FR-14/15 | Exportlauf, Gutschriftenliste und Zugriff aus der Meldung | Idempotenter Export; eindeutige Zuordnung; Fehlerqueue bei unklarem Import. |
 | FR-16 | Neutrale E-Mail-Ereignisse | Inhalt ohne sensible Daten; Retry und Versandstatus nachvollziehbar. |
 
 ## Kritische automatisierte Tests

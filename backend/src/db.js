@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS terms (
 );
 CREATE TABLE IF NOT EXISTS products (
   pzn TEXT PRIMARY KEY, name TEXT NOT NULL, maker TEXT NOT NULL,
-  valid_charges TEXT NOT NULL, source TEXT NOT NULL
+  source TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS term_products (
   term_id TEXT NOT NULL REFERENCES terms(id), pzn TEXT NOT NULL REFERENCES products(pzn),
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS claims (
   version INTEGER NOT NULL DEFAULT 1, draft_json TEXT NOT NULL,
   rule_result TEXT, rejection_reason TEXT, export_run_id TEXT,
   created_by TEXT NOT NULL REFERENCES users(id), created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL, submitted_at TEXT
+  updated_at TEXT NOT NULL, submitted_at TEXT, demo_archived_at TEXT
 );
 CREATE TABLE IF NOT EXISTS claim_revisions (
   claim_id TEXT NOT NULL REFERENCES claims(id), revision_no INTEGER NOT NULL,
@@ -114,6 +114,12 @@ if (!db.prepare('PRAGMA table_info(sessions)').all().some(column => column.name 
 if (!db.prepare('PRAGMA table_info(invitations)').all().some(column => column.name === 'revoked_at')) {
   db.exec('ALTER TABLE invitations ADD COLUMN revoked_at TEXT')
 }
+if (!db.prepare('PRAGMA table_info(claims)').all().some(column => column.name === 'demo_archived_at')) {
+  db.exec('ALTER TABLE claims ADD COLUMN demo_archived_at TEXT')
+}
+if (db.prepare('PRAGMA table_info(products)').all().some(column => column.name === 'valid_charges')) {
+  db.exec('ALTER TABLE products DROP COLUMN valid_charges')
+}
 
 export const now = () => new Date().toISOString()
 export const id = () => crypto.randomUUID()
@@ -153,8 +159,29 @@ export function mail(email, subject, body) {
   db.prepare('INSERT INTO outbox VALUES (?, ?, ?, ?, ?, ?)').run(id(), email, subject, body, 'DEMO', now())
 }
 
+function ensurePracticeTerm() {
+  // Ausschließlich Demo-Testdaten: D-05 lässt das produktive Einreichungsfenster offen.
+  // Ein eigener Termin hält die Erfassungsreise nutzbar, ohne eingereichte Revisionen zu ändern.
+  if (!db.prepare("SELECT 1 FROM terms WHERE id='term-current'").get()) return
+  const today = new Date()
+  const date = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 1, 1))
+  const dateText = date.toISOString().slice(0, 10)
+  const termId = `term-demo-practice-${dateText.slice(0, 7)}`
+  const opens = new Date(date)
+  opens.setUTCDate(opens.getUTCDate() - 7)
+  const closes = new Date(date)
+  closes.setUTCDate(closes.getUTCDate() + 75)
+  db.transaction(() => {
+    db.prepare('INSERT OR IGNORE INTO terms (id,label,date,opens_at,closes_at,source) VALUES (?,?,?,?,?,?)')
+      .run(termId, `Demo-Übungstermin ${dateText}`, dateText, opens.toISOString(), closes.toISOString(), 'DEMO_PRACTICE')
+    for (const pzn of ['04812345', '07567890', '09998877']) {
+      db.prepare('INSERT OR IGNORE INTO term_products (term_id,pzn) SELECT ?,pzn FROM products WHERE pzn=?').run(termId, pzn)
+    }
+  })()
+}
+
 export function seedDemo() {
-  if (db.prepare('SELECT count(*) AS n FROM users').get().n) return
+  if (db.prepare('SELECT count(*) AS n FROM users').get().n) { ensurePracticeTerm(); return }
   const pharmacyId = id()
   const adminId = id()
   const staffId = id()
@@ -183,15 +210,16 @@ export function seedDemo() {
     insertUser.run(financeId, null, 'Glenmark Finance', 'finance@glenmark.test', password, 'FINANCE', 'ACTIVE', 1, current)
     db.prepare('INSERT INTO terms VALUES (?,?,?,?,?,?)').run('term-current', `Senkungstermin ${activeDate}`, activeDate, open.toISOString(), close.toISOString(), 'DEMO')
     db.prepare('INSERT INTO terms VALUES (?,?,?,?,?,?)').run('term-past', `Senkungstermin ${past.toISOString().slice(0, 10)}`, past.toISOString().slice(0, 10), past.toISOString(), pastClose.toISOString(), 'DEMO')
-    const product = db.prepare('INSERT INTO products VALUES (?,?,?,?,?)')
-    product.run('04812345', 'Glenmark Metformin 500 mg', 'Glenmark', JSON.stringify(['GL-2401', 'GL-2402']), 'DEMO')
-    product.run('07567890', 'Glenmark Ramipril 5 mg', 'Glenmark', JSON.stringify(['GM-5521', 'GM-5522']), 'DEMO')
-    product.run('09998877', 'Glenmark Atorvastatin 20 mg', 'Glenmark', JSON.stringify(['AT-0815']), 'DEMO')
-    product.run('01112223', 'Glenmark Pantoprazol 40 mg', 'Glenmark', JSON.stringify(['PT-0088']), 'DEMO')
+    const product = db.prepare('INSERT INTO products VALUES (?,?,?,?)')
+    product.run('04812345', 'Glenmark Metformin 500 mg', 'Glenmark', 'DEMO')
+    product.run('07567890', 'Glenmark Ramipril 5 mg', 'Glenmark', 'DEMO')
+    product.run('09998877', 'Glenmark Atorvastatin 20 mg', 'Glenmark', 'DEMO')
+    product.run('01112223', 'Glenmark Pantoprazol 40 mg', 'Glenmark', 'DEMO')
     for (const pzn of ['04812345', '07567890', '09998877']) db.prepare('INSERT INTO term_products VALUES (?,?)').run('term-current', pzn)
     db.prepare('INSERT INTO term_products VALUES (?,?)').run('term-past', '04812345')
     const draft = { items: [{ pzn: '04812345', charge: 'GL-2401', quantity: 12 }], contactName: 'Julia Berger', contactEmail: 'admin@rosen-apotheke.test', comment: '', declaration: false }
     db.prepare(`INSERT INTO claims (id,organization_id,term_id,number,status,draft_json,created_by,created_at,updated_at)
       VALUES (?,?,?,?,?,?,?,?,?)`).run(id(), pharmacyId, 'term-current', `LWV-DEMO-${new Date().getUTCFullYear()}-001`, 'DRAFT', JSON.stringify(draft), adminId, current, current)
   })()
+  ensurePracticeTerm()
 }

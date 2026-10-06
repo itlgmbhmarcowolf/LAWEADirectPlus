@@ -35,6 +35,28 @@ Alle vier Demo-Zugänge nutzen `Demo!Passwort2026`:
 
 Einmalcodes und Einladungslinks werden **nur in der lokalen Demo** in der Oberfläche angezeigt. Alle Stammdaten und Belege müssen fiktiv sein. Die persistenten Demo-Daten liegen in `backend/data/` und sind ignoriert. Für isolierte Testdaten kann `LAWEA_DATA_DIR` gesetzt werden.
 
+Die Demo legt zusätzlich einen als Übung gekennzeichneten offenen Senkungstermin vom Vormonat an. So lässt sich eine neue Meldung erfassen, auch wenn der Beispielvorgang des aktuellen Termins bereits eingereicht wurde. Pro Apotheke und Senkungstermin bleibt weiterhin höchstens ein aktiver Vorgang zulässig; eine eingereichte Revision ist gesperrt.
+
+## Öffentliche Konzeptvorschau
+
+Für Kundengespräche kann ausschließlich das statische Frontend-Mockup gebaut und als **Vercel Preview** geteilt werden:
+
+```powershell
+cd frontend
+npm ci
+npm run build:public-preview
+```
+
+Der zu veröffentlichende Ordner ist `frontend/dist/`. Dieser Build verwendet `preview.html` und `src/PreviewApp.tsx` als eigenen Einstiegspunkt. Die Anmeldung mit fiktiven Demo-Zugängen und angezeigtem Einmalcode, die Rollen, Mitarbeitersuche und die Reise von der Meldung bis zur Gutschrift sind rein lokale Simulationen im Browser. Alle Personen, E-Mail-Adressen, Termine, PZN und Vorgangsnummern sind fiktive Beispiele. Es gibt keine API-Anfragen, echte Registrierung oder Authentifizierung, E-Mails, serverseitige Dateiübertragung, dauerhafte Speicherung oder DATEV-Datei. Ein für eine Beispielmeldung gewählter Nachweis bleibt nur in der aktuellen Browsersitzung und kann nach der simulierten Einreichung lokal erneut heruntergeladen werden. Die Vorschau ist ausdrücklich nicht für echte Angaben geeignet. Das lokale Frontend und Backend bleiben eigenständige Projekte; der normale Build mit `npm run build` erzeugt weiterhin die Backend-gebundene Demo. Vor jedem neuen Preview-Deploy `npm run build:public-preview` erneut ausführen, weil beide Builds denselben ignorierten `dist/`-Ordner verwenden.
+
+Die Startseite der Konzeptvorschau zeigt eine bewusst einfache Liste fiktiver Stichtage vom 01.05. bis 01.10.2026 mit Beispielständen. „Ausgezahlt“ ist dort nur simuliert; daraus folgt keine echte Zahlung oder produktive Einreichungsfrist.
+
+Bei einem Vercel-Git-Import `frontend` als **Root Directory** wählen. `frontend/vercel.json` legt den Vorschau-Build und `dist` als Ausgabe fest. Für einen einmaligen Ordner-Upload auf Vercel Drop nur den fertigen Ordner `frontend/dist/` auswählen; nicht den Projektstamm und nicht das Backend hochladen. Vercel Drop veröffentlicht direkt in eine Produktions-URL. Dieser Weg ist deshalb nur für die ausdrücklich fiktive Konzeptvorschau geeignet.
+
+Die Apotheke trägt die Chargennummer selbst ein. Sie muss ausgefüllt sein; eine Prüfung gegen eine vorgegebene Chargenliste findet nicht statt. Die PZN muss weiterhin zum Senkungstermin passen.
+
+**Demo erneut durchspielen:** Beim Abmelden eines Apothekenbenutzers werden die Meldungen seiner Apotheke aus den aktiven Demo-Ansichten genommen. Nach der nächsten Anmeldung kann dieselbe Apotheke für einen offenen Senkungstermin eine neue Meldung anlegen und erneut einreichen. Die alten Einreichungen, Belege und Revisionen bleiben intern unverändert als Demo-Historie erhalten; andere Apotheken und Konten werden nicht zurückgesetzt. Glenmark-Prüfung und Finance setzen beim eigenen Abmelden keine Apothekenmeldungen zurück. Diese Funktion existiert nur im lokalen Demo-Modus.
+
 ## Prüfen
 
 ```powershell
