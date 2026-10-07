@@ -18,7 +18,7 @@ if (!existsSync(html)) throw new Error('Die Vorschau wurde nicht erzeugt.')
 renameSync(html, join(process.cwd(), 'dist', 'index.html'))
 writeFileSync(join(process.cwd(), 'dist', 'vercel.json'), JSON.stringify({
   headers: [{ source: '/(.*)', headers: [
-    { key: 'Content-Security-Policy', value: "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'" },
+    { key: 'Content-Security-Policy', value: "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src blob:; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'" },
     { key: 'X-Content-Type-Options', value: 'nosniff' },
     { key: 'Referrer-Policy', value: 'no-referrer' },
     { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' }

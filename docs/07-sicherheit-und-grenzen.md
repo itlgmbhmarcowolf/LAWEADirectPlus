@@ -17,6 +17,8 @@
 
 Die lokale Demo gibt OTPs und Links bewusst an den Browser zurück, nutzt einen prozessinternen Rate Limiter, speichert Belege ohne Malware-Scan und generiert bei Bedarf einen lokalen Verschlüsselungsschlüssel für die IBAN. **Diese Demo-Abkürzungen dürfen nicht in eine produktive Umgebung übernommen werden.** Der Server verweigert deshalb bei `DEMO_MODE=0` den Start. Auch `NODE_ENV=production` allein hebt diese Sperre nicht auf.
 
+Die separat veröffentlichte, statische Konzeptvorschau erlaubt in ihrer Vercel-CSP bei `connect-src` ausschließlich `blob:`. Das ist für das rein im Browser erzeugte fiktive PDF-Muster nötig; Netzwerkverbindungen zu APIs oder anderen Hosts bleiben gesperrt. Diese Vorschau-CSP ist keine Freigabe für den produktiven Portalbetrieb.
+
 ## Verbindliche Arbeit vor Produktivbetrieb
 
 1. LAWEA-Datenvertrag, NGDA/N-Connect-Verfahren und fachliche Regeln aus `06-offene-entscheidungen.md` bestätigen; keine Demo-PZN oder Demo-Fristen übernehmen. Chargen werden laut aktueller Nutzerentscheidung frei erfasst und nicht validiert.
