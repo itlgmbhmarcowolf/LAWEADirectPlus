@@ -36,7 +36,7 @@ Eine Apotheke erledigt eine LWV-Meldung geführt, fehlerarm und nachvollziehbar:
 | Meldungsdetail | Verlauf verstehen | Eingereichte Positionen und Kommentar schreibgeschützt ansehen, eigene Nachweise erneut herunterladen, Revisionen und Prüfungen nachvollziehen, Begründung bei Ablehnung und Gutschrift-Link öffnen. |
 | Profilmenü | Eigenen Zugang und Mitarbeiter verwalten | Oben rechts führt „Profil bearbeiten“ zu persönlichen Angaben und zur Kennwortänderung auf einer Seite; Unternehmensadministratoren öffnen dort auch die Mitarbeiterverwaltung. Kein eigener Mitarbeiterpunkt in der Seitennavigation. |
 | Apothekenprofil | Stammdaten prüfen | Adresse, Ansprechpartner, IBAN maskiert, Nachweisstatus; Änderungen mit erneuter Prüfung bei kritischen Stammdaten. |
-| Gutschrift | Dokument ansehen und abrufen | Eigene Detailseite über den ausgezahlten Stichtag und die abgeschlossene Meldung, mit Rückweg zur Meldung, geschützter Vorschau und Download. Die öffentliche Konzeptvorschau zeigt nur ein klar als fiktiv markiertes PDF-Muster. |
+| Gutschrift | Dokument ansehen und abrufen | Eigene Detailseite über den ausgezahlten Stichtag und die abgeschlossene Meldung, mit Rückweg zur Meldung, geschützter PDF-Vorschau samt Zoom, Seitenblättern und Download. Die öffentliche Konzeptvorschau zeigt nur ein klar als fiktiv markiertes PDF-Muster. |
 | Hilfe | Selbsthilfe | Kontextspezifische Erläuterungen, kurze FAQ, Supportkontakt und Fehlermeldungs-Referenz. |
 
 ### Glenmark-/Prüfbereich
