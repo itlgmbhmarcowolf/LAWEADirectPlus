@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { api, download, post, put, upload } from './api'
-import type { Bootstrap, ClaimDetail, Draft, Item, Term } from './types'
+import { api, download, fetchDocument, post, put, upload } from './api'
+import type { Bootstrap, ClaimDetail, Credit, Draft, Item, Term } from './types'
 import { dateLabel, dateTime, shortDate, statusLabel } from './types'
 import { Button, Empty, Icon, Notice, PageTitle, StatusPill } from './ui'
 import { PreviewDashboard } from './PreviewDashboard'
+import { PdfPreview } from './PdfPreviewLoader'
 import './claim-editor.css'
+import './credit-preview.css'
 
 const termOpen = (term: Term) => new Date(term.opens_at).getTime() <= Date.now() && new Date(term.closes_at).getTime() >= Date.now()
 const emptyItem = (): Item => ({ pzn: '', charge: '', quantity: 0 })
@@ -25,7 +27,9 @@ function PharmacyTermList({ data, navigate, refresh }: { data: Bootstrap; naviga
       iso: term.date,
       date: shortDate(term.date),
       status: existing?.status || null,
-      target: existing ? `claim:${existing.id}` : `term:${term.id}`,
+      target: existing?.status === 'COMPLETED' && data.credits?.some(credit => credit.claim_id === existing.id)
+        ? `credits:${existing.id}`
+        : existing ? `claim:${existing.id}` : `term:${term.id}`,
       disabled: !existing && !termOpen(term)
     }
   })
@@ -133,14 +137,35 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
   </>
 }
 
-export function CreditsPage({ data, navigate, selectedClaimId }: { data: Bootstrap; navigate: (page: string) => void; selectedClaimId?: string }) {
+function CreditDocumentPreview({ credit }: { credit: Credit }) {
+  const [document, setDocument] = useState<{ url: string; mime: string } | null>(null)
   const [error, setError] = useState('')
+  useEffect(() => {
+    let active = true
+    let objectUrl = ''
+    setDocument(null)
+    setError('')
+    fetchDocument(`/documents/${credit.document_id}`).then(blob => {
+      if (!active) return
+      if (!['application/pdf', 'image/jpeg', 'image/png'].includes(blob.type)) throw new Error('Für dieses Dateiformat ist keine Vorschau verfügbar.')
+      objectUrl = URL.createObjectURL(blob)
+      setDocument({ url: objectUrl, mime: blob.type })
+    }).catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'Dokument konnte nicht geladen werden.') })
+    return () => { active = false; if (objectUrl) URL.revokeObjectURL(objectUrl) }
+  }, [credit.document_id])
+  const extension = document?.mime === 'image/jpeg' ? 'jpg' : document?.mime === 'image/png' ? 'png' : 'pdf'
+  return <>
+    <div className="credit-pdf-heading"><h3>Dokumentvorschau</h3><span>{document?.mime === 'application/pdf' ? 'PDF' : document ? 'Bilddatei' : 'Gutschrift'}</span></div>
+    {error ? <Notice tone="error">{error}</Notice> : document ? <>{document.mime === 'application/pdf' ? <PdfPreview url={document.url} title={`PDF-Vorschau der Gutschrift ${credit.reference}`}/> : <img className="credit-image-preview" src={document.url} alt={`Gutschrift ${credit.reference}`}/>}<div className="claim-row-actions"><a className="button button-primary" href={document.url} download={`Gutschrift-${credit.claim_number}.${extension}`}>Gutschrift herunterladen <Icon name="download" size={18}/></a></div></> : <p role="status">Dokumentvorschau wird geladen …</p>}
+  </>
+}
+
+export function CreditsPage({ data, navigate, selectedClaimId }: { data: Bootstrap; navigate: (page: string) => void; selectedClaimId?: string }) {
   const selected = data.credits?.find(credit => credit.claim_id === selectedClaimId)
   return <>
     {selected ? <button className="back-link" onClick={() => navigate(`claim:${selected.claim_id}`)}>← Zurück zur Meldung</button> : null}
     <PageTitle title={selected ? 'Gutschrift' : 'Gutschriften'} subtitle={selected ? `Zur Meldung ${selected.claim_number}` : 'Ihre bereitgestellten Gutschriften und zugehörigen Meldungen.'}/>
-    {error ? <Notice tone="error">{error}</Notice> : null}
-    {selected ? <section className="data-section"><div className="section-header"><h2>Ihre Gutschrift</h2><StatusPill status="COMPLETED" label="Bereitgestellt"/></div><div className="term-summary"><div><span>Vorgang</span><strong>{selected.claim_number}</strong></div><div><span>Referenz</span><strong>{selected.reference}</strong></div><div><span>Bereitgestellt</span><strong>{dateTime(selected.published_at)}</strong></div></div><div className="claim-row-actions"><Button icon="download" onClick={() => download(`/documents/${selected.document_id}`, `Gutschrift-${selected.claim_number}.pdf`).catch(e => setError(e.message))}>Gutschrift herunterladen</Button><button className="text-button" onClick={() => navigate(`claim:${selected.claim_id}`)}>Meldung öffnen <Icon name="arrow" size={15}/></button></div></section> : data.credits?.length ? <section className="data-section"><div className="table-wrap"><table><thead><tr><th>Meldung</th><th>Referenz</th><th>Bereitgestellt</th><th>Aktionen</th></tr></thead><tbody>{data.credits.map(credit => <tr key={credit.id}><td>{credit.claim_number}</td><td>{credit.reference}</td><td>{dateTime(credit.published_at)}</td><td><div className="claim-row-actions"><Button variant="secondary" onClick={() => navigate(`claim:${credit.claim_id}`)}>Meldung ansehen</Button><button className="text-button" onClick={() => navigate(`credits:${credit.claim_id}`)}>Gutschrift <Icon name="arrow" size={15}/></button></div></td></tr>)}</tbody></table></div></section> : <Empty title="Noch keine Gutschriften" description="Sobald eine Gutschrift bereitsteht, erscheint sie hier und in der zugehörigen Meldung."/>}
+    {selected ? <section className="data-section credit-detail"><div className="section-header"><h2>Ihre Gutschrift</h2><StatusPill status="COMPLETED" label="Bereitgestellt"/></div><div className="term-summary"><div><span>Vorgang</span><strong>{selected.claim_number}</strong></div><div><span>Referenz</span><strong>{selected.reference}</strong></div><div><span>Bereitgestellt</span><strong>{dateTime(selected.published_at)}</strong></div></div><button className="text-button" onClick={() => navigate(`claim:${selected.claim_id}`)}>Meldung öffnen <Icon name="arrow" size={15}/></button><CreditDocumentPreview credit={selected}/></section> : data.credits?.length ? <section className="data-section"><div className="table-wrap"><table><thead><tr><th>Meldung</th><th>Referenz</th><th>Bereitgestellt</th><th>Aktionen</th></tr></thead><tbody>{data.credits.map(credit => <tr key={credit.id}><td>{credit.claim_number}</td><td>{credit.reference}</td><td>{dateTime(credit.published_at)}</td><td><div className="claim-row-actions"><Button variant="secondary" onClick={() => navigate(`claim:${credit.claim_id}`)}>Meldung ansehen</Button><button className="text-button" onClick={() => navigate(`credits:${credit.claim_id}`)}>Gutschrift <Icon name="arrow" size={15}/></button></div></td></tr>)}</tbody></table></div></section> : <Empty title="Noch keine Gutschriften" description="Sobald eine Gutschrift bereitsteht, erscheint sie hier und in der zugehörigen Meldung."/>}
   </>
 }
-export function HelpPage() { return <><PageTitle title="Hilfe" subtitle="Kurze Antworten zu Ihrer Lagerwertverlustmeldung."/><div className="help-grid"><section><h2>Was ist eine PZN?</h2><p>Die Pharmazentralnummer kennzeichnet einen Artikel. Wählen Sie eine Glenmark-PZN aus der Suche. Die Einreichung prüft, ob sie zum gewählten Stichtag betroffen ist.</p></section><section><h2>Welche Charge trage ich ein?</h2><p>Tragen Sie die Chargennummer von der Packung ein. Das Feld muss ausgefüllt sein; eine fachliche Chargenprüfung findet nicht statt.</p></section><section><h2>Kann ich später korrigieren?</h2><p>Entwürfe können Sie jederzeit innerhalb der Frist bearbeiten. Eine eingereichte Revision bleibt unverändert. Nach einer Ablehnung können Sie eine neue Revision anlegen, sofern die Frist noch offen ist.</p></section><section><h2>Wo finde ich meine Gutschrift?</h2><p>Im Menü „Gutschriften“ oder direkt in der abgeschlossenen Meldung. Dort können Sie das zugeordnete Dokument herunterladen. Die Zahlungsabwicklung selbst erfolgt außerhalb dieses Portals.</p></section></div></> }
+export function HelpPage() { return <><PageTitle title="Hilfe" subtitle="Kurze Antworten zu Ihrer Lagerwertverlustmeldung."/><div className="help-grid"><section><h2>Was ist eine PZN?</h2><p>Die Pharmazentralnummer kennzeichnet einen Artikel. Wählen Sie eine Glenmark-PZN aus der Suche. Die Einreichung prüft, ob sie zum gewählten Stichtag betroffen ist.</p></section><section><h2>Welche Charge trage ich ein?</h2><p>Tragen Sie die Chargennummer von der Packung ein. Das Feld muss ausgefüllt sein; eine fachliche Chargenprüfung findet nicht statt.</p></section><section><h2>Kann ich später korrigieren?</h2><p>Entwürfe können Sie jederzeit innerhalb der Frist bearbeiten. Eine eingereichte Revision bleibt unverändert. Nach einer Ablehnung können Sie eine neue Revision anlegen, sofern die Frist noch offen ist.</p></section><section><h2>Wo finde ich meine Gutschrift?</h2><p>Öffnen Sie einen ausgezahlten Stichtag in der Übersicht. Die zugeordnete Gutschrift zeigt das Dokument als Vorschau und bietet den Download an. Die Zahlungsabwicklung selbst erfolgt außerhalb dieses Portals.</p></section></div></> }

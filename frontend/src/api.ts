@@ -23,11 +23,15 @@ export const post = <T>(route: string, body: unknown) => api<T>(route, { method:
 export const put = <T>(route: string, body: unknown) => api<T>(route, { method: 'PUT', body: JSON.stringify(body) })
 export const upload = <T>(route: string, form: FormData) => api<T>(route, { method: 'POST', body: form })
 
-export async function download(route: string, filename: string) {
+export async function fetchDocument(route: string): Promise<Blob> {
   if (!route.startsWith('/') || route.startsWith('//')) throw new Error('Ungültiger API-Pfad')
   const response = await fetch(`/api${route}`, { credentials: 'same-origin', cache: 'no-store' })
   if (!response.ok) throw new Error('Dokument konnte nicht geladen werden.')
-  const blob = await response.blob()
+  return response.blob()
+}
+
+export async function download(route: string, filename: string) {
+  const blob = await fetchDocument(route)
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
