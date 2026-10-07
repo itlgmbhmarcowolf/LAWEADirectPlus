@@ -7,9 +7,16 @@
 .overview-sort select{min-width:190px;min-height:39px;padding:7px 32px 7px 12px;border:1px solid #cbdde5;border-radius:8px;background:#fff;color:#143755;font:inherit;font-size:14px;cursor:pointer}
 .overview-sort select:focus-visible{outline:3px solid #63bfd0;outline-offset:2px}
 .overview-simple-list{overflow:hidden;width:100%;border:1px solid #d7e5eb;border-top:3px solid #0e7990;border-radius:13px;background:#fff;box-shadow:0 13px 34px rgba(23,61,82,.075)}
+.overview-empty{display:grid;gap:5px;padding:55px 24px;text-align:center;color:#70869a}
+.overview-empty strong{color:#24465e;font-size:16px}
 .overview-simple-columns{display:grid;grid-template-columns:220px minmax(0,1fr) 264px;gap:0;background:#ecf5f8;color:#46677b;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
 .overview-simple-columns span{padding:15px 26px}
 .overview-simple-columns span:first-child{border-right:1px solid #d7e5eb}
+.overview-status-filter{display:flex;align-items:center;gap:10px;padding:8px 20px 8px 26px;min-width:0;letter-spacing:.08em}
+.overview-status-filter span{padding:0;white-space:nowrap}
+.overview-status-filter select{flex:1;min-width:0;min-height:35px;padding:5px 7px;border:1px solid #bdd5df;border-radius:7px;background:#fff;color:#16435b;font:inherit;font-size:12px;font-weight:750;letter-spacing:normal;text-transform:none;cursor:pointer}
+.overview-status-filter select:hover{border-color:#7eb7c5}
+.overview-status-filter select:focus-visible{outline:3px solid #63bfd0;outline-offset:2px}
 .overview-month{display:grid;grid-template-columns:220px minmax(0,1fr);border-top:1px solid #dce7ec}
 .overview-month-label{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;padding:16px 26px;background:#f7fafb;border-right:1px solid #dce7ec}
 .overview-month-label h2{margin:0;color:#123a5a;font-size:23px;font-weight:750;letter-spacing:-.025em}
@@ -30,6 +37,7 @@
 .overview-row-arrow{display:grid;place-items:center;align-self:stretch;color:#0a7288;transition:transform .18s ease}
 .overview-simple-row:hover .overview-row-arrow{transform:translateX(3px)}
 .overview-pagination{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:16px;color:#536b80;font-size:13px}
+.overview-pagination-actions{display:flex;align-items:end;justify-content:flex-end;gap:18px}
 .overview-page-size{display:grid;gap:6px;flex:none;color:#536b80;font-size:12px;font-weight:700}
 .overview-page-size select{min-width:140px;min-height:39px;padding:7px 28px 7px 11px;border:1px solid #cbdde5;border-radius:8px;background:#fff;color:#143755;font:inherit;font-size:14px;cursor:pointer}
 .overview-page-size select:focus-visible{outline:3px solid #63bfd0;outline-offset:2px}
@@ -41,5 +49,6 @@
 .overview-pagination button:focus-visible{outline:3px solid #63bfd0;outline-offset:2px}
 .overview-simple-note{margin:12px 2px 0;color:#718299;font-size:12px}
 @media(max-width:1000px){.overview-simple-columns{grid-template-columns:165px minmax(0,1fr) 184px}.overview-month{grid-template-columns:165px minmax(0,1fr)}.overview-month-label{padding-left:20px;padding-right:14px}.overview-simple-row{grid-template-columns:minmax(0,1fr) 140px 44px}}
-@media(max-width:700px){.overview-simple{padding-top:0}.overview-simple-heading{display:block;margin-bottom:17px}.overview-simple-heading h1{font-size:31px}.overview-simple-heading p{margin-top:6px;font-size:14px}.overview-controls{margin-top:17px}.overview-sort{flex:1 1 190px}.overview-sort select,.overview-page-size select{width:100%}.overview-page-size{flex:1 1 140px}.overview-simple-columns{display:none}.overview-month{display:block}.overview-month:first-child{border-top:0}.overview-month-label{flex-direction:row;justify-content:flex-start;align-items:baseline;gap:5px;padding:9px 15px;border-right:0;border-bottom:1px solid #e5eef1}.overview-month-label h2{font-size:16px}.overview-month-label span{font-size:12px}.overview-simple-row{grid-template-columns:minmax(0,1fr) 116px 30px;min-height:56px;padding:7px 8px 7px 16px}.overview-simple-date strong{font-size:23px}.overview-simple-date span{font-size:14px}.overview-simple-status{font-size:11px}.overview-simple-status:not(:empty){padding:6px 8px}.overview-pagination{align-items:flex-start;flex-direction:column;gap:10px}.overview-pagination nav{width:100%}.overview-pagination button{flex:1}}
+@media(max-width:700px){.overview-simple{padding-top:0}.overview-simple-heading{display:block;margin-bottom:17px}.overview-simple-heading h1{font-size:31px}.overview-simple-heading p{margin-top:6px;font-size:14px}.overview-controls{margin-top:17px}.overview-sort{flex:1 1 190px}.overview-sort select,.overview-page-size select{width:100%}.overview-simple-columns{display:none}.overview-month{display:block}.overview-month:first-child{border-top:0}.overview-month-label{flex-direction:row;justify-content:flex-start;align-items:baseline;gap:5px;padding:9px 15px;border-right:0;border-bottom:1px solid #e5eef1}.overview-month-label h2{font-size:16px}.overview-month-label span{font-size:12px}.overview-simple-row{grid-template-columns:minmax(0,1fr) 116px 30px;min-height:56px;padding:7px 8px 7px 16px}.overview-simple-date strong{font-size:23px}.overview-simple-date span{font-size:14px}.overview-simple-status{font-size:11px}.overview-simple-status:not(:empty){padding:6px 8px}.overview-pagination{align-items:flex-start;flex-direction:column;gap:10px}.overview-pagination-actions{width:100%;flex-wrap:wrap;justify-content:stretch;gap:10px}.overview-page-size{flex:1 1 140px}.overview-pagination nav{width:100%}.overview-pagination button{flex:1}}
+@media(max-width:700px){.overview-simple-columns{display:flex;justify-content:flex-end}.overview-simple-columns>span{display:none}.overview-status-filter{width:100%;justify-content:space-between;padding:8px 15px}.overview-status-filter select{flex:0 1 220px}}
 @media(prefers-reduced-motion:reduce){.overview-simple-row,.overview-row-arrow{transition:none}}

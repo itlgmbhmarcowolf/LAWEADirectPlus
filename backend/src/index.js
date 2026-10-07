@@ -363,8 +363,9 @@ app.get('/api/documents/:id', requireUser, (req, res, next) => {
     if (!doc) throw problem(404, 'Dokument nicht gefunden.')
     if (doc.claim_id && !db.prepare('SELECT 1 FROM claims WHERE id=? AND demo_archived_at IS NULL').get(doc.claim_id)) throw problem(404, 'Dokument nicht gefunden.')
     const s = req.session
+    const publishedCredit = doc.kind === 'CREDIT' && db.prepare("SELECT 1 FROM credits WHERE document_id=? AND organization_id=? AND status='PUBLISHED'").get(doc.id, s.organization_id)
     const allowed = s.organization_id
-      ? doc.organization_id === s.organization_id && doc.kind !== 'LICENSE' && (doc.kind === 'CREDIT' || !doc.removed_at)
+      ? doc.organization_id === s.organization_id && doc.kind !== 'LICENSE' && (doc.kind === 'CREDIT' ? Boolean(publishedCredit) : !doc.removed_at)
       : s.role === 'REVIEWER' || (s.role === 'FINANCE' && doc.kind === 'CREDIT')
     if (!allowed) throw problem(404, 'Dokument nicht gefunden.')
     audit(s.uid, doc.organization_id, 'document', doc.id, 'DOWNLOAD')
@@ -680,7 +681,7 @@ app.post('/api/finance/credits', requireUser, requireRole('FINANCE'), requireCsr
   const reason = ready ? null : !claim ? 'Keine eindeutige Vorgangsnummer gefunden.' : existing ? 'Für diesen Vorgang liegt bereits eine Gutschrift vor.' : claim.status !== 'APPROVED' ? 'Vorgang ist nicht freigegeben.' : 'Vorgang wurde noch nicht exportiert.'
   db.prepare('INSERT INTO credits VALUES (?,?,?,?,?,?,?,?,?,?)').run(creditId, ready ? claim.id : null, ready ? claim.organization_id : null, documentId, reference, ready ? 'READY' : 'ERROR', reason, req.session.uid, now(), null)
   audit(req.session.uid, ready ? claim.organization_id : null, 'credit', creditId, 'IMPORTED', ready ? 'READY' : 'ERROR')
-  res.status(201).json({ id: creditId, status: ready ? 'READY' : 'ERROR', reason })
+  res.status(201).json({ id: creditId, documentId, status: ready ? 'READY' : 'ERROR', reason })
 })
 app.post('/api/finance/credits/:id/publish', requireUser, requireRole('FINANCE'), requireCsrf, (req, res) => {
   const credit = db.prepare("SELECT * FROM credits WHERE id=? AND status='READY'").get(req.params.id)

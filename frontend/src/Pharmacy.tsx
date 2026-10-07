@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { api, download, post, put, upload } from './api'
-import type { Bootstrap, ClaimDetail, Draft, Item, Term } from './types'
+import { api, download, fetchDocument, post, put, upload } from './api'
+import type { Bootstrap, ClaimDetail, Credit, Draft, Item, Term } from './types'
 import { dateLabel, dateTime, shortDate, statusLabel } from './types'
 import { Button, Empty, Icon, Notice, PageTitle, StatusPill } from './ui'
 import { PreviewDashboard } from './PreviewDashboard'
+import type { DashboardView } from './PreviewDashboard'
+import { PdfPreview } from './PdfPreviewLoader'
 import './claim-editor.css'
+import './credit-preview.css'
 
 const termOpen = (term: Term) => new Date(term.opens_at).getTime() <= Date.now() && new Date(term.closes_at).getTime() >= Date.now()
 const emptyItem = (): Item => ({ pzn: '', charge: '', quantity: 0 })
@@ -16,7 +19,7 @@ async function startClaim(termId: string, navigate: (page: string) => void, refr
   navigate(`claim:${result.id}`)
 }
 
-function PharmacyTermList({ data, navigate, refresh, mode }: { data: Bootstrap; navigate: (page: string) => void; refresh: () => Promise<Bootstrap>; mode: 'dashboard' | 'claims' }) {
+function PharmacyTermList({ data, navigate, refresh, view, onViewChange }: { data: Bootstrap; navigate: (page: string) => void; refresh: () => Promise<Bootstrap>; view: DashboardView; onViewChange: (view: DashboardView) => void }) {
   const [error, setError] = useState('')
   // Nur offene Termine und Termine mit einem eigenen Vorgang kommen aus /bootstrap.
   const terms = data.terms.map(term => {
@@ -25,7 +28,9 @@ function PharmacyTermList({ data, navigate, refresh, mode }: { data: Bootstrap; 
       iso: term.date,
       date: shortDate(term.date),
       status: existing?.status || null,
-      target: existing ? `claim:${existing.id}` : `term:${term.id}`,
+      target: existing?.status === 'COMPLETED' && data.credits?.some(credit => credit.claim_id === existing.id)
+        ? `credits:${existing.id}`
+        : existing ? `claim:${existing.id}` : `term:${term.id}`,
       disabled: !existing && !termOpen(term)
     }
   })
@@ -33,11 +38,11 @@ function PharmacyTermList({ data, navigate, refresh, mode }: { data: Bootstrap; 
     if (target.startsWith('term:')) startClaim(target.slice(5), navigate, refresh).catch(e => setError(e instanceof Error ? e.message : 'Meldung konnte nicht geöffnet werden.'))
     else navigate(target)
   }
-  return <>{error ? <Notice tone="error">{error}</Notice> : null}<PreviewDashboard terms={terms} mode={mode} navigate={open} preview={false}/></>
+  return <>{error ? <Notice tone="error">{error}</Notice> : null}<PreviewDashboard terms={terms} navigate={open} preview={false} view={view} onViewChange={onViewChange}/></>
 }
 
-export function PharmacyDashboard({ data, navigate, refresh }: { data: Bootstrap; navigate: (page: string) => void; refresh: () => Promise<Bootstrap> }) {
-  return <PharmacyTermList data={data} navigate={navigate} refresh={refresh} mode="dashboard"/>
+export function PharmacyDashboard({ data, navigate, refresh, view, onViewChange }: { data: Bootstrap; navigate: (page: string) => void; refresh: () => Promise<Bootstrap>; view: DashboardView; onViewChange: (view: DashboardView) => void }) {
+  return <PharmacyTermList data={data} navigate={navigate} refresh={refresh} view={view} onViewChange={onViewChange}/>
 }
 
 export function ClaimsPage({ data, navigate, refresh }: { data: Bootstrap; navigate: (page: string) => void; refresh: () => Promise<Bootstrap> }) {
@@ -108,12 +113,12 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
   const removeDocument = async (docId: string) => { setBusy(true); setError(''); try { await save(); await post(`/claims/${id}/documents/${docId}/remove`, {}); await load() } catch (e) { setError(e instanceof Error ? e.message : 'Entfernen fehlgeschlagen.') } finally { setBusy(false) } }
   const submit = async () => { if (!detail) return; setBusy(true); setError(''); try { await save(); await post(`/claims/${id}/submit`, { key: crypto.randomUUID() }); await refresh(); setConfirm(false); onSubmitted(detail.claim.number) } catch (e) { setError(e instanceof Error ? e.message : 'Einreichen fehlgeschlagen.'); setConfirm(false) } finally { setBusy(false) } }
   const revise = async () => { setBusy(true); setError(''); try { await post(`/claims/${id}/revise`, {}); await load(); await refresh(); setNotice('Neue Revision angelegt. Bitte prüfen Sie alle Angaben erneut.') } catch (e) { setError(e instanceof Error ? e.message : 'Korrektur nicht möglich.') } finally { setBusy(false) } }
-  const cancel = async () => { if (!window.confirm('Möchten Sie diesen Entwurf wirklich verwerfen?')) return; setBusy(true); try { await post(`/claims/${id}/cancel`, {}); await refresh(); navigate('claims') } catch (e) { setError(e instanceof Error ? e.message : 'Verwerfen fehlgeschlagen.') } finally { setBusy(false) } }
+  const cancel = async () => { if (!window.confirm('Möchten Sie diesen Entwurf wirklich verwerfen?')) return; setBusy(true); try { await post(`/claims/${id}/cancel`, {}); await refresh(); navigate('dashboard') } catch (e) { setError(e instanceof Error ? e.message : 'Verwerfen fehlgeschlagen.') } finally { setBusy(false) } }
   if (!detail || !draft) return <div className="loading-region">{error ? <Notice tone="error">{error}</Notice> : 'Meldung wird geladen …'}</div>
   const claim = detail.claim, editable = claim.status === 'DRAFT'
   const credit = data.credits?.find(item => item.claim_id === claim.id)
   const documents = detail.documents.filter(d => !d.removed_at && d.kind === 'EVIDENCE')
-  return <><button className="back-link" onClick={() => navigate('claims')}>← Zurück zu Meldungen</button>
+  return <><button className="back-link" onClick={() => navigate('dashboard')}>← Zurück zur Übersicht</button>
     {editable ? <header className="claim-editor-heading"><h1>Meldung erfassen</h1><span>Stichtag {shortDate(detail.term.date)} · Glenmark · Einreichbar bis {shortDate(detail.term.closes_at)}</span></header> : <><PageTitle title="Meldung im Überblick" subtitle={claim.number}/><div className="term-summary"><div><span>Stichtag</span><strong>{shortDate(detail.term.date)}</strong></div><div><span>Meldezeitraum</span><strong>bis {shortDate(detail.term.closes_at)}</strong></div><div><span>Hersteller</span><strong>Glenmark</strong></div></div></>}
     {error ? <Notice tone="error">{error}</Notice> : null}{notice ? <Notice tone="success">{notice}</Notice> : null}
     {editable ? <>
@@ -133,14 +138,35 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
   </>
 }
 
-export function CreditsPage({ data, navigate, selectedClaimId }: { data: Bootstrap; navigate: (page: string) => void; selectedClaimId?: string }) {
+function CreditDocumentPreview({ credit }: { credit: Credit }) {
+  const [document, setDocument] = useState<{ url: string; mime: string } | null>(null)
   const [error, setError] = useState('')
+  useEffect(() => {
+    let active = true
+    let objectUrl = ''
+    setDocument(null)
+    setError('')
+    fetchDocument(`/documents/${credit.document_id}`).then(blob => {
+      if (!active) return
+      if (!['application/pdf', 'image/jpeg', 'image/png'].includes(blob.type)) throw new Error('Für dieses Dateiformat ist keine Vorschau verfügbar.')
+      objectUrl = URL.createObjectURL(blob)
+      setDocument({ url: objectUrl, mime: blob.type })
+    }).catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'Dokument konnte nicht geladen werden.') })
+    return () => { active = false; if (objectUrl) URL.revokeObjectURL(objectUrl) }
+  }, [credit.document_id])
+  const extension = document?.mime === 'image/jpeg' ? 'jpg' : document?.mime === 'image/png' ? 'png' : 'pdf'
+  return <>
+    <div className="credit-pdf-heading"><h3>Dokumentvorschau</h3><span>{document?.mime === 'application/pdf' ? 'PDF' : document ? 'Bilddatei' : 'Gutschrift'}</span></div>
+    {error ? <Notice tone="error">{error}</Notice> : document ? <>{document.mime === 'application/pdf' ? <PdfPreview url={document.url} title={`PDF-Vorschau der Gutschrift ${credit.reference}`}/> : <img className="credit-image-preview" src={document.url} alt={`Gutschrift ${credit.reference}`}/>}<div className="claim-row-actions"><a className="button button-primary" href={document.url} download={`Gutschrift-${credit.claim_number}.${extension}`}>Gutschrift herunterladen <Icon name="download" size={18}/></a></div></> : <p role="status">Dokumentvorschau wird geladen …</p>}
+  </>
+}
+
+export function CreditsPage({ data, navigate, selectedClaimId }: { data: Bootstrap; navigate: (page: string) => void; selectedClaimId?: string }) {
   const selected = data.credits?.find(credit => credit.claim_id === selectedClaimId)
   return <>
     {selected ? <button className="back-link" onClick={() => navigate(`claim:${selected.claim_id}`)}>← Zurück zur Meldung</button> : null}
     <PageTitle title={selected ? 'Gutschrift' : 'Gutschriften'} subtitle={selected ? `Zur Meldung ${selected.claim_number}` : 'Ihre bereitgestellten Gutschriften und zugehörigen Meldungen.'}/>
-    {error ? <Notice tone="error">{error}</Notice> : null}
-    {selected ? <section className="data-section"><div className="section-header"><h2>Ihre Gutschrift</h2><StatusPill status="COMPLETED" label="Bereitgestellt"/></div><div className="term-summary"><div><span>Vorgang</span><strong>{selected.claim_number}</strong></div><div><span>Referenz</span><strong>{selected.reference}</strong></div><div><span>Bereitgestellt</span><strong>{dateTime(selected.published_at)}</strong></div></div><div className="claim-row-actions"><Button icon="download" onClick={() => download(`/documents/${selected.document_id}`, `Gutschrift-${selected.claim_number}.pdf`).catch(e => setError(e.message))}>Gutschrift herunterladen</Button><button className="text-button" onClick={() => navigate(`claim:${selected.claim_id}`)}>Meldung öffnen <Icon name="arrow" size={15}/></button></div></section> : data.credits?.length ? <section className="data-section"><div className="table-wrap"><table><thead><tr><th>Meldung</th><th>Referenz</th><th>Bereitgestellt</th><th>Aktionen</th></tr></thead><tbody>{data.credits.map(credit => <tr key={credit.id}><td>{credit.claim_number}</td><td>{credit.reference}</td><td>{dateTime(credit.published_at)}</td><td><div className="claim-row-actions"><Button variant="secondary" onClick={() => navigate(`claim:${credit.claim_id}`)}>Meldung ansehen</Button><button className="text-button" onClick={() => navigate(`credits:${credit.claim_id}`)}>Gutschrift <Icon name="arrow" size={15}/></button></div></td></tr>)}</tbody></table></div></section> : <Empty title="Noch keine Gutschriften" description="Sobald eine Gutschrift bereitsteht, erscheint sie hier und in der zugehörigen Meldung."/>}
+    {selected ? <section className="data-section credit-detail"><div className="section-header"><h2>Ihre Gutschrift</h2><StatusPill status="COMPLETED" label="Bereitgestellt"/></div><div className="term-summary"><div><span>Vorgang</span><strong>{selected.claim_number}</strong></div><div><span>Referenz</span><strong>{selected.reference}</strong></div><div><span>Bereitgestellt</span><strong>{dateTime(selected.published_at)}</strong></div></div><button className="text-button" onClick={() => navigate(`claim:${selected.claim_id}`)}>Meldung öffnen <Icon name="arrow" size={15}/></button><CreditDocumentPreview credit={selected}/></section> : data.credits?.length ? <section className="data-section"><div className="table-wrap"><table><thead><tr><th>Meldung</th><th>Referenz</th><th>Bereitgestellt</th><th>Aktionen</th></tr></thead><tbody>{data.credits.map(credit => <tr key={credit.id}><td>{credit.claim_number}</td><td>{credit.reference}</td><td>{dateTime(credit.published_at)}</td><td><div className="claim-row-actions"><Button variant="secondary" onClick={() => navigate(`claim:${credit.claim_id}`)}>Meldung ansehen</Button><button className="text-button" onClick={() => navigate(`credits:${credit.claim_id}`)}>Gutschrift <Icon name="arrow" size={15}/></button></div></td></tr>)}</tbody></table></div></section> : <Empty title="Noch keine Gutschriften" description="Sobald eine Gutschrift bereitsteht, erscheint sie hier und in der zugehörigen Meldung."/>}
   </>
 }
-export function HelpPage() { return <><PageTitle title="Hilfe" subtitle="Kurze Antworten zu Ihrer Lagerwertverlustmeldung."/><div className="help-grid"><section><h2>Was ist eine PZN?</h2><p>Die Pharmazentralnummer kennzeichnet einen Artikel. Wählen Sie eine Glenmark-PZN aus der Suche. Die Einreichung prüft, ob sie zum gewählten Stichtag betroffen ist.</p></section><section><h2>Welche Charge trage ich ein?</h2><p>Tragen Sie die Chargennummer von der Packung ein. Das Feld muss ausgefüllt sein; eine fachliche Chargenprüfung findet nicht statt.</p></section><section><h2>Kann ich später korrigieren?</h2><p>Entwürfe können Sie jederzeit innerhalb der Frist bearbeiten. Eine eingereichte Revision bleibt unverändert. Nach einer Ablehnung können Sie eine neue Revision anlegen, sofern die Frist noch offen ist.</p></section><section><h2>Wo finde ich meine Gutschrift?</h2><p>Im Menü „Gutschriften“ oder direkt in der abgeschlossenen Meldung. Dort können Sie das zugeordnete Dokument herunterladen. Die Zahlungsabwicklung selbst erfolgt außerhalb dieses Portals.</p></section></div></> }
+export function HelpPage() { return <><PageTitle title="Hilfe" subtitle="Kurze Antworten zu Ihrer Lagerwertverlustmeldung."/><div className="help-grid"><section><h2>Was ist eine PZN?</h2><p>Die Pharmazentralnummer kennzeichnet einen Artikel. Wählen Sie eine Glenmark-PZN aus der Suche. Die Einreichung prüft, ob sie zum gewählten Stichtag betroffen ist.</p></section><section><h2>Welche Charge trage ich ein?</h2><p>Tragen Sie die Chargennummer von der Packung ein. Das Feld muss ausgefüllt sein; eine fachliche Chargenprüfung findet nicht statt.</p></section><section><h2>Kann ich später korrigieren?</h2><p>Entwürfe können Sie jederzeit innerhalb der Frist bearbeiten. Eine eingereichte Revision bleibt unverändert. Nach einer Ablehnung können Sie eine neue Revision anlegen, sofern die Frist noch offen ist.</p></section><section><h2>Wo finde ich meine Gutschrift?</h2><p>Öffnen Sie einen ausgezahlten Stichtag in der Übersicht. Die zugeordnete Gutschrift zeigt das Dokument als Vorschau und bietet den Download an. Die Zahlungsabwicklung selbst erfolgt außerhalb dieses Portals.</p></section></div></> }

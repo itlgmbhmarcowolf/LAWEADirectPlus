@@ -49,7 +49,7 @@ export function PreviewClaims({ currentClaims, navigate }: { currentClaims: Open
 
 export function PreviewSampleClaimDetail({ claim, navigate }: { claim: SampleClaim; navigate: (page: string) => void }) {
   return <>
-    <button className="back-link" onClick={() => navigate('claims')}>← Zurück zu Meldungen</button>
+    <button className="back-link" onClick={() => navigate('dashboard')}>← Zurück zur Übersicht</button>
     <PageTitle title="Meldung im Überblick" subtitle={`${claim.number} · Senkungstermin ${label(claim.termDate)}`}/>
     <div className="term-summary"><div><span>Stichtag</span><strong>{label(claim.termDate)}</strong></div><div><span>Hersteller</span><strong>Glenmark</strong></div><div><span>Status</span><strong><StatusPill status={claim.status} label={claim.status === 'COMPLETED' ? 'Ausgezahlt · Demo' : claim.status === 'MANUAL_REVIEW' ? 'Eingereicht' : undefined}/></strong></div></div>
     <section className="data-section claim-overview"><div className="section-header"><h2>Bearbeitungsstand</h2><StatusPill status={claim.status} label={claim.status === 'COMPLETED' ? 'Ausgezahlt · Demo' : claim.status === 'MANUAL_REVIEW' ? 'Eingereicht' : undefined}/></div><p>{claim.status === 'COMPLETED' ? 'Auszahlung nur als fiktiver Beispielstand dargestellt. Es wurde keine Zahlung ausgeführt.' : 'Fiktiver Beispielvorgang für die Navigation im Kundengespräch.'}</p>{claim.creditReference ? <div className="claim-credit-link"><div><strong>Zugeordnete Gutschrift</strong><span>{claim.creditReference} · zu {claim.number}</span></div><Button variant="secondary" icon="arrow" onClick={() => navigate(`credits:${claim.number}`)}>Gutschrift ansehen</Button></div> : <p className="muted">Eine Gutschrift ist noch nicht verfügbar.</p>}</section>
