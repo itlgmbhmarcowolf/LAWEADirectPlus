@@ -4,6 +4,7 @@ import type { Bootstrap, ClaimDetail, Credit, Draft, Item, Term } from './types'
 import { dateLabel, dateTime, shortDate, statusLabel } from './types'
 import { Button, Empty, Icon, Notice, PageTitle, StatusPill } from './ui'
 import { PreviewDashboard } from './PreviewDashboard'
+import type { DashboardView } from './PreviewDashboard'
 import { PdfPreview } from './PdfPreviewLoader'
 import './claim-editor.css'
 import './credit-preview.css'
@@ -18,7 +19,7 @@ async function startClaim(termId: string, navigate: (page: string) => void, refr
   navigate(`claim:${result.id}`)
 }
 
-function PharmacyTermList({ data, navigate, refresh }: { data: Bootstrap; navigate: (page: string) => void; refresh: () => Promise<Bootstrap> }) {
+function PharmacyTermList({ data, navigate, refresh, view, onViewChange }: { data: Bootstrap; navigate: (page: string) => void; refresh: () => Promise<Bootstrap>; view: DashboardView; onViewChange: (view: DashboardView) => void }) {
   const [error, setError] = useState('')
   // Nur offene Termine und Termine mit einem eigenen Vorgang kommen aus /bootstrap.
   const terms = data.terms.map(term => {
@@ -37,11 +38,11 @@ function PharmacyTermList({ data, navigate, refresh }: { data: Bootstrap; naviga
     if (target.startsWith('term:')) startClaim(target.slice(5), navigate, refresh).catch(e => setError(e instanceof Error ? e.message : 'Meldung konnte nicht geöffnet werden.'))
     else navigate(target)
   }
-  return <>{error ? <Notice tone="error">{error}</Notice> : null}<PreviewDashboard terms={terms} navigate={open} preview={false}/></>
+  return <>{error ? <Notice tone="error">{error}</Notice> : null}<PreviewDashboard terms={terms} navigate={open} preview={false} view={view} onViewChange={onViewChange}/></>
 }
 
-export function PharmacyDashboard({ data, navigate, refresh }: { data: Bootstrap; navigate: (page: string) => void; refresh: () => Promise<Bootstrap> }) {
-  return <PharmacyTermList data={data} navigate={navigate} refresh={refresh}/>
+export function PharmacyDashboard({ data, navigate, refresh, view, onViewChange }: { data: Bootstrap; navigate: (page: string) => void; refresh: () => Promise<Bootstrap>; view: DashboardView; onViewChange: (view: DashboardView) => void }) {
+  return <PharmacyTermList data={data} navigate={navigate} refresh={refresh} view={view} onViewChange={onViewChange}/>
 }
 
 export function ClaimsPage({ data, navigate, refresh }: { data: Bootstrap; navigate: (page: string) => void; refresh: () => Promise<Bootstrap> }) {

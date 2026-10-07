@@ -8,7 +8,8 @@ import { PreviewMembers } from './PreviewMembers'
 import { PreviewSampleClaimDetail, sampleClaims } from './PreviewClaims'
 import { PreviewCredits } from './PreviewCredits'
 import { AccountSettings } from './AccountSettings'
-import { PreviewDashboard } from './PreviewDashboard'
+import { PreviewDashboard, initialDashboardView } from './PreviewDashboard'
+import { useBrowserPage } from './useBrowserPage'
 import './preview-terms.css'
 
 // Ausschließlich fiktive, flüchtige Konzeptdaten. Dieser Einstiegspunkt importiert keine API.
@@ -43,7 +44,8 @@ export function PreviewApp() {
   const [role, setRole] = useState<Role>('PHARMACY_ADMIN')
   const [signedInEmail, setSignedInEmail] = useState('apotheke@beispiel.test')
   const [viewAsEmail, setViewAsEmail] = useState<string | null>(null)
-  const [page, setPage] = useState('dashboard')
+  const { page, navigate: pushPage, resetPage } = useBrowserPage()
+  const [dashboardView, setDashboardView] = useState(() => initialDashboardView(true))
   const [claims, setClaims] = useState<Record<string, PreviewClaim>>(initialClaims)
   const [activeTermIso, setActiveTermIso] = useState<string>(openTerms[0].iso)
   const [members, setMembers] = useState<PreviewMember[]>(initialMembers)
@@ -52,7 +54,7 @@ export function PreviewApp() {
   const [exportedTerms, setExportedTerms] = useState<string[]>([])
   const [registrationApproved, setRegistrationApproved] = useState(false)
   const [nextItemId, setNextItemId] = useState(2)
-  const activeTerm = openTerms.find(term => term.iso === activeTermIso) || openTerms[0]
+  const activeTerm = openTerms.find(term => term.iso === (page.startsWith('claim:') ? page.slice(6) : activeTermIso)) || openTerms[0]
   const claim = claims[activeTerm.iso]
   const term = activeTerm.date
   const claimNumber = activeTerm.number
@@ -64,9 +66,8 @@ export function PreviewApp() {
   const identity = pharmacy ? viewedMember || signedInMember : undefined
   const user: User = { id: identity?.email || 'preview', name: identity?.name || (role === 'REVIEWER' ? 'Glenmark Prüfung' : 'Glenmark Finance'), email: identity?.email || 'vorschau@beispiel.test', role: effectiveRole, organizationId: pharmacy ? 'preview-pharmacy' : null, organizationName: pharmacy ? profile?.organizationName || 'Rosen-Apotheke am Markt' : null }
   const ownUser: User = { ...user, id: signedInEmail, name: signedInMember?.name || user.name, email: signedInEmail, role }
-  const navigate = (target: string) => { const termIso = target.startsWith('claim:') ? target.slice(6) : ''; if (openTerms.some(term => term.iso === termIso)) setActiveTermIso(termIso); setPage(target); setMessage(''); setConfirmSubmit(false) }
-  const switchRole = (next: Role) => { setViewAsEmail(null); setRole(next); navigate(next.startsWith('PHARMACY') ? 'dashboard' : next === 'REVIEWER' ? 'review' : 'finance') }
-  const reset = () => { setClaims(initialClaims()); setActiveTermIso(openTerms[0].iso); setNextItemId(2); setMembers(initialMembers()); setProfile(null); setSignedInEmail('apotheke@beispiel.test'); setExportedTerms([]); setRegistrationApproved(false); switchRole('PHARMACY_ADMIN'); setSignedIn(false); setMessage('') }
+  const navigate = (target: string) => { const termIso = target.startsWith('claim:') ? target.slice(6) : ''; if (openTerms.some(term => term.iso === termIso)) setActiveTermIso(termIso); pushPage(target); setMessage(''); setConfirmSubmit(false) }
+  const reset = () => { setClaims(initialClaims()); setActiveTermIso(openTerms[0].iso); setNextItemId(2); setMembers(initialMembers()); setProfile(null); setSignedInEmail('apotheke@beispiel.test'); setExportedTerms([]); setRegistrationApproved(false); setViewAsEmail(null); setRole('PHARMACY_ADMIN'); setDashboardView(initialDashboardView(true)); resetPage(); setSignedIn(false); setMessage('') }
   const switchToMember = (email: string) => { if (role !== 'PHARMACY_ADMIN' || !members.some(member => member.email === email && !member.admin && member.status === 'Aktiv')) return; setViewAsEmail(email); navigate('dashboard') }
   const returnToAdmin = () => { setViewAsEmail(null); navigate('dashboard') }
   const saveOwnSettings = (name: string, email: string) => {
@@ -92,11 +93,11 @@ export function PreviewApp() {
     ...openTerms.map(term => ({ iso: term.iso, date: term.date, status: claims[term.iso].status === 'DRAFT' && !hasDraftData(claims[term.iso]) ? null : claims[term.iso].status, target: claims[term.iso].status === 'COMPLETED' ? `credits:${term.number}` : `claim:${term.iso}` })),
     ...sampleClaims.map(item => ({ iso: item.termDate, date: new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${item.termDate}T12:00:00Z`)), status: item.status, target: item.status === 'COMPLETED' && item.creditReference ? `credits:${item.number}` : `sample:${item.number}` }))
   ]
-  if (!signedIn) return <PreviewLogin onAuthenticated={(nextRole, newProfile) => { setProfile(newProfile || null); setMembers(newProfile ? [{ name: newProfile.name, email: newProfile.email, admin: true, status: 'Aktiv' }] : initialMembers()); setSignedInEmail(newProfile?.email || (nextRole === 'PHARMACY_STAFF' ? 'mitarbeiterin@beispiel.test' : 'apotheke@beispiel.test')); switchRole(nextRole); setSignedIn(true) }}/>
+  if (!signedIn) return <PreviewLogin onAuthenticated={(nextRole, newProfile) => { setProfile(newProfile || null); setMembers(newProfile ? [{ name: newProfile.name, email: newProfile.email, admin: true, status: 'Aktiv' }] : initialMembers()); setSignedInEmail(newProfile?.email || (nextRole === 'PHARMACY_STAFF' ? 'mitarbeiterin@beispiel.test' : 'apotheke@beispiel.test')); setViewAsEmail(null); setRole(nextRole); resetPage(nextRole.startsWith('PHARMACY') ? 'dashboard' : nextRole === 'REVIEWER' ? 'review' : 'finance'); setSignedIn(true) }}/>
 
   let content: React.ReactNode
   if (page === 'account') content = <AccountSettings key={ownUser.email} user={ownUser} onSave={saveOwnSettings} onChangePassword={() => {}} emailEditable preview viewingAs={viewedMember?.name} onReturn={returnToAdmin}/>
-  else if (pharmacy && (page === 'dashboard' || page === 'claims')) content = <PreviewDashboard terms={dashboardTerms} navigate={navigate}/>
+  else if (pharmacy && (page === 'dashboard' || page === 'claims')) content = <PreviewDashboard terms={dashboardTerms} navigate={navigate} view={dashboardView} onViewChange={setDashboardView}/>
   else if (pharmacy && page.startsWith('claim:')) content = <PreviewClaimEditor claim={claim} term={term} claimNumber={claimNumber} navigate={navigate} updateClaim={updateClaim} addItem={addItem} updateItem={updateItem} removeItem={removeItem} submit={submit} discard={() => { updateClaim(initialClaim()); navigate('dashboard'); setMessage('Beispielentwurf verworfen.') }} setMessage={setMessage}/>
   else if (pharmacy && page.startsWith('sample:')) { const sample = sampleClaims.find(item => item.number === page.slice(7)); content = sample ? <PreviewSampleClaimDetail claim={sample} navigate={navigate}/> : <Notice tone="warning">Beispielmeldung nicht gefunden.</Notice> }
   else if (pharmacy && page === 'members') content = <PreviewMembers members={members} setMembers={setMembers} currentEmail={user.email} canManage={effectiveRole === 'PHARMACY_ADMIN'} setMessage={setMessage}/>
