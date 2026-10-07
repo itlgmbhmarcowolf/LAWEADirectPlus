@@ -16,7 +16,7 @@ async function startClaim(termId: string, navigate: (page: string) => void, refr
   navigate(`claim:${result.id}`)
 }
 
-function PharmacyTermList({ data, navigate, refresh, mode }: { data: Bootstrap; navigate: (page: string) => void; refresh: () => Promise<Bootstrap>; mode: 'dashboard' | 'claims' }) {
+function PharmacyTermList({ data, navigate, refresh }: { data: Bootstrap; navigate: (page: string) => void; refresh: () => Promise<Bootstrap> }) {
   const [error, setError] = useState('')
   // Nur offene Termine und Termine mit einem eigenen Vorgang kommen aus /bootstrap.
   const terms = data.terms.map(term => {
@@ -33,11 +33,11 @@ function PharmacyTermList({ data, navigate, refresh, mode }: { data: Bootstrap; 
     if (target.startsWith('term:')) startClaim(target.slice(5), navigate, refresh).catch(e => setError(e instanceof Error ? e.message : 'Meldung konnte nicht geöffnet werden.'))
     else navigate(target)
   }
-  return <>{error ? <Notice tone="error">{error}</Notice> : null}<PreviewDashboard terms={terms} mode={mode} navigate={open} preview={false}/></>
+  return <>{error ? <Notice tone="error">{error}</Notice> : null}<PreviewDashboard terms={terms} navigate={open} preview={false}/></>
 }
 
 export function PharmacyDashboard({ data, navigate, refresh }: { data: Bootstrap; navigate: (page: string) => void; refresh: () => Promise<Bootstrap> }) {
-  return <PharmacyTermList data={data} navigate={navigate} refresh={refresh} mode="dashboard"/>
+  return <PharmacyTermList data={data} navigate={navigate} refresh={refresh}/>
 }
 
 export function ClaimsPage({ data, navigate, refresh }: { data: Bootstrap; navigate: (page: string) => void; refresh: () => Promise<Bootstrap> }) {
@@ -108,12 +108,12 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
   const removeDocument = async (docId: string) => { setBusy(true); setError(''); try { await save(); await post(`/claims/${id}/documents/${docId}/remove`, {}); await load() } catch (e) { setError(e instanceof Error ? e.message : 'Entfernen fehlgeschlagen.') } finally { setBusy(false) } }
   const submit = async () => { if (!detail) return; setBusy(true); setError(''); try { await save(); await post(`/claims/${id}/submit`, { key: crypto.randomUUID() }); await refresh(); setConfirm(false); onSubmitted(detail.claim.number) } catch (e) { setError(e instanceof Error ? e.message : 'Einreichen fehlgeschlagen.'); setConfirm(false) } finally { setBusy(false) } }
   const revise = async () => { setBusy(true); setError(''); try { await post(`/claims/${id}/revise`, {}); await load(); await refresh(); setNotice('Neue Revision angelegt. Bitte prüfen Sie alle Angaben erneut.') } catch (e) { setError(e instanceof Error ? e.message : 'Korrektur nicht möglich.') } finally { setBusy(false) } }
-  const cancel = async () => { if (!window.confirm('Möchten Sie diesen Entwurf wirklich verwerfen?')) return; setBusy(true); try { await post(`/claims/${id}/cancel`, {}); await refresh(); navigate('claims') } catch (e) { setError(e instanceof Error ? e.message : 'Verwerfen fehlgeschlagen.') } finally { setBusy(false) } }
+  const cancel = async () => { if (!window.confirm('Möchten Sie diesen Entwurf wirklich verwerfen?')) return; setBusy(true); try { await post(`/claims/${id}/cancel`, {}); await refresh(); navigate('dashboard') } catch (e) { setError(e instanceof Error ? e.message : 'Verwerfen fehlgeschlagen.') } finally { setBusy(false) } }
   if (!detail || !draft) return <div className="loading-region">{error ? <Notice tone="error">{error}</Notice> : 'Meldung wird geladen …'}</div>
   const claim = detail.claim, editable = claim.status === 'DRAFT'
   const credit = data.credits?.find(item => item.claim_id === claim.id)
   const documents = detail.documents.filter(d => !d.removed_at && d.kind === 'EVIDENCE')
-  return <><button className="back-link" onClick={() => navigate('claims')}>← Zurück zu Meldungen</button>
+  return <><button className="back-link" onClick={() => navigate('dashboard')}>← Zurück zur Übersicht</button>
     {editable ? <header className="claim-editor-heading"><h1>Meldung erfassen</h1><span>Stichtag {shortDate(detail.term.date)} · Glenmark · Einreichbar bis {shortDate(detail.term.closes_at)}</span></header> : <><PageTitle title="Meldung im Überblick" subtitle={claim.number}/><div className="term-summary"><div><span>Stichtag</span><strong>{shortDate(detail.term.date)}</strong></div><div><span>Meldezeitraum</span><strong>bis {shortDate(detail.term.closes_at)}</strong></div><div><span>Hersteller</span><strong>Glenmark</strong></div></div></>}
     {error ? <Notice tone="error">{error}</Notice> : null}{notice ? <Notice tone="success">{notice}</Notice> : null}
     {editable ? <>

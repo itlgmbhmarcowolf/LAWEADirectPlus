@@ -42,7 +42,7 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
   }
 
   return <div className="preview-claim-editor">
-    <button className="back-link" onClick={() => navigate('claims')}>← Zurück zu Meldungen</button>
+    <button className="back-link" onClick={() => navigate('dashboard')}>← Zurück zur Übersicht</button>
     {editable ? <>
       <header className="preview-claim-heading"><h1>Meldung erfassen</h1><span>Stichtag {term} · Glenmark</span></header>
 

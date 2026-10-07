@@ -5,7 +5,7 @@ import { Button, Icon, Notice, PageTitle, Shell, StatusPill } from './ui'
 import { PreviewLogin } from './PreviewLogin'
 import { PreviewClaimEditor, previewProductNames } from './PreviewClaimEditor'
 import { PreviewMembers } from './PreviewMembers'
-import { PreviewClaims, PreviewSampleClaimDetail, sampleClaims } from './PreviewClaims'
+import { PreviewSampleClaimDetail, sampleClaims } from './PreviewClaims'
 import { PreviewCredits } from './PreviewCredits'
 import { AccountSettings } from './AccountSettings'
 import { PreviewDashboard } from './PreviewDashboard'
@@ -97,9 +97,8 @@ export function PreviewApp() {
 
   let content: React.ReactNode
   if (page === 'account') content = <AccountSettings key={ownUser.email} user={ownUser} onSave={saveOwnSettings} onChangePassword={() => {}} emailEditable preview viewingAs={viewedMember?.name} onReturn={returnToAdmin}/>
-  else if (pharmacy && page === 'dashboard') content = <PreviewDashboard terms={dashboardTerms} navigate={navigate}/>
-  else if (pharmacy && page === 'claims') content = <PreviewClaims currentClaims={openTerms.map(term => ({ number: term.number, termDate: term.iso, status: claims[term.iso].status, hasData: hasDraftData(claims[term.iso]) }))} navigate={navigate}/>
-  else if (pharmacy && page.startsWith('claim:')) content = <PreviewClaimEditor claim={claim} term={term} claimNumber={claimNumber} navigate={navigate} updateClaim={updateClaim} addItem={addItem} updateItem={updateItem} removeItem={removeItem} submit={submit} discard={() => { updateClaim(initialClaim()); navigate('claims'); setMessage('Beispielentwurf verworfen.') }} setMessage={setMessage}/>
+  else if (pharmacy && (page === 'dashboard' || page === 'claims')) content = <PreviewDashboard terms={dashboardTerms} navigate={navigate}/>
+  else if (pharmacy && page.startsWith('claim:')) content = <PreviewClaimEditor claim={claim} term={term} claimNumber={claimNumber} navigate={navigate} updateClaim={updateClaim} addItem={addItem} updateItem={updateItem} removeItem={removeItem} submit={submit} discard={() => { updateClaim(initialClaim()); navigate('dashboard'); setMessage('Beispielentwurf verworfen.') }} setMessage={setMessage}/>
   else if (pharmacy && page.startsWith('sample:')) { const sample = sampleClaims.find(item => item.number === page.slice(7)); content = sample ? <PreviewSampleClaimDetail claim={sample} navigate={navigate}/> : <Notice tone="warning">Beispielmeldung nicht gefunden.</Notice> }
   else if (pharmacy && page === 'members') content = <PreviewMembers members={members} setMembers={setMembers} currentEmail={user.email} canManage={effectiveRole === 'PHARMACY_ADMIN'} setMessage={setMessage}/>
   else if (pharmacy && (page === 'credits' || page.startsWith('credits:'))) content = <PreviewCredits credits={credits} selectedClaimNumber={page.startsWith('credits:') ? page.slice(8) : undefined} currentClaims={openTerms.map(term => ({ number: term.number, termDate: term.iso }))} navigate={navigate} onShowDocument={setSelectedCredit}/>
