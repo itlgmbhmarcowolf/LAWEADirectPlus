@@ -41,16 +41,14 @@ const previewStatus = (status: Status | null) => {
 
 export function PreviewDashboard({ terms, navigate, preview = true }: { terms: DashboardTerm[]; navigate: (page: string) => void; preview?: boolean }) {
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
-  const [pageSize, setPageSize] = useState<10 | 15>(15)
+  // In der fiktiven Konzeptvorschau bleiben ganze Monatsgruppen zusammen; die lokale Demo zählt Stichtage.
+  const [pageSize, setPageSize] = useState(preview ? 6 : 15)
   const [filter, setFilter] = useState<StatusFilter>('all')
   const [page, setPage] = useState(1)
   const listRef = useRef<HTMLElement>(null)
   const filteredTerms = terms.filter(term => matchesFilter(term, filter))
   const sortedTerms = [...filteredTerms].sort((a, b) => sortOrder === 'newest' ? b.iso.localeCompare(a.iso) : a.iso.localeCompare(b.iso))
-  const pageCount = Math.max(1, Math.ceil(sortedTerms.length / pageSize))
-  const currentPage = Math.min(page, pageCount)
-  const visibleTerms = sortedTerms.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-  const months = visibleTerms.reduce<{ key: string; label: string; year: string; terms: DashboardTerm[] }[]>((groups, term) => {
+  const groupedMonths = sortedTerms.reduce<{ key: string; label: string; year: string; terms: DashboardTerm[] }[]>((groups, term) => {
     const key = term.iso.slice(0, 7)
     const last = groups[groups.length - 1]
     if (last?.key === key) last.terms.push(term)
@@ -62,6 +60,17 @@ export function PreviewDashboard({ terms, navigate, preview = true }: { terms: D
     })
     return groups
   }, [])
+  const pageCount = Math.max(1, Math.ceil((preview ? groupedMonths.length : sortedTerms.length) / pageSize))
+  const currentPage = Math.min(page, pageCount)
+  const months = preview ? groupedMonths.slice((currentPage - 1) * pageSize, currentPage * pageSize) : sortedTerms.slice((currentPage - 1) * pageSize, currentPage * pageSize).reduce<typeof groupedMonths>((groups, term) => {
+    const key = term.iso.slice(0, 7)
+    const month = groupedMonths.find(item => item.key === key)
+    const last = groups[groups.length - 1]
+    if (last?.key === key) last.terms.push(term)
+    else if (month) groups.push({ ...month, terms: [term] })
+    return groups
+  }, [])
+  const visibleTerms = months.flatMap(month => month.terms)
   const changePage = (nextPage: number) => {
     setPage(nextPage)
     listRef.current?.scrollIntoView({ block: 'start' })
@@ -85,7 +94,7 @@ export function PreviewDashboard({ terms, navigate, preview = true }: { terms: D
         </button>)}</div>
       </div>) : <div className="overview-empty" role="status"><strong>{filters.find(item => item.key === filter)?.empty}</strong><span>Wählen Sie einen anderen Filter, um weitere Stichtage zu sehen.</span></div>}
     </section>
-    <div className="overview-pagination"><span aria-live="polite">{pageCount > 1 ? `${visibleTerms.length} von ${filteredTerms.length} Stichtagen` : `${filteredTerms.length} ${filteredTerms.length === 1 ? 'Stichtag' : 'Stichtage'}`}</span><div className="overview-pagination-actions"><label className="overview-page-size"><span>Stichtage pro Seite</span><select value={pageSize} onChange={event => { setPageSize(event.target.value === '10' ? 10 : 15); setPage(1) }}><option value={15}>15 Stichtage</option><option value={10}>10 Stichtage</option></select></label><nav aria-label="Seiten der Stichtagsliste"><button type="button" onClick={() => changePage(currentPage - 1)} disabled={currentPage === 1}>Zurück</button><span className="overview-page-current" aria-current="page">{currentPage} / {pageCount}</span><button type="button" onClick={() => changePage(currentPage + 1)} disabled={currentPage === pageCount}>Weiter <Icon name="arrow" size={15}/></button></nav></div></div>
+    <div className="overview-pagination"><span aria-live="polite">{pageCount > 1 ? `${visibleTerms.length} von ${filteredTerms.length} Stichtagen` : `${filteredTerms.length} ${filteredTerms.length === 1 ? 'Stichtag' : 'Stichtage'}`}</span><div className="overview-pagination-actions"><label className="overview-page-size"><span>{preview ? 'Monate pro Seite' : 'Stichtage pro Seite'}</span><select value={pageSize} onChange={event => { setPageSize(Number(event.target.value)); setPage(1) }}>{preview ? <><option value={6}>6 Monate</option><option value={3}>3 Monate</option></> : <><option value={15}>15 Stichtage</option><option value={10}>10 Stichtage</option></>}</select></label><nav aria-label="Seiten der Stichtagsliste"><button type="button" onClick={() => changePage(currentPage - 1)} disabled={currentPage === 1}>Zurück</button><span className="overview-page-current" aria-current="page">{currentPage} / {pageCount}</span><button type="button" onClick={() => changePage(currentPage + 1)} disabled={currentPage === pageCount}>Weiter <Icon name="arrow" size={15}/></button></nav></div></div>
     {preview ? <p className="overview-simple-note">Fiktive Beispiele · „Ausgezahlt“ ist hier nur ein simulierter Stand.</p> : null}
   </div>
 }
