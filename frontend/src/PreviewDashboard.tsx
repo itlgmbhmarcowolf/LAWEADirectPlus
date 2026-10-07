@@ -75,9 +75,8 @@ export function PreviewDashboard({ terms, navigate, preview = true }: { terms: D
         <label className="overview-page-size"><span>Stichtage pro Seite</span><select value={pageSize} onChange={event => { setPageSize(event.target.value === '10' ? 10 : 15); setPage(1) }}><option value={15}>15 Stichtage</option><option value={10}>10 Stichtage</option></select></label>
       </div>
     </header>
-    <div className="overview-filters" role="group" aria-label="Meldungsstand filtern">{filters.map(item => <button key={item.key} type="button" className={filter === item.key ? 'selected' : ''} aria-pressed={filter === item.key} onClick={() => { setFilter(item.key); setPage(1) }}><span>{item.label}</span><span className="overview-filter-count" aria-hidden="true">{terms.filter(term => matchesFilter(term, item.key)).length}</span></button>)}</div>
     <section className="overview-simple-list" ref={listRef} aria-label="Stichtage und Meldungsstand">
-      <div className="overview-simple-columns" aria-hidden="true"><span>Zeitraum</span><span>Stichtag</span><span>Stand</span></div>
+      <div className="overview-simple-columns"><span>Zeitraum</span><span>Stichtag</span><label className="overview-status-filter"><span>Stand</span><select aria-label="Meldungsstand filtern" value={filter} onChange={event => { setFilter(event.target.value as StatusFilter); setPage(1) }}>{filters.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}</select></label></div>
       {visibleTerms.length ? months.map(month => <div className="overview-month" key={month.key}>
         <div className="overview-month-label"><h2>{month.label}</h2><span>{month.year}</span></div>
         <div className="overview-month-rows">{month.terms.map(term => <button className="overview-simple-row" key={term.iso} disabled={term.disabled} onClick={() => navigate(term.target)} aria-label={`${term.date}, ${previewStatus(term.status) || (term.disabled ? 'nicht mehr offen' : 'noch keine Meldung')}${term.disabled ? '' : ', öffnen'}`}>
