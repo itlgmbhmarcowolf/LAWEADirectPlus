@@ -12,8 +12,8 @@ export type DashboardTerm = {
 
 type StatusFilter = 'all' | 'new' | 'draft' | 'submitted' | 'completed'
 
-export type DashboardView = { sortOrder: 'newest' | 'oldest'; filter: StatusFilter; visibleMonths: number }
-export const initialDashboardView = (_preview: boolean): DashboardView => ({ sortOrder: 'newest', filter: 'all', visibleMonths: 6 })
+export type DashboardView = { sortOrder: 'newest' | 'oldest'; filter: StatusFilter; monthBatchSize: 3 | 6; visibleMonths: number }
+export const initialDashboardView = (_preview: boolean): DashboardView => ({ sortOrder: 'newest', filter: 'all', monthBatchSize: 6, visibleMonths: 6 })
 
 const matchesFilter = (term: DashboardTerm, filter: StatusFilter) => {
   if (filter === 'new') return !term.status && !term.disabled
@@ -42,9 +42,15 @@ const previewStatus = (status: Status | null) => {
 }
 
 export function PreviewDashboard({ terms, navigate, preview = true, view, onViewChange }: { terms: DashboardTerm[]; navigate: (page: string) => void; preview?: boolean; view: DashboardView; onViewChange: (view: DashboardView) => void }) {
-  const { sortOrder, filter, visibleMonths } = view
+  const { sortOrder, filter, monthBatchSize, visibleMonths } = view
   const updateView = (change: Partial<DashboardView>) => onViewChange({ ...view, ...change })
   const sentinelRef = useRef<HTMLDivElement>(null)
+  const pauseAutoLoadRef = useRef(false)
+  const restartView = (change: Partial<DashboardView>) => {
+    pauseAutoLoadRef.current = true
+    window.scrollTo({ top: 0 })
+    updateView({ ...change, visibleMonths: change.monthBatchSize ?? monthBatchSize })
+  }
   const filteredTerms = terms.filter(term => matchesFilter(term, filter))
   const sortedTerms = [...filteredTerms].sort((a, b) => sortOrder === 'newest' ? b.iso.localeCompare(a.iso) : a.iso.localeCompare(b.iso))
   const groupedMonths = sortedTerms.reduce<{ key: string; label: string; year: string; terms: DashboardTerm[] }[]>((groups, term) => {
@@ -65,25 +71,36 @@ export function PreviewDashboard({ terms, navigate, preview = true, view, onView
   useEffect(() => {
     const node = sentinelRef.current
     if (!node || !hasMore || !('IntersectionObserver' in window)) return
+    const loadMore = () => onViewChange({ ...view, visibleMonths: Math.min(view.visibleMonths + monthBatchSize, groupedMonths.length) })
     const observer = new IntersectionObserver(entries => {
-      if (entries[0]?.isIntersecting) {
+      if (entries[0]?.isIntersecting && !pauseAutoLoadRef.current) {
         observer.disconnect()
-        onViewChange({ ...view, visibleMonths: Math.min(view.visibleMonths + 2, groupedMonths.length) })
+        loadMore()
       }
     }, { rootMargin: '0px' })
+    const resumeOnScroll = () => {
+      if (!pauseAutoLoadRef.current || window.scrollY <= 0) return
+      pauseAutoLoadRef.current = false
+      const bounds = node.getBoundingClientRect()
+      if (bounds.top <= window.innerHeight && bounds.bottom >= 0) {
+        observer.disconnect()
+        loadMore()
+      }
+    }
     observer.observe(node)
-    return () => observer.disconnect()
-  }, [hasMore, visibleMonths, groupedMonths.length, view.filter, view.sortOrder, onViewChange])
+    window.addEventListener('scroll', resumeOnScroll, { passive: true })
+    return () => { observer.disconnect(); window.removeEventListener('scroll', resumeOnScroll) }
+  }, [hasMore, visibleMonths, groupedMonths.length, monthBatchSize, view.filter, view.sortOrder, onViewChange])
 
   return <div className="overview-simple">
     <header className="overview-simple-heading">
-      <div><h1>Stichtage</h1>{groupedMonths.length > 6 ? <p role="status" aria-live="polite">{months.length} von {groupedMonths.length} Monaten sichtbar · {hasMore ? 'Ältere Monate erscheinen beim Scrollen.' : 'Alle älteren Monate geladen.'}</p> : null}</div>
+      <div><h1>Stichtage</h1>{groupedMonths.length > monthBatchSize ? <p role="status" aria-live="polite">{months.length} von {groupedMonths.length} Monaten sichtbar · {hasMore ? 'Ältere Monate erscheinen beim Scrollen.' : 'Alle älteren Monate geladen.'}</p> : null}</div>
       <div className="overview-controls">
-        <label className="overview-sort"><span>Nach Datum sortieren</span><select value={sortOrder} onChange={event => updateView({ sortOrder: event.target.value as 'newest' | 'oldest', visibleMonths: 6 })}><option value="newest">Neueste zuerst</option><option value="oldest">Älteste zuerst</option></select></label>
+        <label className="overview-sort"><span>Nach Datum sortieren</span><select value={sortOrder} onChange={event => restartView({ sortOrder: event.target.value as 'newest' | 'oldest' })}><option value="newest">Neueste zuerst</option><option value="oldest">Älteste zuerst</option></select></label>
       </div>
     </header>
     <section className="overview-simple-list" aria-label="Stichtage und Meldungsstand">
-      <div className="overview-simple-columns"><span>Zeitraum</span><span>Stichtag</span><label className="overview-status-filter"><span>Stand</span><select aria-label="Meldungsstand filtern" value={filter} onChange={event => updateView({ filter: event.target.value as StatusFilter, visibleMonths: 6 })}>{filters.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}</select></label></div>
+      <div className="overview-simple-columns"><span>Zeitraum</span><span>Stichtag</span><label className="overview-status-filter"><span>Stand</span><select aria-label="Meldungsstand filtern" value={filter} onChange={event => restartView({ filter: event.target.value as StatusFilter })}>{filters.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}</select></label></div>
       {shownTerms.length ? months.map(month => <div className="overview-month" key={month.key}>
         <div className="overview-month-label"><h2>{month.label}</h2><span>{month.year}</span></div>
         <div className="overview-month-rows">{month.terms.map(term => <button className="overview-simple-row" key={term.iso} disabled={term.disabled} onClick={() => navigate(term.target)} aria-label={`${term.date}, ${previewStatus(term.status) || (term.disabled ? 'nicht mehr offen' : 'noch keine Meldung')}${term.disabled ? '' : ', öffnen'}`}>
@@ -92,7 +109,7 @@ export function PreviewDashboard({ terms, navigate, preview = true, view, onView
         </button>)}</div>
       </div>) : <div className="overview-empty" role="status"><strong>{filters.find(item => item.key === filter)?.empty}</strong><span>Wählen Sie einen anderen Filter, um weitere Stichtage zu sehen.</span></div>}
     </section>
-    <div className="overview-load-more" ref={sentinelRef} aria-live="polite"><span>{months.length} von {groupedMonths.length} Monaten · {shownTerms.length} von {filteredTerms.length} Stichtagen</span>{hasMore ? <button type="button" onClick={() => updateView({ visibleMonths: Math.min(visibleMonths + 2, groupedMonths.length) })}>Ältere Monate laden</button> : null}</div>
+    <div className="overview-load-more" ref={sentinelRef}><label className="overview-page-size"><span>Monate pro Ladung</span><select value={monthBatchSize} onChange={event => restartView({ monthBatchSize: Number(event.target.value) as 3 | 6 })}><option value={3}>3 Monate</option><option value={6}>6 Monate</option></select></label><span role="status" aria-live="polite">{months.length} von {groupedMonths.length} Monaten · {shownTerms.length} von {filteredTerms.length} Stichtagen</span>{hasMore ? <button type="button" onClick={() => updateView({ visibleMonths: Math.min(visibleMonths + monthBatchSize, groupedMonths.length) })}>Ältere Monate laden</button> : null}</div>
     {preview ? <p className="overview-simple-note">Fiktive Beispiele · „Ausgezahlt“ ist hier nur ein simulierter Stand.</p> : null}
   </div>
 }
