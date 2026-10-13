@@ -32,7 +32,7 @@
 .credit-download{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:8px 14px;border-radius:8px;background:#087a8c;color:#fff;text-decoration:none;font-size:13px;font-weight:750;white-space:nowrap;box-shadow:0 4px 12px #087a8c25}
 .credit-download:hover{background:#086a7a;color:#fff}
 .credit-download-pending{font-size:12px;color:#6f8291}
-.credit-page-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,340px);gap:16px;align-items:start}
+.credit-page-grid{display:grid;grid-template-columns:minmax(280px,340px) minmax(0,1fr);gap:16px;align-items:start}
 .credit-document-panel,.credit-information{min-width:0;border:1px solid #dce7eb;border-radius:12px;background:#fff;box-shadow:0 5px 20px #123d5510}
 .credit-document-panel{overflow:hidden}
 .credit-document-label{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:15px 18px;border-bottom:1px solid #e4edef}
