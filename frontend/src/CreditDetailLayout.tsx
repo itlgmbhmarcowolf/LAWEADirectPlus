@@ -23,8 +23,7 @@ export function CreditDetailLayout({ reference, claimNumber, termDate, provided,
       {download ? <a className="credit-download" href={download.url} download={download.filename}><Icon name="download" size={17}/>{download.label}</a> : downloadError ? null : <span className="credit-download-pending" role="status">Dokument wird geladen …</span>}
     </header>
     <div className="credit-page-grid">
-      <section className="credit-document-panel" aria-label="Dokumentvorschau">
-        <div className="credit-document-label"><h2>Dokumentvorschau</h2><span>{fileType}</span></div>
+      <section className="credit-document-panel" aria-label={`Dokumentvorschau (${fileType})`}>
         {children}
       </section>
       <aside className="credit-information" aria-label="Gutschriftinformationen">
@@ -35,7 +34,7 @@ export function CreditDetailLayout({ reference, claimNumber, termDate, provided,
           <div><dt>Bereitgestellt</dt><dd>{provided}</dd></div>
         </dl>
         <button className="credit-claim-link" type="button" onClick={onClaim}>Meldung ansehen <Icon name="arrow" size={16}/></button>
-        {demo ? <p className="credit-demo-note"><Icon name="shield" size={17}/><span>Fiktive Demo · Keine Zahlung</span></p> : null}
+        {demo ? <p className="credit-demo-note"><Icon name="shield" size={18}/><span><strong>Fiktive Demo · Keine Zahlung</strong><small>Dieses Dokument dient ausschließlich zu Demonstrationszwecken.</small></span></p> : null}
       </aside>
     </div>
   </article>

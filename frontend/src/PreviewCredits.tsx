@@ -14,7 +14,7 @@ export function PreviewCredits({ credits, selectedClaimNumber, currentClaims, na
     const url = URL.createObjectURL(createDemoCreditPdf(selected))
     setPdfUrl(url)
     return () => URL.revokeObjectURL(url)
-  }, [selected?.claimNumber, selected?.reference, selected?.provided])
+  }, [selected?.claimNumber, selected?.reference, selected?.provided, selected?.termDate])
   const claimTarget = (number: string) => { const current = currentClaims.find(claim => claim.number === number); return current ? `claim:${current.termDate}` : `sample:${number}` }
 
   if (selected) {

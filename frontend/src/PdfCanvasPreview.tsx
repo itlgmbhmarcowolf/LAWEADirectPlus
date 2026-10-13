@@ -20,7 +20,8 @@ export function PdfCanvasPreview({ url, title }: { url: string; title: string })
     if (!element) return
     const updateWidth = () => {
       const style = getComputedStyle(element)
-      setWidth(Math.max(0, element.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)))
+      const nextWidth = Math.max(0, Math.floor(element.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)))
+      setWidth(current => current === nextWidth ? current : nextWidth)
     }
     const observer = new ResizeObserver(updateWidth)
     observer.observe(element)
@@ -46,19 +47,26 @@ export function PdfCanvasPreview({ url, title }: { url: string; title: string })
     if (!pdf || !width || !canvasRef.current) return
     let active = true
     let renderTask: ReturnType<Awaited<ReturnType<PDFDocumentProxy['getPage']>>['render']> | null = null
-    setRendered(false)
     pdf.getPage(pageNumber).then(page => {
       if (!active || !canvasRef.current) return
       const base = page.getViewport({ scale: 1 })
       const viewport = page.getViewport({ scale: Math.min(width / base.width, 2) * zoomSteps[zoomIndex] })
       const ratio = Math.min(window.devicePixelRatio || 1, 2)
-      const canvas = canvasRef.current
-      canvas.width = Math.floor(viewport.width * ratio)
-      canvas.height = Math.floor(viewport.height * ratio)
-      canvas.style.width = `${viewport.width}px`
-      canvas.style.height = `${viewport.height}px`
-      renderTask = page.render({ canvas, viewport, transform: [ratio, 0, 0, ratio, 0, 0] })
-      renderTask.promise.then(() => { if (active) setRendered(true) })
+      // Außerhalb der sichtbaren Vorschau rendern: die bisherige Seite bleibt bis zum fertigen Bild stehen.
+      const nextCanvas = document.createElement('canvas')
+      nextCanvas.width = Math.floor(viewport.width * ratio)
+      nextCanvas.height = Math.floor(viewport.height * ratio)
+      renderTask = page.render({ canvas: nextCanvas, viewport, transform: [ratio, 0, 0, ratio, 0, 0] })
+      renderTask.promise.then(() => {
+        if (!active || !canvasRef.current) return
+        const canvas = canvasRef.current
+        canvas.width = nextCanvas.width
+        canvas.height = nextCanvas.height
+        canvas.style.width = `${viewport.width}px`
+        canvas.style.height = `${viewport.height}px`
+        canvas.getContext('2d')?.drawImage(nextCanvas, 0, 0)
+        setRendered(true)
+      })
         .catch(reason => { if (active && reason?.name !== 'RenderingCancelledException') setError('PDF-Seite konnte nicht angezeigt werden.') })
     }).catch(() => { if (active) setError('PDF-Seite konnte nicht geladen werden.') })
     return () => { active = false; renderTask?.cancel() }
