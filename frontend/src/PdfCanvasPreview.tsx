@@ -3,7 +3,9 @@ import { getDocument, GlobalWorkerOptions, type PDFDocumentProxy } from 'pdfjs-d
 import './credit-preview.css'
 
 GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
-const zoomSteps = [0.75, 1, 1.25, 1.5, 2, 2.5, 3]
+const zoomSteps = [0.5, 0.7, 1, 1.25, 1.5, 2, 2.5, 3]
+const defaultZoomIndex = 1
+const fitWidthZoomIndex = 2
 
 export function PdfCanvasPreview({ url, title }: { url: string; title: string }) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -13,7 +15,7 @@ export function PdfCanvasPreview({ url, title }: { url: string; title: string })
   const [width, setWidth] = useState(0)
   const [error, setError] = useState('')
   const [rendered, setRendered] = useState(false)
-  const [zoomIndex, setZoomIndex] = useState(1)
+  const [zoomIndex, setZoomIndex] = useState(defaultZoomIndex)
 
   useEffect(() => {
     const element = containerRef.current
@@ -37,7 +39,7 @@ export function PdfCanvasPreview({ url, title }: { url: string; title: string })
     setPdf(null)
     setRendered(false)
     setPageNumber(1)
-    setZoomIndex(1)
+    setZoomIndex(defaultZoomIndex)
     task.promise.then(document => { if (active) setPdf(document) })
       .catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'PDF konnte nicht geladen werden.') })
     return () => { active = false; task.destroy() }
@@ -77,7 +79,7 @@ export function PdfCanvasPreview({ url, title }: { url: string; title: string })
       <button type="button" aria-label="PDF verkleinern" disabled={zoomIndex === 0} onClick={() => setZoomIndex(index => index - 1)}>−</button>
       <output aria-live="polite">{Math.round(zoomSteps[zoomIndex] * 100)} %</output>
       <button type="button" aria-label="PDF vergrößern" disabled={zoomIndex === zoomSteps.length - 1} onClick={() => setZoomIndex(index => index + 1)}>+</button>
-      <button type="button" className="credit-pdf-fit" disabled={zoomIndex === 1} onClick={() => setZoomIndex(1)}>An Breite anpassen</button>
+      <button type="button" className="credit-pdf-fit" aria-label="Auf 100 Prozent zoomen und an Breite anpassen" disabled={zoomIndex === fitWidthZoomIndex} onClick={() => setZoomIndex(fitWidthZoomIndex)}>100 %</button>
     </div>
     {pdf && pdf.numPages > 1 ? <div className="credit-pdf-pages"><button type="button" disabled={pageNumber === 1} onClick={() => setPageNumber(pageNumber - 1)}>Vorherige Seite</button><span>Seite {pageNumber} von {pdf.numPages}</span><button type="button" disabled={pageNumber === pdf.numPages} onClick={() => setPageNumber(pageNumber + 1)}>Nächste Seite</button></div> : null}
     <div className="credit-pdf-surface" ref={containerRef}>{error ? <p className="credit-pdf-error" role="alert">{error}</p> : <>{!rendered ? <p className="credit-pdf-loading" role="status">PDF-Vorschau wird geladen …</p> : null}<canvas ref={canvasRef} role="img" aria-label={title} hidden={!rendered}/></>}</div>
