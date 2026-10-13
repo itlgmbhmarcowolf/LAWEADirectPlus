@@ -7,7 +7,7 @@
 | Risiko | Umsetzung | Nachweis |
 | --- | --- | --- |
 | Fremder Mandant / falsche Rolle | Serverseitige Rollenprüfung und `organization_id` bei Apotheke, Meldung und Dokument; Finance sieht keine Betriebserlaubnisse oder Meldungsdetails | `backend/src/index.js`, isolierter API-Test |
-| Kontoübernahme | Argon2id-Passworthashes, E-Mail-OTP, 10-Minuten-Code, maximal fünf Codeversuche, Begrenzung fehlgeschlagener Passwortversuche, kurzlebige Einladungen/Reset-Links, Session-Widerruf nach Reset/Sperre | Authentisierungsendpunkte und Test |
+| Kontoübernahme | Argon2id-Passworthashes, E-Mail-OTP, 10-Minuten-Code, maximal drei fehlgeschlagene Passwort- oder Login-Codeversuche mit vierstündiger Sperre je Benutzer und sichtbarem Wiederanmeldezeitpunkt, kurzlebige Einladungen/Reset-Links, Session-Widerruf nach Reset/Sperre | Authentisierungsendpunkte und Test |
 | CSRF / Sessiondiebstahl | `HttpOnly`, `SameSite=Lax`, acht Stunden Session, eigener CSRF-Token für authentifizierte Änderungen, Origin-Prüfung, keine Sitzung im Local Storage. Die lokale Demo akzeptiert Frontends auf Loopback-Adressen mit wechselnden Ports; fremde Domains bleiben gesperrt. | Middleware und Test |
 | XSS / unsichere Browserinhalte | React-Textescaping, kein `dangerouslySetInnerHTML`, restriktive Helmet-CSP, `nosniff`, keine fremden Skripte | Frontend und HTTP-Header |
 | SQL-Injection / fehlerhafte Eingaben | Parametrisierte SQLite-Abfragen, Zod-Schemas, Größenlimits, serverseitige Fachvalidierung | API-Code und Negativtests |
@@ -25,7 +25,7 @@ Die separat veröffentlichte, statische Konzeptvorschau erlaubt in ihrer Vercel-
 2. Transaktions-E-Mail mit Zustellbarkeit, Wiederholung und Geheimhaltung der Codes anbinden; keine OTPs oder Reset-Links in API-Antworten; verteilte Rate Limits und Konto-Schutz einrichten.
 3. Uploads in Quarantäne speichern, Malware-Scan und PDF/Bild-Validierung durchführen, erst danach Belege für Prüfer freigeben. Aufbewahrung und Löschung verbindlich festlegen.
 4. HTTPS/TLS, `Secure`-Cookies, Reverse-Proxy-Konfiguration, zentrale Geheimnisverwaltung/KMS, Schlüsselrotation, Datenbank-/Datei-Backup, Restore-Test, Monitoring und Incident-Prozess etablieren.
-5. DATEV-Vertrag, Vier-Augen-Regeln, Importformat und Eindeutigkeit fachlich abnehmen. Den Demo-CSV-Adapter durch eine geprüfte Integration ersetzen.
+5. DATEV-Vertrag, Vier-Augen-Regeln sowie ITL-Gutschriftenschnittstelle, Eindeutigkeit und Idempotenz fachlich abnehmen. Den Demo-CSV-Adapter durch eine geprüfte Integration ersetzen.
 6. ASVS-5.0-Anforderungen anhand einer Kontrollliste vollständig verifizieren, Bedrohungsanalyse und Penetrationstest durchführen; Accessibility, Datenschutz und Wiederherstellung abnehmen.
 
 ## Quellen

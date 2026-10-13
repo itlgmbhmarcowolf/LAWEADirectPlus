@@ -1,6 +1,5 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import type { Status } from './types'
-import { Icon } from './ui'
 import './preview-dashboard.css'
 
 export type DashboardTerm = {
@@ -13,8 +12,8 @@ export type DashboardTerm = {
 
 type StatusFilter = 'all' | 'new' | 'draft' | 'submitted' | 'completed'
 
-export type DashboardView = { sortOrder: 'newest' | 'oldest'; pageSize: number; filter: StatusFilter; page: number }
-export const initialDashboardView = (preview: boolean): DashboardView => ({ sortOrder: 'newest', pageSize: preview ? 6 : 15, filter: 'all', page: 1 })
+export type DashboardView = { sortOrder: 'newest' | 'oldest'; filter: StatusFilter; visibleMonths: number }
+export const initialDashboardView = (_preview: boolean): DashboardView => ({ sortOrder: 'newest', filter: 'all', visibleMonths: 6 })
 
 const matchesFilter = (term: DashboardTerm, filter: StatusFilter) => {
   if (filter === 'new') return !term.status && !term.disabled
@@ -43,10 +42,9 @@ const previewStatus = (status: Status | null) => {
 }
 
 export function PreviewDashboard({ terms, navigate, preview = true, view, onViewChange }: { terms: DashboardTerm[]; navigate: (page: string) => void; preview?: boolean; view: DashboardView; onViewChange: (view: DashboardView) => void }) {
-  // In der fiktiven Konzeptvorschau bleiben ganze Monatsgruppen zusammen; die lokale Demo zählt Stichtage.
-  const { sortOrder, pageSize, filter, page } = view
+  const { sortOrder, filter, visibleMonths } = view
   const updateView = (change: Partial<DashboardView>) => onViewChange({ ...view, ...change })
-  const listRef = useRef<HTMLElement>(null)
+  const sentinelRef = useRef<HTMLDivElement>(null)
   const filteredTerms = terms.filter(term => matchesFilter(term, filter))
   const sortedTerms = [...filteredTerms].sort((a, b) => sortOrder === 'newest' ? b.iso.localeCompare(a.iso) : a.iso.localeCompare(b.iso))
   const groupedMonths = sortedTerms.reduce<{ key: string; label: string; year: string; terms: DashboardTerm[] }[]>((groups, term) => {
@@ -61,41 +59,40 @@ export function PreviewDashboard({ terms, navigate, preview = true, view, onView
     })
     return groups
   }, [])
-  const pageCount = Math.max(1, Math.ceil((preview ? groupedMonths.length : sortedTerms.length) / pageSize))
-  const currentPage = Math.min(page, pageCount)
-  const months = preview ? groupedMonths.slice((currentPage - 1) * pageSize, currentPage * pageSize) : sortedTerms.slice((currentPage - 1) * pageSize, currentPage * pageSize).reduce<typeof groupedMonths>((groups, term) => {
-    const key = term.iso.slice(0, 7)
-    const month = groupedMonths.find(item => item.key === key)
-    const last = groups[groups.length - 1]
-    if (last?.key === key) last.terms.push(term)
-    else if (month) groups.push({ ...month, terms: [term] })
-    return groups
-  }, [])
-  const visibleTerms = months.flatMap(month => month.terms)
-  const changePage = (nextPage: number) => {
-    updateView({ page: nextPage })
-    listRef.current?.scrollIntoView({ block: 'start' })
-  }
+  const months = groupedMonths.slice(0, visibleMonths)
+  const shownTerms = months.flatMap(month => month.terms)
+  const hasMore = visibleMonths < groupedMonths.length
+  useEffect(() => {
+    const node = sentinelRef.current
+    if (!node || !hasMore || !('IntersectionObserver' in window)) return
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0]?.isIntersecting) {
+        observer.disconnect()
+        onViewChange({ ...view, visibleMonths: Math.min(view.visibleMonths + 2, groupedMonths.length) })
+      }
+    }, { rootMargin: '0px' })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [hasMore, visibleMonths, groupedMonths.length, view.filter, view.sortOrder, onViewChange])
 
   return <div className="overview-simple">
     <header className="overview-simple-heading">
-      <div><h1>Stichtage</h1><p>Wählen Sie einen Stichtag, um die Meldung zu öffnen.</p></div>
+      <div><h1>Stichtage</h1>{groupedMonths.length > 6 ? <p role="status" aria-live="polite">{months.length} von {groupedMonths.length} Monaten sichtbar · {hasMore ? 'Ältere Monate erscheinen beim Scrollen.' : 'Alle älteren Monate geladen.'}</p> : null}</div>
       <div className="overview-controls">
-        <label className="overview-sort"><span>Nach Datum sortieren</span><select value={sortOrder} onChange={event => updateView({ sortOrder: event.target.value as 'newest' | 'oldest', page: 1 })}><option value="newest">Neueste zuerst</option><option value="oldest">Älteste zuerst</option></select></label>
+        <label className="overview-sort"><span>Nach Datum sortieren</span><select value={sortOrder} onChange={event => updateView({ sortOrder: event.target.value as 'newest' | 'oldest', visibleMonths: 6 })}><option value="newest">Neueste zuerst</option><option value="oldest">Älteste zuerst</option></select></label>
       </div>
     </header>
-    <section className="overview-simple-list" ref={listRef} aria-label="Stichtage und Meldungsstand">
-      <div className="overview-simple-columns"><span>Zeitraum</span><span>Stichtag</span><label className="overview-status-filter"><span>Stand</span><select aria-label="Meldungsstand filtern" value={filter} onChange={event => updateView({ filter: event.target.value as StatusFilter, page: 1 })}>{filters.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}</select></label></div>
-      {visibleTerms.length ? months.map(month => <div className="overview-month" key={month.key}>
+    <section className="overview-simple-list" aria-label="Stichtage und Meldungsstand">
+      <div className="overview-simple-columns"><span>Zeitraum</span><span>Stichtag</span><label className="overview-status-filter"><span>Stand</span><select aria-label="Meldungsstand filtern" value={filter} onChange={event => updateView({ filter: event.target.value as StatusFilter, visibleMonths: 6 })}>{filters.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}</select></label></div>
+      {shownTerms.length ? months.map(month => <div className="overview-month" key={month.key}>
         <div className="overview-month-label"><h2>{month.label}</h2><span>{month.year}</span></div>
         <div className="overview-month-rows">{month.terms.map(term => <button className="overview-simple-row" key={term.iso} disabled={term.disabled} onClick={() => navigate(term.target)} aria-label={`${term.date}, ${previewStatus(term.status) || (term.disabled ? 'nicht mehr offen' : 'noch keine Meldung')}${term.disabled ? '' : ', öffnen'}`}>
           <span className="overview-simple-date"><strong>{term.date.slice(0, 2)}</strong><span>{term.date.slice(3)}</span></span>
           <span className={`overview-simple-status ${term.status ? `overview-simple-status-${term.status.toLowerCase()}` : ''}`}>{previewStatus(term.status)}</span>
-          <span className="overview-row-arrow"><Icon name="arrow" size={18}/></span>
         </button>)}</div>
       </div>) : <div className="overview-empty" role="status"><strong>{filters.find(item => item.key === filter)?.empty}</strong><span>Wählen Sie einen anderen Filter, um weitere Stichtage zu sehen.</span></div>}
     </section>
-    <div className="overview-pagination"><span aria-live="polite">{pageCount > 1 ? `${visibleTerms.length} von ${filteredTerms.length} Stichtagen` : `${filteredTerms.length} ${filteredTerms.length === 1 ? 'Stichtag' : 'Stichtage'}`}</span><div className="overview-pagination-actions"><label className="overview-page-size"><span>{preview ? 'Monate pro Seite' : 'Stichtage pro Seite'}</span><select value={pageSize} onChange={event => updateView({ pageSize: Number(event.target.value), page: 1 })}>{preview ? <><option value={6}>6 Monate</option><option value={3}>3 Monate</option></> : <><option value={15}>15 Stichtage</option><option value={10}>10 Stichtage</option></>}</select></label><nav aria-label="Seiten der Stichtagsliste"><button type="button" onClick={() => changePage(currentPage - 1)} disabled={currentPage === 1}>Zurück</button><span className="overview-page-current" aria-current="page">{currentPage} / {pageCount}</span><button type="button" onClick={() => changePage(currentPage + 1)} disabled={currentPage === pageCount}>Weiter <Icon name="arrow" size={15}/></button></nav></div></div>
+    <div className="overview-load-more" ref={sentinelRef} aria-live="polite"><span>{months.length} von {groupedMonths.length} Monaten · {shownTerms.length} von {filteredTerms.length} Stichtagen</span>{hasMore ? <button type="button" onClick={() => updateView({ visibleMonths: Math.min(visibleMonths + 2, groupedMonths.length) })}>Ältere Monate laden</button> : null}</div>
     {preview ? <p className="overview-simple-note">Fiktive Beispiele · „Ausgezahlt“ ist hier nur ein simulierter Stand.</p> : null}
   </div>
 }

@@ -17,7 +17,7 @@ flowchart LR
   API <--> L[LAWEA: PZN, Stichtag, ggf. Betrag]
   API <--> N[NGDA / N-Connect optional]
   Q --> M[E-Mail-Service]
-  Q --> D[DATEV-Export / Gutschriftenimport]
+  Q --> D[DATEV-Ausgang / ITL-Gutschriftbereitstellung]
 ```
 
 ## Module und Verantwortlichkeiten
@@ -30,7 +30,7 @@ flowchart LR
 | Claim | Meldungen, Positionen, Revisionen, Erklärungen, Status | Portal; fachliche PZN-/Stichtagsdaten und ggf. Preisresultate aus LAWEA |
 | Rules/Review | formale Prüfung, konfigurierbare Regeln, Arbeitsvorrat, Entscheidungen | Portal-Regelversion plus LAWEA-Prüfergebnis |
 | Documents | Betriebserlaubnis, Belege, Gutschriften, Versionen und Zugriff | privater Speicher mit Portal-Metadaten |
-| Settlement | Exportläufe, Importjobs, Zuordnung und Veröffentlichungen | Portal, externe DATEV-Buchung außerhalb des Systems |
+| Settlement | Exportläufe, ITL-Eingang, Zuordnung und Veröffentlichungen | Portal, externe DATEV-Buchung außerhalb des Systems |
 | Notification/Audit | Versandaufträge, Ereignisse, manipulationsgeschützte Nachvollziehbarkeit | Portal |
 
 ## Zentrale Datenobjekte und Mindestfelder
@@ -47,7 +47,7 @@ flowchart LR
 - `RuleEvaluation`: Regelversion, Eingangsreferenz, Ergebnis, Schwellenwert-Snapshot, Bearbeitungsbedarf, Zeitstempel.
 - `Decision`: Revision, Entscheidung, Pflichtgrund bei Ablehnung, Berechtigter, Zeitstempel.
 - `ExportRun`/`ExportItem`: Laufkennung, Status, Datei-Prüfsumme, Anzahl, Kontrollsummen, einbezogene Vorgänge und Wiederholungsbezug.
-- `CreditNote`: Importkennung, externer Zuordnungsschlüssel, Claim/Revision, Dokument, Betrag/Datum falls geliefert, Veröffentlichungsstatus.
+- `CreditNote`: ITL-Eingangskennung, externer Zuordnungsschlüssel, Claim/Revision, Dokument, Betrag/Datum falls geliefert, Veröffentlichungsstatus.
 - `AuditEvent` und `OutboxEvent`: Actor, Organisation, Objekt, Aktion, Status vorher/nachher, Zeitpunkt, Ergebnis/Korrelation; keine Geheimnisse oder vollständige Dokumentinhalte.
 
 ## Transaktionen und Unveränderlichkeit
@@ -69,7 +69,8 @@ flowchart LR
 | Meldung | `POST /me/claims`, `PATCH /me/claims/{id}/draft`, `POST /me/claims/{id}/submit`, `POST /me/claims/{id}/revisions` | Mandant, Status, Frist und Version jedes Mal prüfen |
 | Dateien | `POST /me/documents`, `GET /me/documents/{id}/download` | private Prüfung vor kurzlebigem Download; Virenscan |
 | Glenmark | `GET /review/queue`, `POST /review/claims/{id}/approve|reject` | Funktionsrolle, Audit, Entscheidungsgrund |
-| Finance | `POST /finance/exports`, `POST /finance/credit-imports`, `POST /finance/credit-notes/{id}/publish` | Finance-Rolle, Idempotenz, Vier-Augen-Regel falls beschlossen |
+| Finance | `POST /finance/exports`, `POST /finance/credit-notes/{id}/publish` | Finance-Rolle, Idempotenz, Vier-Augen-Regel falls beschlossen |
+| ITL-Eingang | Schnittstelle und Route noch offen; keine produktive Implementierung | Dienstidentität, Idempotenz, eindeutige Zuordnung und Audit vertraglich festlegen |
 
 Routen sind Beispiele für Implementierung und Dokumentation, keine Zusage eines LAWEA-Endpunkts. Für jede externe Integration braucht es vor Produktivbetrieb einen schriftlichen Vertrag mit Authentifizierung, Schema, Fehlercodes, Rate-Limits, Versionierung und Testumgebung.
 
@@ -81,7 +82,7 @@ Routen sind Beispiele für Implementierung und Dokumentation, keine Zusage eines
 | NGDA/N-Connect | Identitäts-/Apothekenattribute, Consent, Login- oder Verifizierungsfluss, Fehlerfälle | Manuelle Betriebserlaubnisroute. |
 | E-Mail | Absenderdomäne, Vorlagen, Zustellstatus, Webhook/Retry | Fachaktion bleibt gespeichert, Mail in Retry-/Fehlerliste. |
 | DATEV | konkretes Dateiformat, Kodierung, Spalten, Dezimalformat, Sammel- und Kontrollsummenregeln | Kein als DATEV-kompatibel deklarierter Produktivexport; Demo-Datei klar markieren. |
-| Gutschriften | Dokumentformat, eindeutige Vorgangsreferenz, Betrag/Währung, Doppelerkennung | Unzuordenbare Importe nur im internen Fehlerarbeitsvorrat. |
+| Gutschriften | Dokumentformat, eindeutige Vorgangsreferenz, Betrag/Währung, Doppelerkennung | Unzuordenbare ITL-Eingänge nur im internen Fehlerarbeitsvorrat. |
 | ISK (optional) | Zulassung, Format, Verantwortung | Deaktiviert bis entschieden. |
 
 ## Sicherheit, Datenschutz und Betrieb

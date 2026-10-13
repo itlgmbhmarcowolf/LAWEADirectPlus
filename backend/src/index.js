@@ -51,7 +51,8 @@ app.use((req, _res, next) => {
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024, files: 1 } })
 const email = z.email().max(254).transform(v => v.trim().toLowerCase())
 const required = (max = 160) => z.string().trim().min(1).max(max)
-const password = z.string().min(12).max(128)
+// Vereinbarte Passwortregel; die UI zeigt dieselben fünf Kriterien an.
+const password = z.string().min(12).max(128).regex(/[a-z]/, 'Ein Kleinbuchstabe fehlt.').regex(/[A-Z]/, 'Ein Großbuchstabe fehlt.').regex(/[0-9]/, 'Eine Ziffer fehlt.').regex(/[\p{P}\p{S}]/u, 'Ein Sonderzeichen fehlt.')
 function validGermanIban(value) {
   if (!/^DE\d{20}$/.test(value)) return false
   const rearranged = value.slice(4) + '1314' + value.slice(2, 4)
@@ -86,6 +87,27 @@ function limited(key, max = 8, windowMs = 15 * 60 * 1000) {
   item.count++
   if (item.count > max) throw problem(429, 'Zu viele Versuche. Bitte später erneut versuchen.')
 }
+function checkAuthLock(userId) {
+  const row = db.prepare('SELECT locked_until FROM auth_locks WHERE user_id=?').get(userId)
+  if (row?.locked_until && row.locked_until > now()) {
+    throw problem(429, `Anmeldung gesperrt. Erneut möglich ab ${new Intl.DateTimeFormat('de-DE', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Berlin' }).format(new Date(row.locked_until))} Uhr.`, 'ACCOUNT_LOCKED')
+  }
+  if (row?.locked_until) db.prepare('DELETE FROM auth_locks WHERE user_id=?').run(userId)
+}
+function failedAuth(userId) {
+  const previous = db.prepare('SELECT failures FROM auth_locks WHERE user_id=?').get(userId)
+  const failures = (previous?.failures || 0) + 1
+  const lockedUntil = failures >= 3 ? new Date(Date.now() + 4 * 3600000).toISOString() : null
+  db.transaction(() => {
+    db.prepare('INSERT INTO auth_locks (user_id,failures,locked_until,updated_at) VALUES (?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET failures=excluded.failures,locked_until=excluded.locked_until,updated_at=excluded.updated_at').run(userId, failures, lockedUntil, now())
+    if (lockedUntil) {
+      db.prepare('DELETE FROM sessions WHERE user_id=?').run(userId)
+      audit(userId, null, 'user', userId, 'LOGIN_LOCKED', lockedUntil)
+    }
+  })()
+  if (lockedUntil) checkAuthLock(userId)
+}
+function clearAuthFailures(userId) { db.prepare('DELETE FROM auth_locks WHERE user_id=?').run(userId) }
 function problem(status, message, code = 'ERROR') {
   const e = new Error(message); e.status = status; e.code = code; return e
 }
@@ -133,10 +155,15 @@ function consumeChallenge(input, purpose) {
   const { challengeId, code } = parse(challengeSchema, input)
   const row = db.prepare('SELECT * FROM challenges WHERE id=? AND purpose=?').get(challengeId, purpose)
   if (!row || row.consumed_at || row.expires_at < now() || row.attempts >= 5) throw problem(400, 'Code ungültig oder abgelaufen.', 'INVALID_CODE')
+  if (purpose === 'LOGIN') checkAuthLock(row.user_id)
   db.prepare('UPDATE challenges SET attempts=attempts+1 WHERE id=?').run(challengeId)
   const a = Buffer.from(digest(`${challengeId}:${code}`), 'hex'), b = Buffer.from(row.code_hash, 'hex')
-  if (!crypto.timingSafeEqual(a, b)) throw problem(400, 'Code ungültig oder abgelaufen.', 'INVALID_CODE')
+  if (!crypto.timingSafeEqual(a, b)) {
+    if (purpose === 'LOGIN') failedAuth(row.user_id)
+    throw problem(400, 'Code ungültig oder abgelaufen.', 'INVALID_CODE')
+  }
   db.prepare('UPDATE challenges SET consumed_at=? WHERE id=?').run(now(), challengeId)
+  if (purpose === 'LOGIN') clearAuthFailures(row.user_id)
   return row.user_id
 }
 function createSession(res, userId) {
@@ -196,8 +223,10 @@ app.post('/api/auth/login', asyncRoute(async (req, res) => {
     throw problem(401, 'Anmeldung nicht möglich. Bitte Zugangsdaten und Freigabe prüfen.', 'LOGIN_FAILED')
   }
   if (!user) return invalid()
+  checkAuthLock(user.id)
   const ok = await verify(user.password_hash, input.password)
-  if (!ok || !user.email_verified || user.status !== 'ACTIVE' || (user.organization_id && user.org_status !== 'APPROVED')) return invalid()
+  if (!ok) { failedAuth(user.id); return invalid() }
+  if (!user.email_verified || user.status !== 'ACTIVE' || (user.organization_id && user.org_status !== 'APPROVED')) return invalid()
   rate.delete(`login:${input.email}`)
   const result = challenge(user.id, 'LOGIN')
   mail(user.email, 'Ihr Anmeldecode', 'Ein neuer Anmeldecode wurde angefordert. Melden Sie sich nur auf der offiziellen Portalseite an.')
@@ -279,19 +308,6 @@ app.post('/api/register/verify', (req, res) => {
   })()
   res.json({ status: 'PENDING_APPROVAL' })
 })
-app.post('/api/register/resubmit-evidence', upload.single('license'), asyncRoute(async (req, res) => {
-  const input = parse(loginSchema, req.body)
-  limited(`evidence:${input.email}`)
-  const user = db.prepare("SELECT u.*,o.status AS org_status FROM users u JOIN organizations o ON o.id=u.organization_id WHERE u.email=? AND u.role='PHARMACY_ADMIN'").get(input.email)
-  if (!user || user.org_status !== 'EVIDENCE_REQUESTED' || !(await verify(user.password_hash, input.password))) throw problem(401, 'Nachreichung nicht möglich.')
-  let documentId
-  db.transaction(() => {
-    documentId = saveDocument(req.file, { organizationId: user.organization_id, kind: 'LICENSE', userId: user.id })
-    db.prepare("UPDATE organizations SET license_document_id=?,status='PENDING_APPROVAL' WHERE id=?").run(documentId, user.organization_id)
-    audit(user.id, user.organization_id, 'organization', user.organization_id, 'EVIDENCE_RESUBMITTED')
-  })()
-  res.json({ status: 'PENDING_APPROVAL' })
-}))
 function resetForUser(user) {
   const token = crypto.randomBytes(32).toString('hex')
   db.prepare('INSERT INTO password_resets VALUES (?,?,?,?,?,?)').run(id(), user.id, digest(token), new Date(Date.now() + 30 * 60000).toISOString(), null, now())
@@ -393,14 +409,17 @@ app.post('/api/review/organizations/:id/approve', requireUser, requireRole('REVI
   })()
   res.json({ ok: true })
 })
-app.post('/api/review/organizations/:id/request-evidence', requireUser, requireRole('REVIEWER'), requireCsrf, (req, res) => {
+app.post('/api/review/organizations/:id/reject', requireUser, requireRole('REVIEWER'), requireCsrf, (req, res) => {
   const reason = parse(z.object({ reason: required(1000) }).strict(), req.body).reason
   const org = db.prepare("SELECT * FROM organizations WHERE id=? AND status='PENDING_APPROVAL'").get(req.params.id)
   if (!org) throw problem(404, 'Antrag nicht gefunden.')
-  db.prepare("UPDATE organizations SET status='EVIDENCE_REQUESTED' WHERE id=?").run(org.id)
-  audit(req.session.uid, org.id, 'organization', org.id, 'EVIDENCE_REQUESTED', reason)
   const applicant = db.prepare("SELECT email FROM users WHERE organization_id=? AND role='PHARMACY_ADMIN'").get(org.id)
-  mail(applicant.email, 'Nachweis benötigt', 'Für Ihren Antrag wird ein neuer Nachweis benötigt. Bitte melden Sie sich beim Support.')
+  db.transaction(() => {
+    db.prepare("UPDATE organizations SET status='REJECTED',reviewed_at=? WHERE id=?").run(now(), org.id)
+    db.prepare("UPDATE users SET status='REJECTED' WHERE organization_id=?").run(org.id)
+    audit(req.session.uid, org.id, 'organization', org.id, 'REJECTED', reason)
+  })()
+  mail(applicant.email, 'Registrierung abgelehnt', 'Ihre Registrierung konnte nicht freigegeben werden. Bitte wenden Sie sich für weitere Informationen an den Support.')
   res.json({ ok: true })
 })
 

@@ -6,6 +6,7 @@ import { Button, Empty, Icon, Notice, PageTitle, StatusPill } from './ui'
 import { PreviewDashboard } from './PreviewDashboard'
 import type { DashboardView } from './PreviewDashboard'
 import { PdfPreview } from './PdfPreviewLoader'
+import { HelpContent } from './HelpContent'
 import './claim-editor.css'
 import './credit-preview.css'
 
@@ -119,13 +120,13 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
   const credit = data.credits?.find(item => item.claim_id === claim.id)
   const documents = detail.documents.filter(d => !d.removed_at && d.kind === 'EVIDENCE')
   return <><button className="back-link" onClick={() => navigate('dashboard')}>← Zurück zur Übersicht</button>
-    {editable ? <header className="claim-editor-heading"><h1>Meldung erfassen</h1><span>Stichtag {shortDate(detail.term.date)} · Glenmark · Einreichbar bis {shortDate(detail.term.closes_at)}</span></header> : <><PageTitle title="Meldung im Überblick" subtitle={claim.number}/><div className="term-summary"><div><span>Stichtag</span><strong>{shortDate(detail.term.date)}</strong></div><div><span>Meldezeitraum</span><strong>bis {shortDate(detail.term.closes_at)}</strong></div><div><span>Hersteller</span><strong>Glenmark</strong></div></div></>}
+    {editable ? <header className="claim-editor-heading"><h1>Meldung für den {shortDate(detail.term.date)} erfassen</h1><span>Glenmark · Einreichbar bis {shortDate(detail.term.closes_at)}</span></header> : <><PageTitle title={`Meldung für den ${shortDate(detail.term.date)}`} subtitle={claim.number}/><div className="term-summary"><div><span>Stichtag</span><strong>{shortDate(detail.term.date)}</strong></div><div><span>Meldezeitraum</span><strong>bis {shortDate(detail.term.closes_at)}</strong></div><div><span>Hersteller</span><strong>Glenmark</strong></div></div></>}
     {error ? <Notice tone="error">{error}</Notice> : null}{notice ? <Notice tone="success">{notice}</Notice> : null}
     {editable ? <>
       <section className="editor-section claim-editor-section" aria-labelledby="claim-positions-title">
         <h2 id="claim-positions-title">Positionen</h2>
-        {draft.items.length ? <div className="position-grid position-header"><span>PZN</span><span>Artikelbezeichnung</span><span>Charge</span><span>Bestand in Packungen</span><span></span></div> : null}
-        {draft.items.map((item, index) => <div className="position-grid position-row" key={index}><label><span className="mobile-label">PZN</span><input list="pzn-options" inputMode="numeric" maxLength={8} value={item.pzn} onChange={e => setItem(index, 'pzn', e.target.value)} placeholder="PZN suchen" aria-label={`PZN Position ${index + 1}`}/></label><div className="product-name">{data.products.find(p => p.pzn === item.pzn)?.name || 'Artikel erscheint nach PZN-Eingabe'}</div><label><span className="mobile-label">Charge</span><input value={item.charge} onChange={e => setItem(index, 'charge', e.target.value)} placeholder="Chargennummer" aria-label={`Charge Position ${index + 1}`}/></label><label><span className="mobile-label">Bestand in Packungen</span><input type="number" min="1" step="1" value={item.quantity || ''} onChange={e => setItem(index, 'quantity', Number(e.target.value))} placeholder="0" aria-label={`Bestand Position ${index + 1}`}/></label><button className="icon-button remove-item" aria-label={`Position ${index + 1} entfernen`} onClick={() => change({ ...draft, items: draft.items.filter((_, i) => i !== index) })}><Icon name="trash" size={18}/></button></div>)}
+        {draft.items.length ? <div className="position-grid position-header"><span>PZN</span><span>Artikelbezeichnung</span><span>Charge</span><span>Bestand in Packungen zum {shortDate(detail.term.date)}</span><span></span></div> : null}
+        {draft.items.map((item, index) => <div className="position-grid position-row" key={index}><label><span className="mobile-label">PZN</span><input list="pzn-options" inputMode="numeric" maxLength={8} value={item.pzn} onChange={e => setItem(index, 'pzn', e.target.value)} placeholder="PZN suchen" aria-label={`PZN Position ${index + 1}`}/></label><div className="product-name">{data.products.find(p => p.pzn === item.pzn)?.name || 'Artikel erscheint nach PZN-Eingabe'}</div><label><span className="mobile-label">Charge</span><input value={item.charge} onChange={e => setItem(index, 'charge', e.target.value)} placeholder="Chargennummer" aria-label={`Charge Position ${index + 1}`}/></label><label><span className="mobile-label">Bestand in Packungen zum {shortDate(detail.term.date)}</span><input type="number" min="1" step="1" value={item.quantity || ''} onChange={e => setItem(index, 'quantity', Number(e.target.value))} placeholder="0" aria-label={`Bestand in Packungen zum ${shortDate(detail.term.date)}, Position ${index + 1}`}/></label><button className="icon-button remove-item" aria-label={`Position ${index + 1} entfernen`} onClick={() => change({ ...draft, items: draft.items.filter((_, i) => i !== index) })}><Icon name="trash" size={18}/></button></div>)}
         {draft.items.some(item => !item.pzn || !item.charge.trim() || !item.quantity) ? <p className="claim-position-help">PZN: Artikelnummer · Charge: Nummer von der Packung · Bestand: Packungen am Stichtag</p> : null}
         <datalist id="pzn-options">{data.products.map(p => <option key={p.pzn} value={p.pzn} label={p.name}/>)}</datalist>
         <button className="add-row" onClick={() => change({ ...draft, items: [...draft.items, emptyItem()] })}><Icon name="plus" size={18}/> Position hinzufügen</button>
@@ -140,11 +141,13 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
 
 function CreditDocumentPreview({ credit }: { credit: Credit }) {
   const [document, setDocument] = useState<{ url: string; mime: string } | null>(null)
+  const [previewOpen, setPreviewOpen] = useState(false)
   const [error, setError] = useState('')
   useEffect(() => {
     let active = true
     let objectUrl = ''
     setDocument(null)
+    setPreviewOpen(false)
     setError('')
     fetchDocument(`/documents/${credit.document_id}`).then(blob => {
       if (!active) return
@@ -156,8 +159,7 @@ function CreditDocumentPreview({ credit }: { credit: Credit }) {
   }, [credit.document_id])
   const extension = document?.mime === 'image/jpeg' ? 'jpg' : document?.mime === 'image/png' ? 'png' : 'pdf'
   return <>
-    <div className="credit-pdf-heading"><h3>Dokumentvorschau</h3><span>{document?.mime === 'application/pdf' ? 'PDF' : document ? 'Bilddatei' : 'Gutschrift'}</span></div>
-    {error ? <Notice tone="error">{error}</Notice> : document ? <>{document.mime === 'application/pdf' ? <PdfPreview url={document.url} title={`PDF-Vorschau der Gutschrift ${credit.reference}`}/> : <img className="credit-image-preview" src={document.url} alt={`Gutschrift ${credit.reference}`}/>}<div className="claim-row-actions"><a className="button button-primary" href={document.url} download={`Gutschrift-${credit.claim_number}.${extension}`}>Gutschrift herunterladen <Icon name="download" size={18}/></a></div></> : <p role="status">Dokumentvorschau wird geladen …</p>}
+    {error ? <Notice tone="error">{error}</Notice> : document ? <><div className="claim-row-actions"><Button variant="secondary" aria-expanded={previewOpen} onClick={() => setPreviewOpen(current => !current)}>{previewOpen ? 'Vorschau schließen' : 'Vorschau öffnen'}</Button><a className="button button-primary" href={document.url} download={`Gutschrift-${credit.claim_number}.${extension}`}>Gutschrift herunterladen <Icon name="download" size={18}/></a></div>{previewOpen ? <><div className="credit-pdf-heading"><h3>Dokumentvorschau</h3><span>{document.mime === 'application/pdf' ? 'PDF' : 'Bilddatei'}</span></div>{document.mime === 'application/pdf' ? <PdfPreview url={document.url} title={`PDF-Vorschau der Gutschrift ${credit.reference}`}/> : <img className="credit-image-preview" src={document.url} alt={`Gutschrift ${credit.reference}`}/>}</> : null}</> : <p role="status">Dokument wird geladen …</p>}
   </>
 }
 
@@ -169,4 +171,4 @@ export function CreditsPage({ data, navigate, selectedClaimId }: { data: Bootstr
     {selected ? <section className="data-section credit-detail"><div className="section-header"><h2>Ihre Gutschrift</h2><StatusPill status="COMPLETED" label="Bereitgestellt"/></div><div className="term-summary"><div><span>Vorgang</span><strong>{selected.claim_number}</strong></div><div><span>Referenz</span><strong>{selected.reference}</strong></div><div><span>Bereitgestellt</span><strong>{dateTime(selected.published_at)}</strong></div></div><button className="text-button" onClick={() => navigate(`claim:${selected.claim_id}`)}>Meldung öffnen <Icon name="arrow" size={15}/></button><CreditDocumentPreview credit={selected}/></section> : data.credits?.length ? <section className="data-section"><div className="table-wrap"><table><thead><tr><th>Meldung</th><th>Referenz</th><th>Bereitgestellt</th><th>Aktionen</th></tr></thead><tbody>{data.credits.map(credit => <tr key={credit.id}><td>{credit.claim_number}</td><td>{credit.reference}</td><td>{dateTime(credit.published_at)}</td><td><div className="claim-row-actions"><Button variant="secondary" onClick={() => navigate(`claim:${credit.claim_id}`)}>Meldung ansehen</Button><button className="text-button" onClick={() => navigate(`credits:${credit.claim_id}`)}>Gutschrift <Icon name="arrow" size={15}/></button></div></td></tr>)}</tbody></table></div></section> : <Empty title="Noch keine Gutschriften" description="Sobald eine Gutschrift bereitsteht, erscheint sie hier und in der zugehörigen Meldung."/>}
   </>
 }
-export function HelpPage() { return <><PageTitle title="Hilfe" subtitle="Kurze Antworten zu Ihrer Lagerwertverlustmeldung."/><div className="help-grid"><section><h2>Was ist eine PZN?</h2><p>Die Pharmazentralnummer kennzeichnet einen Artikel. Wählen Sie eine Glenmark-PZN aus der Suche. Die Einreichung prüft, ob sie zum gewählten Stichtag betroffen ist.</p></section><section><h2>Welche Charge trage ich ein?</h2><p>Tragen Sie die Chargennummer von der Packung ein. Das Feld muss ausgefüllt sein; eine fachliche Chargenprüfung findet nicht statt.</p></section><section><h2>Kann ich später korrigieren?</h2><p>Entwürfe können Sie jederzeit innerhalb der Frist bearbeiten. Eine eingereichte Revision bleibt unverändert. Nach einer Ablehnung können Sie eine neue Revision anlegen, sofern die Frist noch offen ist.</p></section><section><h2>Wo finde ich meine Gutschrift?</h2><p>Öffnen Sie einen ausgezahlten Stichtag in der Übersicht. Die zugeordnete Gutschrift zeigt das Dokument als Vorschau und bietet den Download an. Die Zahlungsabwicklung selbst erfolgt außerhalb dieses Portals.</p></section></div></> }
+export function HelpPage() { return <HelpContent/> }

@@ -9,9 +9,9 @@
 | Interessent | Öffentliche Seiten, Registrierung, Verifizierung des eigenen E-Mail-Kontos. |
 | Apothekenadministrator | Alle eigenen Meldungen, Belege und Gutschriften; Mitarbeiter einladen/sperren, Adminrecht übertragen, nichtkritisches Profil pflegen. |
 | Apothekenmitarbeiter | Eigene Apotheke: Meldungen erfassen, Entwürfe bearbeiten, einreichen, Korrekturen nach Ablehnung durchführen, Status/Belege/Gutschriften sehen; Mitarbeiterliste nur lesend und ohne sensible Sicherheitsdaten. |
-| Registrierungsprüfer | Betriebserlaubnis und Stammdaten prüfen, Nachforderung, Freigabe/Ablehnung mit Grund; kein automatisches Recht zur Meldungsentscheidung. |
+| Registrierungsprüfer | Bei der Registrierung eingereichte Betriebserlaubnis und Stammdaten prüfen, Freigabe/Ablehnung mit Grund; kein automatisches Recht zur Meldungsentscheidung. |
 | Glenmark-Sachbearbeiter | Mandantenbezogenen Arbeitsvorrat, Meldungen, Belege und Historie prüfen; je nach Rolle freigeben/ablehnen. |
-| Glenmark-Finance | Freigegebene Vorgänge exportieren, Exportläufe prüfen, Gutschriften importieren und zuordnen. |
+| Glenmark-Finance | Freigegebene Vorgänge exportieren, Exportläufe prüfen und die Bereitstellung von ITL-Gutschriften kontrollieren. |
 | Systemadministrator | Technische Konfiguration, Support und Audit nach gesonderter Rechtevergabe; Supportzugriffe zeitlich begrenzt und protokolliert. |
 
 Eine Person kann mehrere Rollen haben, aber jede Aktion prüft ihre konkrete Berechtigung. Alle Apothekenzugriffe sind durch die serverseitig bestimmte `pharmacy_id` begrenzt. Es darf niemals der letzte **aktive** Unternehmensadministrator oder letzte aktive Mitarbeiter einer Apotheke gelöscht/gesperrt werden. Für die Erstanlage gilt der erste bestätigte Benutzer als Administrator, jedoch erst nach Apothekenfreigabe mit Fachzugriff.
@@ -20,15 +20,17 @@ Eine Person kann mehrere Rollen haben, aber jede Aktion prüft ihre konkrete Ber
 
 **REG-01:** Öffentliche Startseite bietet Login und Kontoerstellung. Name der Apotheke, Straße, PLZ, Ort, Inhaber, Telefon, IBAN, optional Homepage, Name der anlegenden Person, E-Mail und zweimal Passwort werden erfasst. Vor dem Senden zeigt das System eine Zusammenfassung und prüft Pflichtfelder, Passwortgleichheit, gültiges IBAN-Format und Dublettenhinweise. IBAN nur, wenn für spätere Abwicklung erforderlich; Darstellung danach maskiert.
 
-**REG-02:** Manuelle Verifizierung verlangt Betriebserlaubnis als PDF/JPEG/PNG, maximal 5 MB. Es werden MIME-Typ und Inhalt geprüft, nicht nur die Dateiendung. Unlesbarer/ungültiger Nachweis kann mit dokumentiertem Grund zurückgewiesen und erneut hochgeladen werden. Keine Freigabe ohne positiven Nachweis.
+**REG-02:** Die Betriebserlaubnis ist ein Pflichtfeld der Registrierung und muss als PDF/JPEG/PNG mit maximal 5 MB beim Absenden vorliegen. MIME-Typ und Inhalt werden geprüft, nicht nur die Dateiendung. Eine spätere Nachreichung innerhalb desselben Registrierungsantrags ist ausgeschlossen. Eine unleserliche oder ungültige Betriebserlaubnis führt zu einer Ablehnung mit dokumentiertem Grund. Keine Freigabe ohne positive Prüfung.
 
 **REG-03:** Nach der Registrierung wird ein befristeter E-Mail-Einmalcode versendet. Korrekte Eingabe bestätigt den E-Mail-Besitz; die Apotheke bleibt `Freigabe ausstehend`. Codeversuche und Neusendungen sind begrenzt, Codes werden nicht im Klartext gespeichert. Ablauf und Fehler erlauben eine neue Codeanforderung ohne Verlust des Antrags.
 
-**REG-04:** Berechtigter Prüfer sieht einen Arbeitsvorrat, Daten und Betriebserlaubnis, kann freigeben, Nachweis nachfordern oder Antrag mit dokumentiertem Grund ablehnen. Freigabe/Nachforderung/Ablehnung werden auditiert und per neutraler E-Mail kommuniziert. Nur freigegebene Apotheken können LWV-Meldungen bearbeiten.
+**REG-04:** Berechtigter Prüfer sieht einen Arbeitsvorrat, Daten und Betriebserlaubnis und kann den Antrag freigeben oder mit dokumentiertem Grund ablehnen. Freigabe und Ablehnung werden auditiert und per neutraler E-Mail kommuniziert. Nur freigegebene Apotheken können LWV-Meldungen bearbeiten.
 
 **REG-05:** N-Connect/NGDA ist eine zweite Verifizierungsroute: bestätigte Identität und Stammdaten werden anhand eines vertraglich definierten Adapters übernommen und mit Quellen-/Zeitstempel gespeichert. Ein Ausfall führt zum manuellen Weg oder `vorläufig`; niemals zur stillen Freigabe. Föderierter Login bleibt separat zu entscheiden.
 
 **AUTH-01:** Normales Login erfordert E-Mail, Passwort und OTP als zweiten Faktor. Passwortreset nutzt einen befristeten Einmal-Link und invalidiert alte Sitzungen gemäß Sicherheitskonzept. Zugang ist gesperrt, solange Konto/Apotheke nicht freigegeben oder Benutzer deaktiviert ist. Rate-Limits und generische Fehltexte verhindern Kontoauskundschaftung.
+
+**AUTH-02:** Neu gesetzte Passwörter benötigen mindestens 12 Zeichen, einen Großbuchstaben, einen Kleinbuchstaben, eine Ziffer und ein Sonderzeichen. Die Kriterien werden während der Eingabe angezeigt und beim Absenden serverseitig geprüft.
 
 ## Mitarbeiterverwaltung
 
@@ -62,7 +64,7 @@ Eine Person kann mehrere Rollen haben, aber jede Aktion prüft ihre konkrete Ber
 
 **FIN-01:** Nur freigegebene, noch nicht in einem abgeschlossenen Exportlauf enthaltene Vorgänge sind DATEV-exportfähig. Finance startet einen Exportlauf, sieht Anzahl und Kontrollsummen und lädt die Datei herunter. Wiederholung desselben Laufs erzeugt dieselbe fachliche Auswahl bzw. verhindert Dubletten. Format und Sammellogik sind Integrationsvertrag, nicht zu erfinden.
 
-**FIN-02:** Gutschriftenimport verarbeitet Dokument und eindeutigen Zuordnungsschlüssel. Erst bei eindeutiger Zuordnung und Freigabe erscheint die Gutschrift in der zugehörigen Meldung und in der Gutschriftenliste der Apotheke. Beide Ansichten verlinken aufeinander. Nicht zuordenbare oder doppelte Dokumente bleiben im Fehlerarbeitsvorrat und werden nicht veröffentlicht. Gutschriftbereitstellung setzt den Vorgang auf `Abgeschlossen`; neutraler E-Mail-Hinweis mit Portal-Link.
+**FIN-02:** Die noch zu vereinbarende ITL-Schnittstelle stellt Gutschriftdokument und eindeutigen Zuordnungsschlüssel bereit. Es ist kein Import aus einem Glenmark-/DATEV-System vorgesehen. Erst bei eindeutiger Zuordnung und Freigabe erscheint die Gutschrift in der zugehörigen Meldung und in der Gutschriftenliste der Apotheke. Beide Ansichten verlinken aufeinander. Nicht zuordenbare oder doppelte Dokumente bleiben im Fehlerarbeitsvorrat und werden nicht veröffentlicht. Gutschriftbereitstellung setzt den Vorgang auf `Abgeschlossen`; neutraler E-Mail-Hinweis mit Portal-Link.
 
 ## Statusmodell
 
@@ -73,7 +75,7 @@ Eine Person kann mehrere Rollen haben, aber jede Aktion prüft ihre konkrete Ber
 | `CHECK_PENDING` | LAWEA-Timeout o. Ä. | Prüfung läuft | Technische Wiederholung, keine Doppelmeldung |
 | `MANUAL_REVIEW` / Nachbearbeitung | Regelabweichung | Wir prüfen | Glenmark entscheidet |
 | `REJECTED` / Abgelehnt | Ablehnung mit Grund | Bitte korrigieren | Neue Revision erstellen und, wenn zulässig, einreichen |
-| `APPROVED` / Freigegeben zur Auszahlung | positive Entscheidung | Freigegeben | Finance exportiert / Gutschriftimport |
+| `APPROVED` / Freigegeben zur Auszahlung | positive Entscheidung | Freigegeben | Finance exportiert / ITL-Gutschriftbereitstellung |
 | `CANCELLED` / Storniert | Entwurf verwerfen | Verworfen | Nur Historie |
 | `COMPLETED` / Abgeschlossen | Gutschrift zugeordnet und veröffentlicht | Gutschrift verfügbar | Dokument ansehen/downloaden |
 
@@ -81,7 +83,7 @@ Jeder Übergang wird im Backend geprüft. `SUBMITTED` kann nach technischer Prü
 
 ## Benachrichtigungen
 
-Registrierung/E-Mail-Code, Freigabe oder Nachforderung, Einladung, Meldung eingereicht, Glenmark-Aufgabe, Ablehnung, optional Freigabe und Gutschrift verfügbar. Für das Erscheinen eines neuen Senkungstermins wird **keine** E-Mail oder andere aktive Ankündigung erzeugt. E-Mails zu den genannten transaktionalen Ereignissen enthalten höchstens Vorgangsnummer, Stichtag und einen sicheren Portal-Link, keine PZN, Charge, Beträge, IBAN oder Ablehnungsdetails. Zustellversuche und Versandstatus werden protokolliert; ein Mailfehler rollt die fachliche Aktion nicht zurück, sondern erzeugt einen wiederholbaren Versandauftrag.
+Registrierung/E-Mail-Code, Freigabe oder Ablehnung der Registrierung, Einladung, Meldung eingereicht, Glenmark-Aufgabe, Ablehnung der Meldung, optional Freigabe und Gutschrift verfügbar. Für das Erscheinen eines neuen Senkungstermins wird **keine** E-Mail oder andere aktive Ankündigung erzeugt. E-Mails zu den genannten transaktionalen Ereignissen enthalten höchstens Vorgangsnummer, Stichtag und einen sicheren Portal-Link, keine PZN, Charge, Beträge, IBAN oder Ablehnungsdetails. Zustellversuche und Versandstatus werden protokolliert; ein Mailfehler rollt die fachliche Aktion nicht zurück, sondern erzeugt einen wiederholbaren Versandauftrag.
 
 ## Fachliche Akzeptanzszenarien
 

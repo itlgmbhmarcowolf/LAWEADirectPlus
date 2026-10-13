@@ -44,16 +44,16 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
   return <div className="preview-claim-editor">
     <button className="back-link" onClick={() => navigate('dashboard')}>← Zurück zur Übersicht</button>
     {editable ? <>
-      <header className="preview-claim-heading"><h1>Meldung erfassen</h1><span>Stichtag {term} · Glenmark</span></header>
+      <header className="preview-claim-heading"><h1>Meldung für den {term} erfassen</h1><span>Glenmark · fiktive Vorschau</span></header>
 
       <section className="editor-section preview-claim-section" aria-labelledby="preview-positions-title">
         <h2 id="preview-positions-title">Positionen</h2>
-        {claim.items.length ? <div className="position-grid position-header"><span>PZN</span><span>Artikelbezeichnung</span><span>Charge</span><span>Bestand in Packungen</span><span></span></div> : null}
+        {claim.items.length ? <div className="position-grid position-header"><span>PZN</span><span>Artikelbezeichnung</span><span>Charge</span><span>Bestand in Packungen zum {term}</span><span></span></div> : null}
         {claim.items.map((item, index) => <div className="position-grid position-row" key={item.id}>
           <label><span className="mobile-label">PZN</span><input inputMode="numeric" maxLength={8} value={item.pzn} onChange={event => updateItem(item.id, { pzn: event.target.value.replace(/\D/g, '').slice(0, 8) })} placeholder="z. B. 01234567" aria-label={`PZN Position ${index + 1}`} aria-invalid={item.pzn.length === 8 && !previewProductNames[item.pzn]}/></label>
           <div className={`product-name ${item.pzn.length === 8 && !previewProductNames[item.pzn] ? 'preview-product-unknown' : ''}`}>{previewProductNames[item.pzn] || (item.pzn.length === 8 ? 'Kein Beispielartikel gefunden' : 'Artikel erscheint nach PZN-Eingabe')}</div>
           <label><span className="mobile-label">Charge</span><input value={item.charge} onChange={event => updateItem(item.id, { charge: event.target.value })} placeholder="Chargennummer" aria-label={`Charge Position ${index + 1}`}/></label>
-          <label><span className="mobile-label">Bestand in Packungen</span><input type="number" min="1" step="1" value={item.quantity} onChange={event => updateItem(item.id, { quantity: event.target.value })} placeholder="0" aria-label={`Bestand Position ${index + 1}`}/></label>
+          <label><span className="mobile-label">Bestand in Packungen zum {term}</span><input type="number" min="1" step="1" value={item.quantity} onChange={event => updateItem(item.id, { quantity: event.target.value })} placeholder="0" aria-label={`Bestand in Packungen zum ${term}, Position ${index + 1}`}/></label>
           <button className="icon-button remove-item" aria-label={`Position ${index + 1} entfernen`} onClick={() => removeItem(item.id)}><Icon name="trash" size={18}/></button>
         </div>)}
         {showPositionHelp ? <p className="preview-position-help">PZN: 8 Ziffern (z. B. 01234567 oder 07654321) · Charge: Nummer von der Packung · Bestand: Packungen am Stichtag</p> : null}

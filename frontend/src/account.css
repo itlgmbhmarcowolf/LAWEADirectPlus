@@ -2,3 +2,4 @@
 
 .topbar-account-trigger>svg:last-child{color:#627992;flex:none}@media(max-width:700px){.topbar-account-trigger>svg:last-child{display:none}}
 .account-settings-card .account-settings-note{margin-top:18px;padding-top:14px;border-top:1px solid #e4edf1}
+.password-field{display:grid;align-content:start;gap:8px;min-width:0}.password-field .field{margin:0}.password-checklist{display:grid;grid-template-columns:1fr;gap:4px;margin:0;padding:0;list-style:none}.password-checklist li{display:flex;align-items:baseline;gap:6px;font-size:12px;line-height:1.35;font-weight:600}.password-checklist li.unfulfilled{color:#a72d39}.password-checklist li.fulfilled{color:#15734e}.password-check-icon{display:inline-block;flex:none;width:12px;text-align:center;font-size:13px;font-weight:800}

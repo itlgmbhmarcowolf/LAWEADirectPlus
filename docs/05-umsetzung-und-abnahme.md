@@ -7,11 +7,11 @@ Jedes Paket endet mit einer vorführbaren Nutzerreise, Backend-Regeln, passenden
 | Paket | Lieferinhalt | Vorführbare Abnahme |
 | --- | --- | --- |
 | 0. Grundlage | Projektgerüst, Designsystem, Datenbank, private Dokumentablage, Rollenmodell, Demo-Daten/Adapter, CI und lokaler Start | Startseite und getrennte Apotheken-/Glenmark-Ansicht starten lokal; Demo klar markiert. |
-| 1. Identität und Freigabe | Registrierung, 5-MB-Betriebserlaubnis, E-Mail-OTP, Prüfer-Queue, Nachforderung/Freigabe, Login-MFA, Reset | Ungeprüftes Konto bleibt gesperrt; freigegebenes Konto kommt nach MFA ins eigene Dashboard. |
+| 1. Identität und Freigabe | Registrierung mit verpflichtender 5-MB-Betriebserlaubnis, E-Mail-OTP, Prüfer-Queue, Freigabe/Ablehnung, Login-MFA, Reset | Ohne Betriebserlaubnis kein Registrierungsantrag; keine spätere Nachreichung; ungeprüftes Konto bleibt gesperrt. |
 | 2. Mitarbeiter und Termine | Einladen, Passwort/OTP, Adminschutz, Stichtagsübersicht und Historie | Zwei Mitarbeiter derselben Apotheke arbeiten; fremde Apotheke ist unsichtbar; letzter Admin kann nicht entfernt werden. |
 | 3. Meldung | PZN-Autocomplete, Positionen, Charge/Bestand, Belege, Ansprechpartner, Kommentar, Erklärung, Entwurf/Autosave/Verwerfen, Einreichen | Ein gültiger mehrteiliger Vorgang wird einmal eingereicht; Fehler und Timeout erhalten die Eingaben. |
 | 4. Prüfung | LAWEA-Adapter, Regelversionen, Arbeitsvorrat, Freigabe, Ablehnung mit Grund, neue Revision | Regelabweichung wird geprüft; Apotheke korrigiert abgelehnte Meldung nachvollziehbar. |
-| 5. Abwicklung | DATEV-Exportlauf, Gutschriftenimport/-zuordnung, Gutschriftenliste und Abruf aus der zugehörigen Meldung, E-Mails und Fehlerqueue | Wiederholter Export dupliziert nichts; zugeordnete Gutschrift erscheint nur beim richtigen Mandanten und ist gegenseitig mit der Meldung verlinkt. |
+| 5. Abwicklung | DATEV-Ausgang nach Vertragsabnahme, ITL-Gutschriftbereitstellung und Zuordnung, Abruf aus der zugehörigen Meldung, E-Mails und Fehlerqueue | Wiederholter Export dupliziert nichts; zugeordnete Gutschrift erscheint nur beim richtigen Mandanten und ist mit der Meldung verlinkt. Die lokale Demo nutzt einen ausdrücklich markierten manuellen Ersatz für die fehlende ITL-Schnittstelle. |
 | 6. Produktqualität | Zugänglichkeit, mobile Optimierung, Nutzertests, Audit, Monitoring, Datenschutz-/Sicherheitsprüfung, Betriebshandbuch | Vollständige Reise mit echten Testintegrationen, Freigaben und dokumentierten Restpunkten. |
 
 ## Nachweis pro fachlicher PDF-Anforderung
@@ -37,7 +37,7 @@ Jedes Paket endet mit einer vorführbaren Nutzerreise, Backend-Regeln, passenden
 3. **Statusmaschine:** unerlaubte Übergänge, Fristablauf während Erfassung, Korrektur nur aus Ablehnung, Unveränderlichkeit eingereichter Revisionen.
 4. **Einreichung:** PZN/Stichtag, Charge, Bestand, Beleg, Erklärung, Ansprechpartner, Duplikat und doppelter Submit.
 5. **Externe Fehler:** LAWEA-/N-Connect-Timeout, fehlgeschlagener Mailversand, Virenscanfehler und wiederholte Jobs ohne Datenverlust oder positive Scheinentscheidung.
-6. **Abwicklung:** gleichzeitige Exportstarts, Wiederholung, Kontrollsummen, doppelter oder nicht zuordenbarer Gutschriftenimport.
+6. **Abwicklung:** gleichzeitige Exportstarts, Wiederholung, Kontrollsummen, doppelter oder nicht zuordenbarer ITL-Gutschrifteingang; in der Demo über den manuellen Ersatzweg.
 7. **Audit:** Entscheidung, Dokumentersatz, Rollenwechsel und Export besitzen Actor, Zeit und Resultat; keine Klartext-Geheimnisse.
 
 ## Manuelle Produktabnahme

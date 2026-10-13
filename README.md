@@ -69,7 +69,7 @@ cd frontend
 npm run build
 ```
 
-Der API-Test durchläuft Registrierung und Nachforderung, Freigabe, Mitarbeiter-Einladung einschließlich erneutem Versenden und Widerruf, Rollen und Mandantentrennung, CSRF, Meldungsrevisionen, Export-Idempotenz und Gutschrift. Dashboard, Meldungsformular und Mitarbeiteransicht wurden im Browser auf Desktop und Mobilgröße geprüft. npm Audit meldete am 02.10.2026 für Backend-Produktion und Frontend keine bekannten Schwachstellen.
+Der API-Test durchläuft Registrierung mit verpflichtender Betriebserlaubnis, Freigabe oder Ablehnung, Mitarbeiter-Einladung einschließlich erneutem Versenden und Widerruf, Rollen und Mandantentrennung, CSRF, Meldungsrevisionen, Export-Idempotenz und Gutschrift. Dashboard, Meldungsformular und Mitarbeiteransicht wurden im Browser auf Desktop und Mobilgröße geprüft. npm Audit meldete am 02.10.2026 für Backend-Produktion und Frontend keine bekannten Schwachstellen.
 
 ## Produktivgrenze
 

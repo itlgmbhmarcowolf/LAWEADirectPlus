@@ -8,7 +8,7 @@ import { MembersPage } from './Members'
 import { ReviewPage, RegistrationsPage, FinancePage, AuditPage } from './Staff'
 import { AccountSettings } from './AccountSettings'
 import { initialDashboardView } from './PreviewDashboard'
-import { useBrowserPage } from './useBrowserPage'
+import { pageFromRoute, useBrowserPage } from './useBrowserPage'
 
 export function App() {
   const [loading, setLoading] = useState(true)
@@ -20,9 +20,9 @@ export function App() {
   useEffect(() => { if (page !== 'dashboard') setSubmittedNotice('') }, [page])
   const refresh = async () => { const fresh = await api<Bootstrap>('/bootstrap'); setData(fresh); return fresh }
   useEffect(() => { api<{ user: User | null; csrf?: string }>('/session').then(async s => {
-    if (s.user && s.csrf) { setCsrf(s.csrf); const fresh = await refresh(); resetPage(fresh.user.role.startsWith('PHARMACY') ? 'dashboard' : fresh.user.role === 'REVIEWER' ? 'review' : 'finance') }
+    if (s.user && s.csrf) { setCsrf(s.csrf); const fresh = await refresh(); resetPage(fresh.user.role.startsWith('PHARMACY') ? pageFromRoute() : fresh.user.role === 'REVIEWER' ? 'review' : 'finance') }
   }).catch(e => setError(e instanceof Error ? e.message : 'Verbindung fehlgeschlagen.')).finally(() => setLoading(false)) }, [])
-  const authenticated = async (user: User, token: string) => { setCsrf(token); const fresh = await refresh(); resetPage(user.role.startsWith('PHARMACY') ? 'dashboard' : user.role === 'REVIEWER' ? 'review' : 'finance'); setData(fresh) }
+  const authenticated = async (user: User, token: string) => { setCsrf(token); const fresh = await refresh(); resetPage(user.role.startsWith('PHARMACY') ? pageFromRoute() : user.role === 'REVIEWER' ? 'review' : 'finance'); setData(fresh) }
   const logout = async () => {
     try {
       await post('/auth/logout', {})

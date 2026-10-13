@@ -43,6 +43,10 @@ CREATE TABLE IF NOT EXISTS password_resets (
   id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), token_hash TEXT NOT NULL,
   expires_at TEXT NOT NULL, consumed_at TEXT, created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS auth_locks (
+  user_id TEXT PRIMARY KEY REFERENCES users(id), failures INTEGER NOT NULL DEFAULT 0,
+  locked_until TEXT, updated_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS terms (
   id TEXT PRIMARY KEY, label TEXT NOT NULL, date TEXT NOT NULL,
   opens_at TEXT NOT NULL, closes_at TEXT NOT NULL, source TEXT NOT NULL

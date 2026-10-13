@@ -69,6 +69,20 @@ test('vollständiger Demo-Prozess mit Rollen, Mandantentrennung und unveränderl
     await call(admin, `/members/${adminUser.id}/disable`, 'POST', {}, 409)
     await call(admin, `/members/${adminUser.id}/role`, 'POST', { role: 'PHARMACY_STAFF' }, 403)
 
+    await call(other, '/register', 'POST', formWithFile('license', {
+      pharmacyName: 'Test-Apotheke Süd', street: 'Testweg 1', zip: '80331', city: 'München',
+      owner: 'Dr. Test', phone: '089 123456', iban: 'DE89370400440532013000', homepage: '',
+      name: 'Test Nutzer', email: 'test@sued-apotheke.test',
+      password: 'nurkleinbuchstaben12', passwordAgain: 'nurkleinbuchstaben12'
+    }), 400)
+    const withoutLicense = new FormData()
+    for (const [key, value] of Object.entries({
+      pharmacyName: 'Test-Apotheke Süd', street: 'Testweg 1', zip: '80331', city: 'München',
+      owner: 'Dr. Test', phone: '089 123456', iban: 'DE89370400440532013000', homepage: '',
+      name: 'Test Nutzer', email: 'test@sued-apotheke.test',
+      password: 'Demo!Passwort2026', passwordAgain: 'Demo!Passwort2026'
+    })) withoutLicense.set(key, value)
+    await call(other, '/register', 'POST', withoutLicense, 400)
     const registration = await call(other, '/register', 'POST', formWithFile('license', {
       pharmacyName: 'Test-Apotheke Süd', street: 'Testweg 1', zip: '80331', city: 'München',
       owner: 'Dr. Test', phone: '089 123456', iban: 'DE89370400440532013000', homepage: '',
@@ -79,11 +93,23 @@ test('vollständiger Demo-Prozess mit Rollen, Mandantentrennung und unveränderl
     const pending = await call(reviewer, '/bootstrap')
     const newOrg = pending.pending.find(o => o.name === 'Test-Apotheke Süd')
     assert.ok(newOrg)
-    await call(reviewer, `/review/organizations/${newOrg.id}/request-evidence`, 'POST', { reason: 'Dokument im Test erneut anfordern.' })
+    await call(reviewer, `/review/organizations/${newOrg.id}/reject`, 'POST', { reason: '' }, 400)
+    await call(reviewer, `/review/organizations/${newOrg.id}/request-evidence`, 'POST', { reason: 'Nicht mehr zulässig.' }, 404)
     await call(other, '/register/resubmit-evidence', 'POST', formWithFile('license', {
       email: 'test@sued-apotheke.test', password: 'Demo!Passwort2026'
-    }))
+    }), 404)
     await call(reviewer, `/review/organizations/${newOrg.id}/approve`, 'POST', {})
+    const rejectedRegistration = await call(other, '/register', 'POST', formWithFile('license', {
+      pharmacyName: 'Test-Apotheke Nord', street: 'Testweg 2', zip: '80331', city: 'München',
+      owner: 'Dr. Beispiel', phone: '089 654321', iban: 'DE89370400440532013000', homepage: '',
+      name: 'Zweiter Nutzer', email: 'test@nord-apotheke.test',
+      password: 'Demo!Passwort2026', passwordAgain: 'Demo!Passwort2026'
+    }), 201)
+    await call(other, '/register/verify', 'POST', { challengeId: rejectedRegistration.challengeId, code: rejectedRegistration.demoCode })
+    const rejectedOrg = (await call(reviewer, '/bootstrap')).pending.find(o => o.name === 'Test-Apotheke Nord')
+    await call(reviewer, `/review/organizations/${rejectedOrg.id}/reject`, 'POST', { reason: 'Betriebserlaubnis nicht lesbar.' })
+    assert.equal(db.prepare('SELECT status FROM organizations WHERE id=?').get(rejectedOrg.id).status, 'REJECTED')
+    assert.equal(db.prepare("SELECT status FROM users WHERE organization_id=? AND role='PHARMACY_ADMIN'").get(rejectedOrg.id).status, 'REJECTED')
     await login(other, 'test@sued-apotheke.test')
     await call(other, `/claims/${claimId}`, 'GET', undefined, 404)
     await call(other, `/claims/${claimId}/draft`, 'PUT', { version: 1, items: [], contactName: '', contactEmail: '', comment: '', declaration: false }, 404)
@@ -188,11 +214,25 @@ test('vollständiger Demo-Prozess mit Rollen, Mandantentrennung und unveränderl
     for (let n = 0; n < 10; n++) await call(admin, '/auth/login', 'POST', {
       email: 'admin@rosen-apotheke.test', password: 'Demo!Passwort2026'
     })
-    for (let n = 0; n < 8; n++) await call(staff, '/auth/login', 'POST', {
+    for (let n = 0; n < 2; n++) await call(staff, '/auth/login', 'POST', {
       email: 'neu@rosen-apotheke.test', password: 'Falsches!Passwort2026'
     }, 401)
-    await call(staff, '/auth/login', 'POST', { email: 'neu@rosen-apotheke.test', password: 'Falsches!Passwort2026' }, 429)
-    await call(staff, '/auth/login', 'POST', { email: 'neu@rosen-apotheke.test', password: 'Demo!Passwort2026' })
+    const lockedPassword = await call(staff, '/auth/login', 'POST', { email: 'neu@rosen-apotheke.test', password: 'Falsches!Passwort2026' }, 429)
+    assert.equal(lockedPassword.code, 'ACCOUNT_LOCKED')
+    assert.match(lockedPassword.message, /Erneut möglich ab .* Uhr/)
+    assert.equal((await call(staff, '/session')).user, null, 'Eine Sperre beendet bestehende Sitzungen.')
+    const staffId = db.prepare('SELECT id FROM users WHERE email=?').get('neu@rosen-apotheke.test').id
+    const lock = db.prepare('SELECT locked_until FROM auth_locks WHERE user_id=?').get(staffId)
+    assert.ok(new Date(lock.locked_until).getTime() - Date.now() > 3.9 * 3600000)
+    await call(staff, '/auth/login', 'POST', { email: 'neu@rosen-apotheke.test', password: 'Demo!Passwort2026' }, 429)
+    db.prepare('UPDATE auth_locks SET locked_until=? WHERE user_id=?').run('2000-01-01T00:00:00.000Z', staffId)
+    const tokenChallenge = await call(staff, '/auth/login', 'POST', { email: 'neu@rosen-apotheke.test', password: 'Demo!Passwort2026' })
+    for (let n = 0; n < 2; n++) await call(staff, '/auth/verify', 'POST', { challengeId: tokenChallenge.challengeId, code: '000000' === tokenChallenge.demoCode ? '000001' : '000000' }, 400)
+    await call(staff, '/auth/verify', 'POST', { challengeId: tokenChallenge.challengeId, code: '000000' === tokenChallenge.demoCode ? '000001' : '000000' }, 429)
+    await call(staff, '/auth/verify', 'POST', { challengeId: tokenChallenge.challengeId, code: tokenChallenge.demoCode }, 429)
+    db.prepare('UPDATE auth_locks SET locked_until=? WHERE user_id=?').run('2000-01-01T00:00:00.000Z', staffId)
+    const unlockedChallenge = await call(staff, '/auth/login', 'POST', { email: 'neu@rosen-apotheke.test', password: 'Demo!Passwort2026' })
+    await call(staff, '/auth/verify', 'POST', { challengeId: unlockedChallenge.challengeId, code: unlockedChallenge.demoCode })
     await call(staff, '/auth/login', 'POST', { email: 'neu@rosen-apotheke.test', password: 'Falsches!Passwort2026' }, 401)
 
     const otherClaim = await call(other, '/claims', 'POST', { termId: practiceTerm.id }, 201)
@@ -222,6 +262,7 @@ test('vollständiger Demo-Prozess mit Rollen, Mandantentrennung und unveränderl
     await call(admin, `/claims/${secondClaim.id}/draft`, 'PUT', { ...draft, version: 1 })
     assert.equal((await call(admin, `/claims/${secondClaim.id}/submit`, 'POST', { key: crypto.randomUUID() })).status, 'MANUAL_REVIEW')
     await call(other, '/account/password', 'POST', { currentPassword: 'Falsch!Passwort2026', newPassword: 'Neues!Kennwort2026', newPasswordAgain: 'Neues!Kennwort2026' }, 401)
+    await call(other, '/account/password', 'POST', { currentPassword: 'Demo!Passwort2026', newPassword: 'NeuesKennwort2026', newPasswordAgain: 'NeuesKennwort2026' }, 400)
     await call(other, '/account/password', 'POST', { currentPassword: 'Demo!Passwort2026', newPassword: 'Neues!Kennwort2026', newPasswordAgain: 'Unterschiedlich2026!' }, 400)
     await call(other, '/account/password', 'POST', { currentPassword: 'Demo!Passwort2026', newPassword: 'Neues!Kennwort2026', newPasswordAgain: 'Neues!Kennwort2026' })
     assert.equal((await call(other, '/session')).user.email, 'test@sued-apotheke.test')

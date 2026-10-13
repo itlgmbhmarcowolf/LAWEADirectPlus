@@ -48,10 +48,19 @@ export function PreviewClaims({ currentClaims, navigate }: { currentClaims: Open
 }
 
 export function PreviewSampleClaimDetail({ claim, navigate }: { claim: SampleClaim; navigate: (page: string) => void }) {
+  // Ausschließlich fiktiver Beispielinhalt für die Konzeptvorschau; keine gespeicherte Einreichung.
+  const examplePositions = [
+    { pzn: '01234567', article: 'Beispielpräparat A', charge: 'MUSTER-26-A', quantity: 12 },
+    { pzn: '07654321', article: 'Beispielpräparat B', charge: 'MUSTER-26-B', quantity: 5 }
+  ]
   return <>
     <button className="back-link" onClick={() => navigate('dashboard')}>← Zurück zur Übersicht</button>
-    <PageTitle title="Meldung im Überblick" subtitle={`${claim.number} · Senkungstermin ${label(claim.termDate)}`}/>
+    <PageTitle title={`Meldung für den ${label(claim.termDate)}`} subtitle={`${claim.number} · fiktive Beispielinhalte`}/>
     <div className="term-summary"><div><span>Stichtag</span><strong>{label(claim.termDate)}</strong></div><div><span>Hersteller</span><strong>Glenmark</strong></div><div><span>Status</span><strong><StatusPill status={claim.status} label={claim.status === 'COMPLETED' ? 'Ausgezahlt · Demo' : claim.status === 'MANUAL_REVIEW' ? 'Eingereicht' : undefined}/></strong></div></div>
     <section className="data-section claim-overview"><div className="section-header"><h2>Bearbeitungsstand</h2><StatusPill status={claim.status} label={claim.status === 'COMPLETED' ? 'Ausgezahlt · Demo' : claim.status === 'MANUAL_REVIEW' ? 'Eingereicht' : undefined}/></div><p>{claim.status === 'COMPLETED' ? 'Auszahlung nur als fiktiver Beispielstand dargestellt. Es wurde keine Zahlung ausgeführt.' : 'Fiktiver Beispielvorgang für die Navigation im Kundengespräch.'}</p>{claim.creditReference ? <div className="claim-credit-link"><div><strong>Zugeordnete Gutschrift</strong><span>{claim.creditReference} · zu {claim.number}</span></div><Button variant="secondary" icon="arrow" onClick={() => navigate(`credits:${claim.number}`)}>Gutschrift ansehen</Button></div> : <p className="muted">Eine Gutschrift ist noch nicht verfügbar.</p>}</section>
+    <section className="data-section"><h2>Gemeldete Positionen · Beispiel</h2><div className="table-wrap"><table><thead><tr><th>PZN</th><th>Artikel</th><th>Charge</th><th>Bestand zum {label(claim.termDate)}</th></tr></thead><tbody>{examplePositions.map(position => <tr key={position.pzn}><td>{position.pzn}</td><td>{position.article}</td><td>{position.charge}</td><td>{position.quantity} Packungen</td></tr>)}</tbody></table></div></section>
+    <section className="data-section"><h2>Einreichung</h2><p>Maria Keller · Beispielkonto · {label(claim.termDate)}</p><p>Richtigkeit der Angaben bestätigt · Kommentar: Musterbestand für die Vorschau.</p></section>
+    <section className="data-section"><h2>Nachweis</h2><p>Beispiel-Nachweis.pdf · In der statischen Vorschau liegt keine Originaldatei vor.</p></section>
+    <section className="data-section"><h2>Verlauf</h2><p>Revision 1 · Eingereicht am {label(claim.termDate)}{claim.status === 'COMPLETED' ? ' · Freigegeben und Gutschrift bereitgestellt (Demo)' : ' · In Prüfung'}</p></section>
   </>
 }
