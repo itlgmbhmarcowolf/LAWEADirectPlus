@@ -9,7 +9,7 @@ export function HelpContent({ preview = false }: { preview?: boolean }) {
       <section><h2>Nachweis und Einreichung</h2><p>Fügen Sie den Bestandsnachweis hinzu und prüfen Sie alle Positionen. Erst Ihre Richtigkeitsbestätigung und der Klick auf „Jetzt einreichen“ reichen die Meldung ein. Die Assistenz trifft diese Entscheidung nicht für Sie.</p></section>
       <section><h2>Korrektur nach Ablehnung</h2><p>Eine eingereichte Revision bleibt unverändert. Nach einer Ablehnung können Sie innerhalb des offenen Einreichungsfensters eine neue Revision mit korrigierten Angaben anlegen. Die ältere Einreichung bleibt im Verlauf sichtbar.</p></section>
       <section><h2>Mitarbeiterverwaltung</h2><p>Administratoren finden die Mitarbeiterverwaltung oben rechts im Profilmenü. Dort lassen sich Einladungen verwalten und Zugänge deaktivieren. Mitarbeitende sehen nur die Funktionen ihrer Rolle und ihrer Apotheke.</p></section>
-      <section><h2>Gutschrift finden</h2><p>Öffnen Sie einen ausgezahlten Stichtag. Die Gutschrift ist der zugehörigen Meldung zugeordnet. Vorschau und Download sind getrennte Aktionen; die Vorschau öffnet sich erst auf Wunsch.</p></section>
+      <section><h2>Gutschrift finden</h2><p>Öffnen Sie einen ausgezahlten Stichtag. Die Gutschrift ist der zugehörigen Meldung zugeordnet. Die Vorschau erscheint direkt; das Dokument können Sie getrennt herunterladen.</p></section>
     </div>
   </>
 }

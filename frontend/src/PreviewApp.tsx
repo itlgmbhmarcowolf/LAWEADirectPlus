@@ -35,9 +35,9 @@ const initialClaims = (scenario: PreviewScenario = 'many'): Record<string, Previ
   // Fiktiver Entwurf nur für Konten mit vorhandenen Meldungen.
   ...(scenario === 'empty' ? {} : { '2026-07-15': { ...initialClaim(), items: [{ id: 1, pzn: '01234567', charge: 'BEISPIEL-CHARGE', quantity: '12' }] } })
 })
-export type PreviewCredit = { claimNumber: string; reference: string; provided: string }
+export type PreviewCredit = { claimNumber: string; reference: string; provided: string; termDate: string }
 // Frei erfundene Datensätze für die öffentliche, statische Konzeptvorschau.
-const sampleCredits: PreviewCredit[] = [...sampleClaims].filter(claim => claim.creditReference).sort((a, b) => b.termDate.localeCompare(a.termDate)).map(claim => ({ claimNumber: claim.number, reference: claim.creditReference!, provided: 'Demo' }))
+const sampleCredits: PreviewCredit[] = [...sampleClaims].filter(claim => claim.creditReference).sort((a, b) => b.termDate.localeCompare(a.termDate)).map(claim => ({ claimNumber: claim.number, reference: claim.creditReference!, provided: 'Demo', termDate: claim.termDate }))
 const hasDraftData = (claim: PreviewClaim) => Boolean(claim.items.length || claim.comment.trim() || claim.evidence || claim.declaration)
 
 export function PreviewApp() {
@@ -92,7 +92,7 @@ export function PreviewApp() {
     setConfirmSubmit(true)
   }
   const visibleSamples = scenario === 'many' ? sampleClaims : scenario === 'few' ? sampleClaims.slice(-2) : []
-  const credits = [...openTerms.filter(term => claims[term.iso].status === 'COMPLETED').map(term => ({ claimNumber: term.number, reference: `BEISPIEL-GS-${term.number.slice(-2)}`, provided: 'In dieser Sitzung' })), ...sampleCredits.filter(credit => visibleSamples.some(claim => claim.number === credit.claimNumber))]
+  const credits = [...openTerms.filter(term => claims[term.iso].status === 'COMPLETED').map(term => ({ claimNumber: term.number, reference: `BEISPIEL-GS-${term.number.slice(-2)}`, provided: 'In dieser Sitzung', termDate: term.iso })), ...sampleCredits.filter(credit => visibleSamples.some(claim => claim.number === credit.claimNumber))]
   const dashboardTerms = [
     ...openTerms.map(term => ({ iso: term.iso, date: term.date, status: claims[term.iso].status === 'DRAFT' && !hasDraftData(claims[term.iso]) ? null : claims[term.iso].status, target: claims[term.iso].status === 'COMPLETED' ? `credits:${term.number}` : `claim:${term.iso}` })),
     ...visibleSamples.map(item => ({ iso: item.termDate, date: new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${item.termDate}T12:00:00Z`)), status: item.status, target: item.status === 'COMPLETED' && item.creditReference ? `credits:${item.number}` : `sample:${item.number}` }))
