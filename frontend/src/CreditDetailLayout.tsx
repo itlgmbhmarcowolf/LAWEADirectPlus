@@ -16,7 +16,8 @@ export function CreditDetailLayout({ reference, claimNumber, termDate, provided,
   onClaim: () => void
   children: ReactNode
 }) {
-  const [previewOpen, setPreviewOpen] = useState(true)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewActivated, setPreviewActivated] = useState(false)
   const previewId = useId()
   return <article className="credit-page">
     <button className="credit-back" type="button" onClick={onClaim}><Icon name="arrow" size={16}/> Zur Meldung</button>
@@ -36,10 +37,10 @@ export function CreditDetailLayout({ reference, claimNumber, termDate, provided,
         {demo ? <p className="credit-demo-note"><Icon name="shield" size={18}/><span><strong>Fiktive Demo · Keine Zahlung</strong><small>Dieses Dokument dient ausschließlich zu Demonstrationszwecken.</small></span></p> : null}
       </aside>
       <section className="credit-document-panel" aria-label={`Dokumentvorschau (${fileType})`}>
-        <button className="credit-preview-toggle" type="button" aria-controls={previewId} aria-expanded={previewOpen} aria-label={previewOpen ? 'Dokumentvorschau einklappen' : 'Dokumentvorschau ausklappen'} onClick={() => setPreviewOpen(open => !open)}>
+        <button className="credit-preview-toggle" type="button" aria-controls={previewId} aria-expanded={previewOpen} aria-label={previewOpen ? 'Dokumentvorschau einklappen' : 'Dokumentvorschau ausklappen'} onClick={() => { if (!previewOpen) setPreviewActivated(true); setPreviewOpen(open => !open) }}>
           <span>Vorschau</span><span className="credit-preview-toggle-meta">{fileType}</span><Icon name="chevron" size={18}/>
         </button>
-        <div id={previewId} hidden={!previewOpen}>{children}</div>
+        <div id={previewId} hidden={!previewOpen}>{previewActivated ? children : null}</div>
       </section>
     </div>
   </article>

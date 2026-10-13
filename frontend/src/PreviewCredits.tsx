@@ -19,7 +19,7 @@ export function PreviewCredits({ credits, selectedClaimNumber, currentClaims, na
 
   if (selected) {
     const termDate = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${selected.termDate}T12:00:00Z`))
-    return <CreditDetailLayout reference={selected.reference} claimNumber={selected.claimNumber} termDate={termDate} provided={selected.provided} fileType="Fiktives PDF · 1 Seite" demo onClaim={() => navigate(claimTarget(selected.claimNumber))} download={pdfUrl ? { url: pdfUrl, filename: `Muster-Gutschrift-${selected.claimNumber}.pdf`, label: 'Muster-PDF herunterladen' } : undefined}>
+    return <CreditDetailLayout key={selected.reference} reference={selected.reference} claimNumber={selected.claimNumber} termDate={termDate} provided={selected.provided} fileType="Fiktives PDF · 1 Seite" demo onClaim={() => navigate(claimTarget(selected.claimNumber))} download={pdfUrl ? { url: pdfUrl, filename: `Muster-Gutschrift-${selected.claimNumber}.pdf`, label: 'Muster-PDF herunterladen' } : undefined}>
       {pdfUrl ? <PdfPreview url={pdfUrl} title={`PDF-Vorschau der Beispielgutschrift ${selected.reference}`}/> : <p role="status">PDF-Vorschau wird geladen …</p>}
     </CreditDetailLayout>
   }

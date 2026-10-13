@@ -157,7 +157,7 @@ function CreditDocumentPreview({ credit, termDate, demo, onClaim }: { credit: Cr
     return () => { active = false; if (objectUrl) URL.revokeObjectURL(objectUrl) }
   }, [credit.document_id])
   const extension = document?.mime === 'image/jpeg' ? 'jpg' : document?.mime === 'image/png' ? 'png' : 'pdf'
-  return <CreditDetailLayout reference={credit.reference} claimNumber={credit.claim_number} termDate={termDate} provided={dateTime(credit.published_at)} fileType={document?.mime === 'application/pdf' ? 'PDF' : document ? 'Bilddatei' : 'Dokument'} demo={demo} onClaim={onClaim} downloadError={Boolean(error)} download={document ? { url: document.url, filename: `Gutschrift-${credit.claim_number}.${extension}`, label: 'Gutschrift herunterladen' } : undefined}>
+  return <CreditDetailLayout key={credit.id} reference={credit.reference} claimNumber={credit.claim_number} termDate={termDate} provided={dateTime(credit.published_at)} fileType={document?.mime === 'application/pdf' ? 'PDF' : document ? 'Bilddatei' : 'Dokument'} demo={demo} onClaim={onClaim} downloadError={Boolean(error)} download={document ? { url: document.url, filename: `Gutschrift-${credit.claim_number}.${extension}`, label: 'Gutschrift herunterladen' } : undefined}>
     {error ? <Notice tone="error">{error}</Notice> : document ? document.mime === 'application/pdf' ? <PdfPreview url={document.url} title={`PDF-Vorschau der Gutschrift ${credit.reference}`}/> : <img className="credit-image-preview" src={document.url} alt={`Gutschrift ${credit.reference}`}/> : <p className="credit-pdf-loading" role="status">Dokument wird geladen …</p>}
   </CreditDetailLayout>
 }
