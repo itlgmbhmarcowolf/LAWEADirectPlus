@@ -24,7 +24,7 @@ html:has(.auth-registration)::-webkit-scrollbar,body:has(.auth-registration)::-w
 @media(max-width:850px){.sidebar{top:62px;min-height:calc(100vh - 62px)}}
 @media(max-width:620px){.shell-body{min-height:calc(100vh - 56px)}.sidebar{top:56px;min-height:calc(100vh - 56px)}.demo-chip{padding:3px 6px;font-size:9px}}
 
-/* The plus is part of the wordmark and stays legible at both header sizes. */
-.brand em,.auth-brand em{display:inline-grid;place-items:center;vertical-align:.08em;width:1.12em;height:1.12em;margin-left:.2em;border-radius:.26em;font-size:.7em;font-weight:750;line-height:1;letter-spacing:0}
-.brand em{background:#08738a;color:#fff;box-shadow:0 1px 2px #083b491f}
-.auth-brand em{background:#79d5e2;color:#102b50}
+/* The plus is a typographic accent within the wordmark. */
+.brand em,.auth-brand em{display:inline-block;margin-left:.035em;font-size:1.16em;font-weight:750;line-height:1;letter-spacing:-.06em;vertical-align:-.035em}
+.brand em{color:#087b92}
+.auth-brand em{color:#83deeb}
