@@ -1,9 +1,10 @@
 // Fiktives PDF nur fuer die statische Konzeptvorschau; kein Abrechnungsbeleg.
-type DemoCreditFields = { claimNumber: string; reference: string; provided: string; termDate?: string }
+import type { SamplePosition } from './sample-claim-data'
+type DemoCreditFields = { claimNumber: string; reference: string; provided: string; termDate?: string; positions?: SamplePosition[] }
 
-const pdfText = (value: string) => value.replace(/[^\x20-\x7e]/g, '?').replace(/[\\()]/g, '\\$&')
+const pdfText = (value: string) => value.replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue').replace(/ß/g, 'ss').replace(/[^\x20-\x7e]/g, '?').replace(/[\\()]/g, '\\$&')
 
-export function createDemoCreditPdf({ claimNumber, reference, provided, termDate }: DemoCreditFields): Blob {
+export function createDemoCreditPdf({ claimNumber, reference, provided, termDate, positions }: DemoCreditFields): Blob {
   const line = (font: 'F1' | 'F2', size: number, x: number, y: number, value: string, color = '0.08 0.21 0.32') =>
     `${color} rg BT /${font} ${size} Tf 1 0 0 1 ${x} ${y} Tm (${pdfText(value)}) Tj ET`
   const date = termDate ? new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${termDate}T12:00:00Z`)) : 'Demo'
@@ -23,14 +24,17 @@ export function createDemoCreditPdf({ claimNumber, reference, provided, termDate
     line('F2', 9, 462, 627, provided),
     '0.70 0.77 0.81 RG 48 609 m 547 609 l S',
     line('F1', 11, 48, 570, 'Sehr geehrte Damen und Herren,'),
-    line('F1', 10, 48, 544, 'diese Ansicht zeigt ein fiktives Dokumentmuster zu Ihrer Meldung.'),
+    line('F1', 10, 48, 544, 'dieses fiktive Dokument ist der oben genannten Meldung zugeordnet.'),
     line('F1', 10, 48, 528, 'Es wurde keine Zahlung ausgefuehrt und kein Betrag berechnet.'),
     '0.90 0.93 0.95 rg 48 457 499 28 re f',
-    line('F2', 8, 58, 467, 'MUSTERPOSITIONEN OHNE ECHTDATEN', '0.27 0.37 0.45'),
-    ...[435, 407, 379, 351].flatMap((y, index) => [
-      `0.88 0.90 0.92 rg 58 ${y} 16 9 re f 88 ${y} ${120 + index * 13} 9 re f 359 ${y} 42 9 re f 446 ${y} 35 9 re f`,
-      `0.88 0.91 0.93 RG 48 ${y - 10} m 547 ${y - 10} l S`
-    ]),
+    line('F2', 8, 58, 467, 'PZN', '0.27 0.37 0.45'),
+    line('F2', 8, 149, 467, 'ARTIKEL', '0.27 0.37 0.45'),
+    line('F2', 8, 322, 467, 'CHARGE', '0.27 0.37 0.45'),
+    line('F2', 8, 460, 467, 'PACKUNGEN', '0.27 0.37 0.45'),
+    ...(positions?.length ? positions.flatMap((position, index) => {
+      const y = 431 - index * 33
+      return [line('F1', 9, 58, y, position.pzn), line('F1', 9, 149, y, position.article), line('F1', 9, 322, y, position.charge), line('F2', 9, 480, y, String(position.quantity)), `0.88 0.91 0.93 RG 48 ${y - 12} m 547 ${y - 12} l S`]
+    }) : [line('F1', 10, 58, 431, 'Positionen dieser Browsersitzung sind nicht dauerhaft gespeichert.')]),
     '0.90 0.96 0.97 rg 48 192 499 70 re f',
     line('F2', 12, 65, 232, 'Fiktive Demo - keine Zahlung', '0.06 0.36 0.44'),
     line('F1', 9, 65, 212, 'Dieses Dokument dient ausschliesslich zu Demonstrationszwecken.', '0.20 0.43 0.49'),

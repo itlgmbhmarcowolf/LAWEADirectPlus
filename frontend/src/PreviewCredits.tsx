@@ -4,6 +4,7 @@ import { Button, Empty, Icon, PageTitle } from './ui'
 import { createDemoCreditPdf } from './demo-credit-pdf'
 import { CreditDetailLayout } from './CreditDetailLayout'
 import { PdfPreview } from './PdfPreviewLoader'
+import { sampleClaimDetail, sampleClaims } from './sample-claim-data'
 
 export function PreviewCredits({ credits, selectedClaimNumber, currentClaims, navigate }: { credits: PreviewCredit[]; selectedClaimNumber?: string; currentClaims: { number: string; termDate: string }[]; navigate: (page: string) => void }) {
   const selected = credits.find(credit => credit.claimNumber === selectedClaimNumber)
@@ -11,7 +12,8 @@ export function PreviewCredits({ credits, selectedClaimNumber, currentClaims, na
   useEffect(() => {
     if (!selected) return
     setPdfUrl('')
-    const url = URL.createObjectURL(createDemoCreditPdf(selected))
+    const sample = sampleClaims.find(claim => claim.number === selected.claimNumber)
+    const url = URL.createObjectURL(createDemoCreditPdf({ ...selected, positions: sample ? sampleClaimDetail(sample).positions : undefined }))
     setPdfUrl(url)
     return () => URL.revokeObjectURL(url)
   }, [selected?.claimNumber, selected?.reference, selected?.provided, selected?.termDate])

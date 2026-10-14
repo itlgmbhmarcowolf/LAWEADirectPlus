@@ -6,6 +6,7 @@ import { PreviewLogin } from './PreviewLogin'
 import { PreviewClaimEditor, previewProductNames } from './PreviewClaimEditor'
 import { PreviewMembers } from './PreviewMembers'
 import { PreviewSampleClaimDetail, sampleClaims } from './PreviewClaims'
+import { sampleClaimDetail } from './sample-claim-data'
 import { PreviewCredits } from './PreviewCredits'
 import { AccountSettings } from './AccountSettings'
 import { PreviewDashboard, initialDashboardView } from './PreviewDashboard'
@@ -37,7 +38,7 @@ const initialClaims = (scenario: PreviewScenario = 'many'): Record<string, Previ
 })
 export type PreviewCredit = { claimNumber: string; reference: string; provided: string; termDate: string }
 // Frei erfundene Datensätze für die öffentliche, statische Konzeptvorschau.
-const sampleCredits: PreviewCredit[] = [...sampleClaims].filter(claim => claim.creditReference).sort((a, b) => b.termDate.localeCompare(a.termDate)).map(claim => ({ claimNumber: claim.number, reference: claim.creditReference!, provided: 'Demo', termDate: claim.termDate }))
+const sampleCredits: PreviewCredit[] = [...sampleClaims].filter(claim => claim.creditReference).sort((a, b) => b.termDate.localeCompare(a.termDate)).map(claim => ({ claimNumber: claim.number, reference: claim.creditReference!, provided: sampleClaimDetail(claim).provided, termDate: claim.termDate }))
 const hasDraftData = (claim: PreviewClaim) => Boolean(claim.items.length || claim.comment.trim() || claim.evidence || claim.declaration)
 
 export function PreviewApp() {

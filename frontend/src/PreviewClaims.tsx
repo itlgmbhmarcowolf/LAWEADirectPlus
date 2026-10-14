@@ -1,22 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Status } from './types'
 import { Button, Empty, Icon, PageTitle, StatusPill } from './ui'
+import { createDemoEvidencePdf } from './demo-evidence-pdf'
+import { sampleClaimDetail, sampleClaims, sampleDate } from './sample-claim-data'
+import type { SampleClaim } from './sample-claim-data'
+import './sample-claim-detail.css'
 
-export type SampleClaim = { number: string; termDate: string; status: Status; creditReference?: string }
+export { sampleClaims }
 export type OpenPreviewClaim = { number: string; termDate: string; status: Status; hasData: boolean }
-export const sampleClaims: SampleClaim[] = [
-  // Fiktive abgeschlossene Vorgänge zeigen die paginierte Historie der Konzeptvorschau.
-  ...['2026-01-01', '2026-01-15', '2026-02-01', '2026-02-15', '2026-03-01', '2026-03-15', '2026-04-01', '2026-04-15'].map((termDate, index) => ({ number: `LV-DEMO-2026-ALT-${String(index + 1).padStart(2, '0')}`, termDate, status: 'COMPLETED' as Status, creditReference: `GS-DEMO-2026-ALT-${String(index + 1).padStart(2, '0')}` })),
-  { number: 'LV-DEMO-2026-001', termDate: '2026-05-01', status: 'COMPLETED', creditReference: 'GS-DEMO-2026-001' },
-  { number: 'LV-DEMO-2026-002', termDate: '2026-05-15', status: 'COMPLETED', creditReference: 'GS-DEMO-2026-002' },
-  { number: 'LV-DEMO-2026-003', termDate: '2026-06-01', status: 'COMPLETED', creditReference: 'GS-DEMO-2026-003' },
-  { number: 'LV-DEMO-2026-004', termDate: '2026-06-15', status: 'MANUAL_REVIEW' },
-  { number: 'LV-DEMO-2026-014', termDate: '2026-08-15', status: 'COMPLETED', creditReference: 'GS-DEMO-2026-014' },
-  { number: 'LV-DEMO-2026-011', termDate: '2026-09-01', status: 'MANUAL_REVIEW' },
-  { number: 'LV-DEMO-2026-009', termDate: '2026-08-01', status: 'COMPLETED', creditReference: 'GS-DEMO-2026-009' }
-]
-
-const label = (iso: string) => new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${iso}T12:00:00Z`))
+const label = sampleDate
 
 type ClaimTab = 'new' | 'draft' | 'submitted' | 'paid'
 type Row = { number: string; termDate: string; status: Status; target: string; hasData?: boolean; creditReference?: string }
@@ -48,19 +40,26 @@ export function PreviewClaims({ currentClaims, navigate }: { currentClaims: Open
 }
 
 export function PreviewSampleClaimDetail({ claim, navigate }: { claim: SampleClaim; navigate: (page: string) => void }) {
-  // Ausschließlich fiktiver Beispielinhalt für die Konzeptvorschau; keine gespeicherte Einreichung.
-  const examplePositions = [
-    { pzn: '01234567', article: 'Beispielpräparat A', charge: 'MUSTER-26-A', quantity: 12 },
-    { pzn: '07654321', article: 'Beispielpräparat B', charge: 'MUSTER-26-B', quantity: 5 }
-  ]
+  const detail = sampleClaimDetail(claim)
+  const [evidenceUrl, setEvidenceUrl] = useState('')
+  const [previousEvidenceUrl, setPreviousEvidenceUrl] = useState('')
+  useEffect(() => {
+    const url = URL.createObjectURL(createDemoEvidencePdf(claim, detail))
+    setEvidenceUrl(url)
+    const previousUrl = detail.previousPositions ? URL.createObjectURL(createDemoEvidencePdf(claim, { positions: detail.previousPositions, submitted: detail.previousSubmitted!, revision: 1 })) : ''
+    setPreviousEvidenceUrl(previousUrl)
+    return () => { URL.revokeObjectURL(url); if (previousUrl) URL.revokeObjectURL(previousUrl) }
+  }, [claim.number])
+  const statusText = claim.status === 'COMPLETED' ? 'Gutschrift bereitgestellt · Demo' : claim.status === 'MANUAL_REVIEW' ? 'In Prüfung' : 'Korrektur erforderlich'
   return <>
     <button className="back-link" onClick={() => navigate('dashboard')}>← Zurück zur Übersicht</button>
     <PageTitle title={`Meldung für den ${label(claim.termDate)}`} subtitle={`${claim.number} · fiktive Beispielinhalte`}/>
-    <div className="term-summary"><div><span>Stichtag</span><strong>{label(claim.termDate)}</strong></div><div><span>Hersteller</span><strong>Glenmark</strong></div><div><span>Status</span><strong><StatusPill status={claim.status} label={claim.status === 'COMPLETED' ? 'Ausgezahlt · Demo' : claim.status === 'MANUAL_REVIEW' ? 'Eingereicht' : undefined}/></strong></div></div>
-    <section className="data-section claim-overview"><div className="section-header"><h2>Bearbeitungsstand</h2><StatusPill status={claim.status} label={claim.status === 'COMPLETED' ? 'Ausgezahlt · Demo' : claim.status === 'MANUAL_REVIEW' ? 'Eingereicht' : undefined}/></div><p>{claim.status === 'COMPLETED' ? 'Auszahlung nur als fiktiver Beispielstand dargestellt. Es wurde keine Zahlung ausgeführt.' : 'Fiktiver Beispielvorgang für die Navigation im Kundengespräch.'}</p>{claim.creditReference ? <div className="claim-credit-link"><div><strong>Zugeordnete Gutschrift</strong><span>{claim.creditReference} · zu {claim.number}</span></div><Button variant="secondary" icon="arrow" onClick={() => navigate(`credits:${claim.number}`)}>Gutschrift ansehen</Button></div> : <p className="muted">Eine Gutschrift ist noch nicht verfügbar.</p>}</section>
-    <section className="data-section"><h2>Gemeldete Positionen · Beispiel</h2><div className="table-wrap"><table><thead><tr><th>PZN</th><th>Artikel</th><th>Charge</th><th>Bestand zum {label(claim.termDate)}</th></tr></thead><tbody>{examplePositions.map(position => <tr key={position.pzn}><td>{position.pzn}</td><td>{position.article}</td><td>{position.charge}</td><td>{position.quantity} Packungen</td></tr>)}</tbody></table></div></section>
-    <section className="data-section"><h2>Einreichung</h2><p>Maria Keller · Beispielkonto · {label(claim.termDate)}</p><p>Richtigkeit der Angaben bestätigt · Kommentar: Musterbestand für die Vorschau.</p></section>
-    <section className="data-section"><h2>Nachweis</h2><p>Beispiel-Nachweis.pdf · In der statischen Vorschau liegt keine Originaldatei vor.</p></section>
-    <section className="data-section"><h2>Verlauf</h2><p>Revision 1 · Eingereicht am {label(claim.termDate)}{claim.status === 'COMPLETED' ? ' · Freigegeben und Gutschrift bereitgestellt (Demo)' : ' · In Prüfung'}</p></section>
+    <div className="term-summary"><div><span>Stichtag</span><strong>{label(claim.termDate)}</strong></div><div><span>Hersteller</span><strong>Glenmark</strong></div><div><span>Status</span><strong><StatusPill status={claim.status} label={statusText}/></strong></div></div>
+    <section className="data-section claim-overview"><div className="section-header"><h2>Bearbeitungsstand</h2><StatusPill status={claim.status} label={statusText}/></div><p>{claim.status === 'COMPLETED' ? `Revision ${detail.revision} ist freigegeben. Die fiktive Gutschrift wurde am ${detail.provided} bereitgestellt; es erfolgte keine Auszahlung.` : claim.status === 'REJECTED' ? 'Revision 1 wurde mit einem konkreten Korrekturhinweis abgelehnt. Die eingereichte Fassung bleibt im Verlauf erhalten.' : 'Revision 1 liegt zur fachlichen Prüfung vor. Eine Gutschrift ist noch nicht verfügbar.'}</p>{claim.creditReference ? <div className="claim-credit-link"><div><strong>Zugeordnete Gutschrift</strong><span>{claim.creditReference} · bereitgestellt am {detail.provided}</span></div><Button variant="secondary" icon="arrow" onClick={() => navigate(`credits:${claim.number}`)}>Gutschrift ansehen</Button></div> : null}</section>
+    <div className="sample-detail-grid"><div className="sample-detail-main">
+      <section className="data-section"><h2>Gemeldete Positionen · Revision {detail.revision}</h2><div className="table-wrap"><table><thead><tr><th>PZN</th><th>Artikel</th><th>Charge</th><th>Bestand zum {label(claim.termDate)}</th></tr></thead><tbody>{detail.positions.map(position => <tr key={position.pzn}><td>{position.pzn}</td><td>{position.article}</td><td>{position.charge}</td><td>{position.quantity} Packungen</td></tr>)}</tbody></table></div></section>
+      <section className="data-section"><h2>Einreichung</h2><div className="sample-submission-facts"><div><span>Eingereicht von</span><strong>Maria Keller · Beispielapotheke</strong></div><div><span>Eingereicht am</span><strong>{detail.submitted}</strong></div><div><span>Revision</span><strong>{detail.revision} von {detail.revision}</strong></div></div><p>Richtigkeit der Angaben bestätigt. Kommentar: Bestand zum {label(claim.termDate)} gemäß beigefügtem fiktivem Bestandsnachweis.</p></section>
+      <section className="data-section"><h2>Bestandsnachweis</h2><div className="sample-evidence"><span className="sample-evidence-icon"><Icon name="file" size={22}/></span><div><strong>{detail.evidenceName}</strong><span>Revision {detail.revision} · fiktive Positionen und Stichtagsbestand</span></div>{evidenceUrl ? <a className="button button-secondary" href={evidenceUrl} download={detail.evidenceName}>PDF herunterladen</a> : null}</div>{detail.previousPositions ? <div className="sample-evidence previous"><span className="sample-evidence-icon"><Icon name="file" size={22}/></span><div><strong>{detail.evidenceNameRev1}</strong><span>Revision 1 · unverändert archiviert</span></div>{previousEvidenceUrl ? <a className="button button-secondary" href={previousEvidenceUrl} download={detail.evidenceNameRev1}>PDF herunterladen</a> : null}</div> : null}</section>
+    </div><section className="data-section sample-timeline-panel"><div className="sample-timeline-heading"><div><h2>Verlauf</h2><p>Chronologie dieses fiktiven Vorgangs</p></div><span>{detail.events.length} Schritte</span></div><ol className="sample-timeline">{[...detail.events].reverse().map((event, index) => <li key={`${event.at}-${event.title}`} className={`sample-timeline-event ${event.tone}`}><span className="sample-timeline-marker" aria-hidden="true">{event.tone === 'issue' ? '×' : event.tone === 'current' ? '✓' : ''}</span><div className="sample-timeline-content"><div className="sample-timeline-meta"><time>{event.at}</time>{event.revision ? <span>{event.revision}</span> : null}</div><h3>{event.title}</h3><p>{event.description}</p></div>{index === 0 ? <span className="sample-timeline-latest">Aktuell</span> : null}</li>)}</ol></section></div>
   </>
 }
