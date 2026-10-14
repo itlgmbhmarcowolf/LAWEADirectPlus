@@ -5,3 +5,5 @@
 .sample-evidence-download:hover{color:#075e73;border-color:#89c8d1;background:#edf8fa}
 .sample-evidence-download:focus-visible{outline:3px solid #63bfd0;outline-offset:3px}
 @media(max-width:470px){.sample-evidence{grid-template-columns:39px minmax(0,1fr) 36px;gap:9px}.sample-evidence-icon{width:39px;height:39px}}
+.sample-detail-main{grid-template-columns:minmax(0,1fr)}
+.sample-detail-main .data-section{min-width:0}
