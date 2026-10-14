@@ -41,7 +41,7 @@ function PharmacyTermList({ data, navigate, refresh, view, onViewChange }: { dat
     if (target.startsWith('term:')) startClaim(target.slice(5), navigate, refresh).catch(e => setError(e instanceof Error ? e.message : 'Meldung konnte nicht geöffnet werden.'))
     else navigate(target)
   }
-  return <>{error ? <Notice tone="error">{error}</Notice> : null}<PreviewDashboard terms={terms} navigate={open} preview={false} view={view} onViewChange={onViewChange}/></>
+  return <>{error ? <Notice tone="error">{error}</Notice> : null}<PreviewDashboard terms={terms} navigate={open} view={view} onViewChange={onViewChange}/></>
 }
 
 export function PharmacyDashboard({ data, navigate, refresh, view, onViewChange }: { data: Bootstrap; navigate: (page: string) => void; refresh: () => Promise<Bootstrap>; view: DashboardView; onViewChange: (view: DashboardView) => void }) {

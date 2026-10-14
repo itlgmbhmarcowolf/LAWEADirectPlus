@@ -41,7 +41,7 @@ const previewStatus = (status: Status | null) => {
   return ''
 }
 
-export function PreviewDashboard({ terms, navigate, preview = true, view, onViewChange }: { terms: DashboardTerm[]; navigate: (page: string) => void; preview?: boolean; view: DashboardView; onViewChange: (view: DashboardView) => void }) {
+export function PreviewDashboard({ terms, navigate, view, onViewChange }: { terms: DashboardTerm[]; navigate: (page: string) => void; view: DashboardView; onViewChange: (view: DashboardView) => void }) {
   const { sortOrder, filter, visibleMonths } = view
   const updateView = (change: Partial<DashboardView>) => onViewChange({ ...view, ...change })
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -93,6 +93,5 @@ export function PreviewDashboard({ terms, navigate, preview = true, view, onView
       </div>) : <div className="overview-empty" role="status"><strong>{filters.find(item => item.key === filter)?.empty}</strong><span>Wählen Sie einen anderen Filter, um weitere Stichtage zu sehen.</span></div>}
     </section>
     <div className="overview-load-more" ref={sentinelRef} aria-live="polite"><span>{months.length} von {groupedMonths.length} Monaten · {shownTerms.length} von {filteredTerms.length} Stichtagen</span>{hasMore ? <button type="button" onClick={() => updateView({ visibleMonths: Math.min(visibleMonths + 2, groupedMonths.length) })}>Ältere Monate laden</button> : null}</div>
-    {preview ? <p className="overview-simple-note">Fiktive Beispiele · „Ausgezahlt“ ist hier nur ein simulierter Stand.</p> : null}
   </div>
 }
