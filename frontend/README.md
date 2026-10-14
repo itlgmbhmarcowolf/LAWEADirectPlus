@@ -1,6 +1,6 @@
 # Frontend
 
-Eigenständiges React-/TypeScript-Projekt für LAWEA direkt Plus.
+Eigenständiges React-/TypeScript-Projekt für LAWEA direkt+.
 
 ```powershell
 npm ci

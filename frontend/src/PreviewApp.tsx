@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Role, Status, User } from './types'
 import { statusLabel } from './types'
-import { Button, Icon, Notice, PageTitle, Shell, StatusPill } from './ui'
+import { Button, Notice, PageTitle, Shell, StatusPill } from './ui'
 import { PreviewLogin } from './PreviewLogin'
 import { PreviewClaimEditor, previewProductNames } from './PreviewClaimEditor'
 import { PreviewMembers } from './PreviewMembers'
@@ -116,7 +116,6 @@ export function PreviewApp() {
   return <Shell user={user} page={page} demo onNavigate={navigate} onLogout={reset} account={{ onSettings: () => navigate('account'), onMembers: pharmacy && role === 'PHARMACY_ADMIN' ? () => navigate('members') : undefined, switchable: role === 'PHARMACY_ADMIN' && !viewAsEmail ? members.filter(member => !member.admin && member.status === 'Aktiv').map(member => ({ id: member.email, name: member.name, email: member.email })) : [], onSwitch: switchToMember, viewingAs: viewedMember?.name, onReturn: returnToAdmin }}>
     {message ? <Notice tone={message.startsWith('Bitte') || message.startsWith('Mindestens') || message.startsWith('Diese Adresse') ? 'warning' : 'info'}>{message}</Notice> : null}
     {content}
-    <footer className="content-footer"><Icon name="shield" size={15}/> Öffentliche Konzeptvorschau mit fiktiven Daten.</footer>
     {confirmSubmit ? <div className="modal-backdrop"><div className="modal" role="dialog" aria-modal="true" aria-labelledby="preview-confirm-title"><h2 id="preview-confirm-title">Beispielmeldung einreichen?</h2><p>In dieser Vorschau ändert sich nur der sichtbare Status im Browser. Eine echte Meldung wird nicht gespeichert oder versendet.</p><div className="confirm-summary"><div><span>Termin</span><strong>{term}</strong></div><div><span>Positionen</span><strong>{claim.items.length}</strong></div><div><span>Nachweis</span><strong>{claim.evidence ? 'Beispielbeleg' : 'Fehlt'}</strong></div></div><div className="modal-actions"><Button variant="secondary" onClick={() => setConfirmSubmit(false)}>Zurück</Button><Button onClick={() => { updateClaim({ status: 'MANUAL_REVIEW' }); navigate('dashboard'); setMessage('Beispielmeldung eingereicht. Sie sehen den Status jetzt in der Übersicht.'); requestAnimationFrame(() => window.scrollTo(0, 0)) }}>Einreichung simulieren</Button></div></div></div> : null}
   </Shell>
 }

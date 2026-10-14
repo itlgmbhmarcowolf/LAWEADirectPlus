@@ -10,7 +10,7 @@ export function createDemoCreditPdf({ claimNumber, reference, provided, termDate
   const date = termDate ? new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${termDate}T12:00:00Z`)) : 'Demo'
   const content = [
     line('F2', 25, 48, 775, 'LAWEA', '0.05 0.27 0.39'),
-    line('F1', 16, 48, 753, 'direkt Plus', '0.15 0.61 0.74'),
+    line('F1', 16, 48, 753, 'direkt+', '0.15 0.61 0.74'),
     line('F1', 9, 397, 778, 'Stark fuer Apotheken.', '0.29 0.42 0.51'),
     line('F1', 9, 397, 765, 'Heute. Morgen. Gemeinsam.', '0.29 0.42 0.51'),
     line('F2', 25, 48, 684, 'Gutschrift'),
@@ -40,7 +40,7 @@ export function createDemoCreditPdf({ claimNumber, reference, provided, termDate
     line('F1', 9, 65, 212, 'Dieses Dokument dient ausschliesslich zu Demonstrationszwecken.', '0.20 0.43 0.49'),
     '0.72 0.86 0.90 rg 440 0 m 595 0 l 595 156 l h f',
     '0.84 0.94 0.96 rg 510 0 m 595 0 l 595 85 l h f',
-    line('F1', 9, 48, 64, 'LAWEA direkt Plus  |  Fiktive Daten  |  Seite 1 von 1', '0.38 0.49 0.56')
+    line('F1', 9, 48, 64, 'LAWEA direkt+  |  Fiktive Daten  |  Seite 1 von 1', '0.38 0.49 0.56')
   ].join('\n') + '\n'
   const objects = [
     '<< /Type /Catalog /Pages 2 0 R >>',

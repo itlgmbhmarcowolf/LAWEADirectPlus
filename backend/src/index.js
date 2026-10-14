@@ -430,7 +430,7 @@ app.post('/api/members/invite', requireUser, requireRole('PHARMACY_ADMIN'), requ
   const token = crypto.randomBytes(32).toString('hex'), invitationId = id()
   db.prepare('INSERT INTO invitations (id,organization_id,email,name,role,token_hash,expires_at,consumed_at,created_by) VALUES (?,?,?,?,?,?,?,?,?)').run(invitationId, req.session.organization_id, input.email, input.name, input.role, digest(token), new Date(Date.now() + 48 * 3600000).toISOString(), null, req.session.uid)
   audit(req.session.uid, req.session.organization_id, 'invitation', invitationId, 'CREATED')
-  mail(input.email, 'Einladung zu LAWEA direkt Plus', `Sie wurden eingeladen. Öffnen Sie ${origin}/invite?token=${token} und legen Sie ein Passwort fest.`)
+  mail(input.email, 'Einladung zu LAWEA direkt+', `Sie wurden eingeladen. Öffnen Sie ${origin}/invite?token=${token} und legen Sie ein Passwort fest.`)
   res.status(201).json({ ok: true, demoLink: DEMO ? `/invite?token=${token}` : undefined })
 })
 app.post('/api/members/invitations/:id/resend', requireUser, requireRole('PHARMACY_ADMIN'), requireCsrf, (req, res) => {
@@ -440,7 +440,7 @@ app.post('/api/members/invitations/:id/resend', requireUser, requireRole('PHARMA
   db.transaction(() => {
     db.prepare('UPDATE invitations SET token_hash=?,expires_at=? WHERE id=?').run(digest(token), new Date(Date.now() + 48 * 3600000).toISOString(), invite.id)
     audit(req.session.uid, invite.organization_id, 'invitation', invite.id, 'RESENT')
-    mail(invite.email, 'Erneute Einladung zu LAWEA direkt Plus', `Öffnen Sie ${origin}/invite?token=${token} und legen Sie ein Passwort fest.`)
+    mail(invite.email, 'Erneute Einladung zu LAWEA direkt+', `Öffnen Sie ${origin}/invite?token=${token} und legen Sie ein Passwort fest.`)
   })()
   res.json({ ok: true, demoLink: DEMO ? `/invite?token=${token}` : undefined })
 })
@@ -518,7 +518,7 @@ app.post('/api/members/:id/enable', requireUser, requireRole('PHARMACY_ADMIN'), 
   db.transaction(() => {
     db.prepare("UPDATE users SET status='ACTIVE' WHERE id=?").run(target.id)
     audit(req.session.uid, target.organization_id, 'user', target.id, 'ENABLED')
-    mail(target.email, 'Zugang wieder aktiviert', 'Ihr Zugang zu LAWEA direkt Plus wurde wieder aktiviert.')
+    mail(target.email, 'Zugang wieder aktiviert', 'Ihr Zugang zu LAWEA direkt+ wurde wieder aktiviert.')
   })()
   res.json({ ok: true })
 })
@@ -728,5 +728,5 @@ app.use((err, _req, res, _next) => {
 
 export { app }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  app.listen(port, host, () => console.log(`LAWEA direkt Plus DEMO API: http://${host}:${port}`))
+  app.listen(port, host, () => console.log(`LAWEA direkt+ DEMO API: http://${host}:${port}`))
 }

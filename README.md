@@ -1,4 +1,4 @@
-# LAWEA direkt Plus
+# LAWEA direkt+
 
 Lokales, deutschsprachiges Demo-Portal für Glenmark-Lagerwertverlustmeldungen. `frontend/` und `backend/` sind **zwei unabhängige Projekte unter diesem gemeinsamen Ordner**. Das Frontend ist React/TypeScript mit Vite; das Backend ist Express mit SQLite. Beide haben eigene `package.json` und eigene Abhängigkeiten.
 

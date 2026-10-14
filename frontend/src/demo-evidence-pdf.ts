@@ -10,7 +10,7 @@ export function createDemoEvidencePdf(claim: SampleClaim, detail: EvidenceDetail
     `${color} rg BT /${bold ? 'F2' : 'F1'} ${size} Tf 1 0 0 1 ${x} ${y} Tm (${escapePdf(value)}) Tj ET`
   const content = [
     '0.92 0.97 0.98 rg 0 716 595 126 re f',
-    line('LAWEA direkt Plus', 48, 788, 17, true, '0.04 0.37 0.49'),
+    line('LAWEA direkt+', 48, 788, 17, true, '0.04 0.37 0.49'),
     line('FIKTIVES MUSTERDOKUMENT', 48, 761, 9, true, '0.05 0.48 0.57'),
     line('Bestandsnachweis', 48, 677, 24, true),
     line(`Meldung ${claim.number}`, 48, 649, 11),
@@ -34,7 +34,7 @@ export function createDemoEvidencePdf(claim: SampleClaim, detail: EvidenceDetail
     line('DEMO - KEIN ORIGINALNACHWEIS', 64, 219, 12, true, '0.04 0.40 0.49'),
     line('Dieses PDF belegt keinen realen Apothekenbestand.', 64, 194, 10),
     line('Es wurde ausschliesslich fuer die Kundenvorfuehrung erzeugt.', 64, 178, 10),
-    line(`LAWEA direkt Plus  |  ${claim.number}  |  Seite 1 von 1`, 48, 56, 8, false, '0.39 0.49 0.56')
+    line(`LAWEA direkt+  |  ${claim.number}  |  Seite 1 von 1`, 48, 56, 8, false, '0.39 0.49 0.56')
   ].join('\n') + '\n'
   const objects = [
     '<< /Type /Catalog /Pages 2 0 R >>',

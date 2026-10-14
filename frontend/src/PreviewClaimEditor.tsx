@@ -44,7 +44,7 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
   return <div className="preview-claim-editor">
     <button className="back-link" onClick={() => navigate('dashboard')}>← Zurück zur Übersicht</button>
     {editable ? <>
-      <header className="preview-claim-heading"><h1>Meldung für den {term} erfassen</h1><span>Fiktive Konzeptvorschau</span></header>
+      <header className="preview-claim-heading"><h1>Meldung für den {term} erfassen</h1></header>
 
       <section className="editor-section preview-claim-section" aria-labelledby="preview-positions-title">
         <h2 id="preview-positions-title">Positionen</h2>
@@ -72,7 +72,7 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
         <label className="check-field"><input type="checkbox" checked={claim.declaration} onChange={event => updateClaim({ declaration: event.target.checked })}/><span>Ich bestätige die Richtigkeit der Angaben zum Bestand am Stichtag.</span></label>
       </section></div>
 
-      <div className="editor-actions"><span><Icon name="clock" size={16}/> Nur im Browser · keine Speicherung</span><Button variant="quiet" onClick={() => setMessage('Dieser Entwurf bleibt nur bis zum Neuladen im Browser erhalten.')}>Entwurf speichern</Button><Button icon="arrow" onClick={submit}>Angaben prüfen</Button><button className="text-button danger-text" onClick={discard}>Entwurf verwerfen</button></div>
+      <div className="editor-actions"><Button variant="quiet" onClick={() => setMessage('Dieser Entwurf bleibt nur bis zum Neuladen im Browser erhalten.')}>Entwurf speichern</Button><Button icon="arrow" onClick={submit}>Angaben prüfen</Button><button className="text-button danger-text" onClick={discard}>Entwurf verwerfen</button></div>
     </> : <>
       <PageTitle title="Meldung im Überblick" subtitle={`${claimNumber} · Senkungstermin ${term}`}/>
       <div className="term-summary"><div><span>Stichtag</span><strong>{term}</strong></div><div><span>Vorgang</span><strong>{claimNumber}</strong></div><div><span>Status</span><strong><StatusPill status={claim.status} label={claim.status === 'COMPLETED' ? 'Ausgezahlt · Demo' : claim.status === 'MANUAL_REVIEW' ? 'Eingereicht' : undefined}/></strong></div></div>
