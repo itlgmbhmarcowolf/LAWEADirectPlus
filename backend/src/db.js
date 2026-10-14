@@ -185,6 +185,16 @@ function ensurePracticeTerm() {
 }
 
 export function seedDemo() {
+  // Nur bekannte lokale Demo-Datensätze neutralisieren; fachliche Quellen und echte Eingaben bleiben unberührt.
+  db.transaction(() => {
+    db.prepare('UPDATE users SET name = ?, email = ? WHERE email = ? AND role = ?').run('Portalprüfung', 'pruefung@portal-demo.test', 'pruefung@glenmark.test', 'REVIEWER')
+    db.prepare('UPDATE users SET name = ?, email = ? WHERE email = ? AND role = ?').run('Abwicklung', 'abwicklung@portal-demo.test', 'finance@glenmark.test', 'FINANCE')
+    const product = db.prepare('UPDATE products SET name = ?, maker = ? WHERE pzn = ? AND source = ? AND maker = ?')
+    product.run('Beispielpräparat A', 'Beispielhersteller', '04812345', 'DEMO', 'Glenmark')
+    product.run('Beispielpräparat B', 'Beispielhersteller', '07567890', 'DEMO', 'Glenmark')
+    product.run('Beispielpräparat C', 'Beispielhersteller', '09998877', 'DEMO', 'Glenmark')
+    product.run('Beispielpräparat D', 'Beispielhersteller', '01112223', 'DEMO', 'Glenmark')
+  })()
   if (db.prepare('SELECT count(*) AS n FROM users').get().n) { ensurePracticeTerm(); return }
   const pharmacyId = id()
   const adminId = id()
@@ -210,15 +220,15 @@ export function seedDemo() {
     const insertUser = db.prepare(`INSERT INTO users VALUES (?,?,?,?,?,?,?,?,?)`)
     insertUser.run(adminId, pharmacyId, 'Julia Berger', 'admin@rosen-apotheke.test', password, 'PHARMACY_ADMIN', 'ACTIVE', 1, current)
     insertUser.run(staffId, pharmacyId, 'Maria Keller', 'mitarbeiter@rosen-apotheke.test', password, 'PHARMACY_STAFF', 'ACTIVE', 1, current)
-    insertUser.run(reviewerId, null, 'Glenmark Prüfung', 'pruefung@glenmark.test', password, 'REVIEWER', 'ACTIVE', 1, current)
-    insertUser.run(financeId, null, 'Glenmark Finance', 'finance@glenmark.test', password, 'FINANCE', 'ACTIVE', 1, current)
+    insertUser.run(reviewerId, null, 'Portalprüfung', 'pruefung@portal-demo.test', password, 'REVIEWER', 'ACTIVE', 1, current)
+    insertUser.run(financeId, null, 'Abwicklung', 'abwicklung@portal-demo.test', password, 'FINANCE', 'ACTIVE', 1, current)
     db.prepare('INSERT INTO terms VALUES (?,?,?,?,?,?)').run('term-current', `Senkungstermin ${activeDate}`, activeDate, open.toISOString(), close.toISOString(), 'DEMO')
     db.prepare('INSERT INTO terms VALUES (?,?,?,?,?,?)').run('term-past', `Senkungstermin ${past.toISOString().slice(0, 10)}`, past.toISOString().slice(0, 10), past.toISOString(), pastClose.toISOString(), 'DEMO')
     const product = db.prepare('INSERT INTO products VALUES (?,?,?,?)')
-    product.run('04812345', 'Glenmark Metformin 500 mg', 'Glenmark', 'DEMO')
-    product.run('07567890', 'Glenmark Ramipril 5 mg', 'Glenmark', 'DEMO')
-    product.run('09998877', 'Glenmark Atorvastatin 20 mg', 'Glenmark', 'DEMO')
-    product.run('01112223', 'Glenmark Pantoprazol 40 mg', 'Glenmark', 'DEMO')
+    product.run('04812345', 'Beispielpräparat A', 'Beispielhersteller', 'DEMO')
+    product.run('07567890', 'Beispielpräparat B', 'Beispielhersteller', 'DEMO')
+    product.run('09998877', 'Beispielpräparat C', 'Beispielhersteller', 'DEMO')
+    product.run('01112223', 'Beispielpräparat D', 'Beispielhersteller', 'DEMO')
     for (const pzn of ['04812345', '07567890', '09998877']) db.prepare('INSERT INTO term_products VALUES (?,?)').run('term-current', pzn)
     db.prepare('INSERT INTO term_products VALUES (?,?)').run('term-past', '04812345')
     const draft = { items: [{ pzn: '04812345', charge: 'GL-2401', quantity: 12 }], contactName: 'Julia Berger', contactEmail: 'admin@rosen-apotheke.test', comment: '', declaration: false }

@@ -30,8 +30,8 @@ Alle vier Demo-Zugänge nutzen `Demo!Passwort2026`:
 | --- | --- |
 | Apotheke, Administrator | `admin@rosen-apotheke.test` |
 | Apotheke, Mitarbeiterin | `mitarbeiter@rosen-apotheke.test` |
-| Glenmark, Prüfung | `pruefung@glenmark.test` |
-| Glenmark, Finance | `finance@glenmark.test` |
+| Portalprüfung | `pruefung@portal-demo.test` |
+| Abwicklung | `abwicklung@portal-demo.test` |
 
 Einmalcodes und Einladungslinks werden **nur in der lokalen Demo** in der Oberfläche angezeigt. Alle Stammdaten und Belege müssen fiktiv sein. Die persistenten Demo-Daten liegen in `backend/data/` und sind ignoriert. Für isolierte Testdaten kann `LAWEA_DATA_DIR` gesetzt werden.
 

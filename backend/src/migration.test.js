@@ -12,7 +12,7 @@ legacy.exec(`CREATE TABLE products (
   pzn TEXT PRIMARY KEY, name TEXT NOT NULL, maker TEXT NOT NULL,
   valid_charges TEXT NOT NULL, source TEXT NOT NULL
 );
-INSERT INTO products VALUES ('04812345', 'Demo-Produkt', 'Glenmark', '["GL-2401"]', 'DEMO');`)
+INSERT INTO products VALUES ('04812345', 'Demo-Produkt', 'Beispielhersteller', '["GL-2401"]', 'DEMO');`)
 legacy.close()
 
 const { db } = await import('./db.js')
@@ -22,7 +22,7 @@ test('bestehende Demo-Datenbank entfernt die alte Chargenliste ohne PZN-Verlust'
     const columns = db.prepare('PRAGMA table_info(products)').all().map(column => column.name)
     assert.ok(!columns.includes('valid_charges'))
     assert.deepEqual(db.prepare('SELECT pzn,name,maker,source FROM products').get(), {
-      pzn: '04812345', name: 'Demo-Produkt', maker: 'Glenmark', source: 'DEMO'
+      pzn: '04812345', name: 'Demo-Produkt', maker: 'Beispielhersteller', source: 'DEMO'
     })
   } finally {
     db.close()

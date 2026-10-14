@@ -8,8 +8,8 @@ type Mode = 'login' | 'login-otp' | 'register' | 'register-otp' | 'pending' | 'i
 const demoUsers = [
   ['Apotheke', 'admin@rosen-apotheke.test'],
   ['Mitarbeiterin', 'mitarbeiter@rosen-apotheke.test'],
-  ['Glenmark Prüfung', 'pruefung@glenmark.test'],
-  ['Glenmark Finance', 'finance@glenmark.test']
+  ['Portalprüfung', 'pruefung@portal-demo.test'],
+  ['Abwicklung', 'abwicklung@portal-demo.test']
 ]
 export function Auth({ onAuthenticated }: { onAuthenticated: (user: User, csrf: string) => void }) {
   const path = window.location.pathname
@@ -64,7 +64,7 @@ export function Auth({ onAuthenticated }: { onAuthenticated: (user: User, csrf: 
     await post('/auth/reset/complete', { token, password, passwordAgain }); open('login')
   }) }
 
-  return <div className={`auth-layout ${mode === 'register' ? 'auth-registration' : ''}`}><section className="auth-intro"><div className="auth-brand"><span>LAWEA</span> direkt <em>Plus</em></div><div className="auth-intro-copy"><h1>Lagerwertverluste. Klar geregelt.</h1><p>Erfassen Sie Ihre Meldungen sicher, verfolgen Sie jeden Schritt und finden Sie Ihre Gutschriften an einem Ort.</p><div className="auth-steps"><span><Icon name="shield"/> Apotheke verifizieren</span><span><Icon name="file"/> Meldung erfassen</span><span><Icon name="check"/> Bearbeitung verfolgen</span></div></div><div className="auth-footer">LAWEA direkt Plus · Glenmark Demo</div></section>
+  return <div className={`auth-layout ${mode === 'register' ? 'auth-registration' : ''}`}><section className="auth-intro"><div className="auth-brand"><span>LAWEA</span> direkt <em>Plus</em></div><div className="auth-intro-copy"><h1>Lagerwertverluste. Klar geregelt.</h1><p>Erfassen Sie Ihre Meldungen sicher, verfolgen Sie jeden Schritt und finden Sie Ihre Gutschriften an einem Ort.</p><div className="auth-steps"><span><Icon name="shield"/> Apotheke verifizieren</span><span><Icon name="file"/> Meldung erfassen</span><span><Icon name="check"/> Bearbeitung verfolgen</span></div></div><div className="auth-footer">LAWEA direkt Plus · Lokale Demo</div></section>
     <section className="auth-panel"><div className="auth-card">
       <div className="demo-note"><strong>Lokale Demo</strong><span>Nur fiktive Daten. E-Mail-Codes werden hier angezeigt.</span></div>
       {error ? <Notice tone="error">{error}</Notice> : null}

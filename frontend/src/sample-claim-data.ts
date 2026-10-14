@@ -50,12 +50,12 @@ export function sampleClaimDetail(claim: SampleClaim) {
   if (revised) {
     events.push(
       { at: at(claim.termDate, 3, '08:35'), title: 'Revision 2 eingereicht', description: 'Maria Keller hat die Chargenangabe erläutert und einen neuen Nachweis eingereicht. Revision 1 bleibt unverändert.', tone: 'done', revision: 'Revision 2' },
-      { at: at(claim.termDate, 4, '14:10'), title: 'Fachlich freigegeben', description: 'Glenmark Demo-Prüfung hat Revision 2 freigegeben.', tone: 'done', revision: 'Revision 2' },
+      { at: at(claim.termDate, 4, '14:10'), title: 'Fachlich freigegeben', description: 'Die fachliche Demo-Prüfung hat Revision 2 freigegeben.', tone: 'done', revision: 'Revision 2' },
       { at: at(claim.termDate, 5, '10:05'), title: 'Für ITL bereitgestellt', description: 'Die freigegebene Demo-Meldung wurde dem simulierten Abwicklungsprozess zugeordnet.', tone: 'done', revision: 'Revision 2' }
     )
   } else if (claim.status === 'COMPLETED') {
     events.push(
-      { at: at(claim.termDate, 2, '14:10'), title: 'Fachlich freigegeben', description: 'Glenmark Demo-Prüfung hat Revision 1 freigegeben.', tone: 'done', revision: 'Revision 1' },
+      { at: at(claim.termDate, 2, '14:10'), title: 'Fachlich freigegeben', description: 'Die fachliche Demo-Prüfung hat Revision 1 freigegeben.', tone: 'done', revision: 'Revision 1' },
       { at: at(claim.termDate, 3, '10:05'), title: 'Für ITL bereitgestellt', description: 'Die freigegebene Demo-Meldung wurde dem simulierten Abwicklungsprozess zugeordnet.', tone: 'done', revision: 'Revision 1' }
     )
   }
