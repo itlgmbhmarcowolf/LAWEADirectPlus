@@ -3,7 +3,7 @@ import type { Status, User } from './types'
 import { statusLabel } from './types'
 import './account.css'
 
-type IconName = 'home' | 'file' | 'users' | 'credit' | 'help' | 'shield' | 'logout' | 'arrow' | 'chevron' | 'calendar' | 'check' | 'alert' | 'plus' | 'upload' | 'trash' | 'search' | 'menu' | 'clock' | 'download' | 'settings' | 'mail' | 'more' | 'close' | 'userPlus' | 'refresh' | 'unlock'
+type IconName = 'home' | 'file' | 'users' | 'credit' | 'help' | 'shield' | 'logout' | 'arrow' | 'chevron' | 'calendar' | 'check' | 'alert' | 'plus' | 'upload' | 'trash' | 'search' | 'menu' | 'clock' | 'download' | 'eye' | 'settings' | 'mail' | 'more' | 'close' | 'userPlus' | 'refresh' | 'unlock'
 export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
   const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true as const }
   const path: Record<IconName, ReactNode> = {
@@ -26,6 +26,7 @@ export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
     menu: <path d="M4 7h16M4 12h16M4 17h16"/>,
     clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,
     download: <><path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/></>,
+    eye: <><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.5"/></>,
     settings: <><circle cx="12" cy="12" r="3"/><path d="M4 12h2m12 0h2M12 4v2m0 12v2M6.3 6.3l1.4 1.4m8.6 8.6 1.4 1.4m0-11.4-1.4 1.4M7.7 16.3l-1.4 1.4"/></>,
     mail: <><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></>,
     more: <><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></>,

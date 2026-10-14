@@ -5,7 +5,7 @@
 .claim-credit-entry-copy{display:grid;gap:2px;min-width:0}
 .claim-credit-entry-copy strong{font-size:13px;line-height:1.25;color:#155646}
 .claim-credit-entry-copy>span{font-size:12px;line-height:1.35;color:#617b78;overflow-wrap:anywhere}
-.claim-credit-entry-action{font-size:12px;font-weight:750;color:#08738a;border-bottom:1px solid #9cc9d1;padding-bottom:2px;white-space:nowrap}
-.claim-credit-entry:hover .claim-credit-entry-action{border-bottom-color:currentColor}
-@media(max-width:440px){.claim-credit-entry{grid-template-columns:34px minmax(0,1fr) auto;gap:9px;padding:11px}.claim-credit-entry-icon{width:34px;height:34px}.claim-credit-entry-action{font-size:11px}}
+.claim-credit-entry-action{display:grid;place-items:center;width:36px;height:36px;border:1px solid #cce2e8;border-radius:8px;background:#f6fbfc;color:#08738a}
+.claim-credit-entry:hover .claim-credit-entry-action{border-color:#87c8b6;background:#ebf7f5}
+@media(max-width:440px){.claim-credit-entry{grid-template-columns:34px minmax(0,1fr) 36px;gap:9px;padding:11px}.claim-credit-entry-icon{width:34px;height:34px}}
 @media(prefers-reduced-motion:reduce){.claim-credit-entry{transition:none}}
