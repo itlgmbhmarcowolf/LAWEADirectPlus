@@ -25,6 +25,8 @@
 .overview-status-menu button:hover,.overview-status-menu button:focus-visible{background:#f0f8fa}
 .overview-status-menu button[aria-checked="true"]{background:#e9f5f8;color:#086e84;font-weight:800}
 .overview-status-menu button svg{flex:none;color:#087f89}
+.overview-status-menu-divider{height:1px;margin:5px 6px;background:#e1ebef}
+.overview-status-menu .overview-status-done{justify-content:center;margin-top:5px;border-top:1px solid #e1ebef;border-radius:0 0 6px 6px;color:#08738a;font-weight:800}
 .overview-month{display:grid;grid-template-columns:220px minmax(0,1fr);border-top:1px solid #dce7ec}
 .overview-month-label{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;padding:16px 26px;background:#f7fafb;border-right:1px solid #dce7ec}
 .overview-month-label h2{margin:0;color:#123a5a;font-size:23px;font-weight:750;letter-spacing:-.025em}

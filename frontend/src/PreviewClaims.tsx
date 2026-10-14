@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Status } from './types'
-import { Button, Empty, Icon, PageTitle, StatusPill } from './ui'
+import { Button, Empty, Icon, Notice, PageTitle, StatusPill } from './ui'
 import { createDemoEvidencePdf } from './demo-evidence-pdf'
 import { ClaimCreditEntry } from './ClaimCreditEntry'
 import { sampleClaimDetail, sampleClaims, sampleDate } from './sample-claim-data'
@@ -42,6 +42,7 @@ export function PreviewClaims({ currentClaims, navigate }: { currentClaims: Open
 
 export function PreviewSampleClaimDetail({ claim, navigate }: { claim: SampleClaim; navigate: (page: string) => void }) {
   const detail = sampleClaimDetail(claim)
+  const rejectionReason = detail.events.find(event => event.title === 'Revision 1 abgelehnt')?.description
   const [evidenceUrl, setEvidenceUrl] = useState('')
   const [previousEvidenceUrl, setPreviousEvidenceUrl] = useState('')
   useEffect(() => {
@@ -56,7 +57,7 @@ export function PreviewSampleClaimDetail({ claim, navigate }: { claim: SampleCla
     <button className="back-link" onClick={() => navigate('dashboard')}>← Zurück zur Übersicht</button>
     <PageTitle title={`Meldung für den ${label(claim.termDate)}`} subtitle={`${claim.number} · fiktive Beispielinhalte`}/>
     <div className="term-summary"><div><span>Stichtag</span><strong>{label(claim.termDate)}</strong></div><div><span>Vorgang</span><strong>{claim.number}</strong></div><div><span>Status</span><strong><StatusPill status={claim.status} label={statusText}/></strong></div></div>
-    <section className="data-section claim-overview"><div className="section-header"><h2>Bearbeitungsstand</h2><StatusPill status={claim.status} label={statusText}/></div><p>{claim.status === 'COMPLETED' ? `Revision ${detail.revision} ist freigegeben. Die fiktive Gutschrift wurde am ${detail.provided} bereitgestellt; es erfolgte keine Auszahlung.` : claim.status === 'REJECTED' ? 'Revision 1 wurde mit einem konkreten Korrekturhinweis abgelehnt. Die eingereichte Fassung bleibt im Verlauf erhalten.' : 'Revision 1 liegt zur fachlichen Prüfung vor. Eine Gutschrift ist noch nicht verfügbar.'}</p>{claim.creditReference ? <ClaimCreditEntry reference={claim.creditReference} provided={detail.provided} onOpen={() => navigate(`credits:${claim.number}`)}/> : null}</section>
+    <section className="data-section claim-overview"><div className="section-header"><h2>Bearbeitungsstand</h2><StatusPill status={claim.status} label={statusText}/></div><p>{claim.status === 'COMPLETED' ? `Revision ${detail.revision} ist freigegeben. Die fiktive Gutschrift wurde am ${detail.provided} bereitgestellt; es erfolgte keine Auszahlung.` : claim.status === 'REJECTED' ? 'Revision 1 wurde abgelehnt. Die eingereichte Fassung bleibt im Verlauf erhalten.' : 'Revision 1 liegt zur fachlichen Prüfung vor. Eine Gutschrift ist noch nicht verfügbar.'}</p>{claim.status === 'REJECTED' && rejectionReason ? <Notice tone="warning"><strong>Grund der Ablehnung:</strong> {rejectionReason}</Notice> : null}{claim.creditReference ? <ClaimCreditEntry reference={claim.creditReference} provided={detail.provided} onOpen={() => navigate(`credits:${claim.number}`)}/> : null}</section>
     <div className="sample-detail-grid"><div className="sample-detail-main">
       <section className="data-section"><h2>Gemeldete Positionen · Revision {detail.revision}</h2><div className="table-wrap"><table><thead><tr><th>PZN</th><th>Artikel</th><th>Charge</th><th>Bestand zum {label(claim.termDate)}</th></tr></thead><tbody>{detail.positions.map(position => <tr key={position.pzn}><td>{position.pzn}</td><td>{position.article}</td><td>{position.charge}</td><td>{position.quantity} Packungen</td></tr>)}</tbody></table></div></section>
       <section className="data-section"><h2>Einreichung</h2><div className="sample-submission-facts"><div><span>Eingereicht von</span><strong>Maria Keller · Beispielapotheke</strong></div><div><span>Eingereicht am</span><strong>{detail.submitted}</strong></div><div><span>Revision</span><strong>{detail.revision} von {detail.revision}</strong></div></div><p>Richtigkeit der Angaben bestätigt. Kommentar: Bestand zum {label(claim.termDate)} gemäß beigefügtem fiktivem Bestandsnachweis.</p></section>
