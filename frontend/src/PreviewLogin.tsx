@@ -180,7 +180,6 @@ export function PreviewLogin({ onAuthenticated }: { onAuthenticated: (role: Role
         <form className="form-stack" onSubmit={submitInvite}><div className="password-field"><label className="field"><span>Passwort</span><input type="password" minLength={12} required value={password} onChange={event => setPassword(event.target.value)}/></label><PasswordChecklist value={password}/></div><label className="field"><span>Passwort wiederholen</span><input type="password" minLength={12} required value={passwordAgain} onChange={event => setPasswordAgain(event.target.value)}/></label><Button type="submit">Einladung annehmen · Demo</Button></form>
       </> : null}
 
-      <p className="preview-login-footnote">Alle Eingaben bleiben nur in diesem Browserfenster. E-Mails, echte Dateien und Bankdaten werden nicht übertragen.</p>
     </div></section>
   </div>
 }
