@@ -1,0 +1,11 @@
+.claim-credit-entry{display:grid;grid-template-columns:38px minmax(0,1fr) auto;align-items:center;gap:12px;width:100%;margin-top:17px;padding:12px 15px;border:1px solid #d6e7e2;border-left:3px solid #36a789;border-radius:9px;background:#fff;color:#173e45;text-align:left;cursor:pointer;transition:border-color .16s,background .16s,box-shadow .16s}
+.claim-credit-entry:hover{border-color:#87c8b6;background:#f8fcfa;box-shadow:0 4px 13px #173e450c}
+.claim-credit-entry:focus-visible{outline:3px solid #63bfd0;outline-offset:3px}
+.claim-credit-entry-icon{display:grid;place-items:center;width:38px;height:38px;border-radius:9px;background:#e8f6f1;color:#15836b}
+.claim-credit-entry-copy{display:grid;gap:2px;min-width:0}
+.claim-credit-entry-copy strong{font-size:13px;line-height:1.25;color:#155646}
+.claim-credit-entry-copy>span{font-size:12px;line-height:1.35;color:#617b78;overflow-wrap:anywhere}
+.claim-credit-entry-action{font-size:12px;font-weight:750;color:#08738a;border-bottom:1px solid #9cc9d1;padding-bottom:2px;white-space:nowrap}
+.claim-credit-entry:hover .claim-credit-entry-action{border-bottom-color:currentColor}
+@media(max-width:440px){.claim-credit-entry{grid-template-columns:34px minmax(0,1fr) auto;gap:9px;padding:11px}.claim-credit-entry-icon{width:34px;height:34px}.claim-credit-entry-action{font-size:11px}}
+@media(prefers-reduced-motion:reduce){.claim-credit-entry{transition:none}}
