@@ -4,14 +4,13 @@ import './credit-preview.css'
 
 type Download = { url: string; filename: string; label: string }
 
-export function CreditDetailLayout({ reference, claimNumber, termDate, provided, download, downloadError, demo, fileType, onClaim, children }: {
+export function CreditDetailLayout({ reference, claimNumber, termDate, provided, download, downloadError, fileType, onClaim, children }: {
   reference: string
   claimNumber: string
   termDate?: string
   provided: string
   download?: Download
   downloadError?: boolean
-  demo?: boolean
   fileType: string
   onClaim: () => void
   children: ReactNode
@@ -34,7 +33,6 @@ export function CreditDetailLayout({ reference, claimNumber, termDate, provided,
           <div><dt>Bereitgestellt</dt><dd>{provided}</dd></div>
         </dl>
         <button className="credit-claim-link" type="button" onClick={onClaim}>Meldung ansehen <Icon name="arrow" size={16}/></button>
-        {demo ? <p className="credit-demo-note"><Icon name="shield" size={18}/><span><strong>Fiktive Demo · Keine Zahlung</strong><small>Dieses Dokument dient ausschließlich zu Demonstrationszwecken.</small></span></p> : null}
       </aside>
       <section className="credit-document-panel" aria-label={`Dokumentvorschau (${fileType})`}>
         <button className="credit-preview-toggle" type="button" aria-controls={previewId} aria-expanded={previewOpen} aria-label={previewOpen ? 'Dokumentvorschau einklappen' : 'Dokumentvorschau ausklappen'} onClick={() => { if (!previewOpen) setPreviewActivated(true); setPreviewOpen(open => !open) }}>

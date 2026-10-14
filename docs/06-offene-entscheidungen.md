@@ -85,6 +85,7 @@ Der statische Kundengespräch-Build wurde lokal erstellt und geprüft. Commit `2
 | E-44 | Den allgemeinen Hinweis zu Browserfenster, E-Mails, Dateien und Bankdaten unter den Anmeldeformularen entfernen. | Direkte Nutzeranweisung vom 14.10.2026. | Der Text entfällt aus der öffentlichen Vorschau. Konkrete Demo-Hinweise an simulierten Aktionen und Beispieldokumenten bleiben erhalten. |
 | E-45 | Das Pluszeichen in der sichtbaren Wortmarke „LAWEA direkt+“ eleganter darstellen. | Direkte Nutzeranweisung und Korrektur vom 14.10.2026. | Das Plus bleibt ohne Kachel Teil der Schrift und erhält in Portal-Kopfzeile und Anmeldebereich eine jeweils passende Akzentfarbe. Der Produktname als Text bleibt unverändert. |
 | E-46 | Den allgemeinen Hinweis „Fiktive Beispiele · „Ausgezahlt“ ist hier nur ein simulierter Stand.“ unter der Stichtagsliste entfernen. | Direkte Nutzeranweisung vom 14.10.2026. | Der Hinweis entfällt aus der öffentlichen Vorschau; das Demo-Kennzeichen im Kopf und kontextbezogene Hinweise bleiben bestehen. |
+| E-47 | Die Kachel „Fiktive Demo · Keine Zahlung“ in den Gutschriftinformationen entfernen. | Direkte Nutzeranweisung vom 14.10.2026 nach Erklärung ihrer Funktion. | Die Kachel entfällt in öffentlicher Vorschau und lokaler Demo. Die Dokumentvorschau, Muster-PDF-Bezeichnung und allgemeine Demo-Kennzeichnung bleiben erhalten; eine reale Zahlung wird nicht behauptet. |
 
 ## Vorgehen bei einer Entscheidung
 

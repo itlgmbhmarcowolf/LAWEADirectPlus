@@ -141,7 +141,7 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
   </>
 }
 
-function CreditDocumentPreview({ credit, termDate, demo, onClaim }: { credit: Credit; termDate?: string; demo: boolean; onClaim: () => void }) {
+function CreditDocumentPreview({ credit, termDate, onClaim }: { credit: Credit; termDate?: string; onClaim: () => void }) {
   const [document, setDocument] = useState<{ url: string; mime: string } | null>(null)
   const [error, setError] = useState('')
   useEffect(() => {
@@ -158,7 +158,7 @@ function CreditDocumentPreview({ credit, termDate, demo, onClaim }: { credit: Cr
     return () => { active = false; if (objectUrl) URL.revokeObjectURL(objectUrl) }
   }, [credit.document_id])
   const extension = document?.mime === 'image/jpeg' ? 'jpg' : document?.mime === 'image/png' ? 'png' : 'pdf'
-  return <CreditDetailLayout key={credit.id} reference={credit.reference} claimNumber={credit.claim_number} termDate={termDate} provided={dateTime(credit.published_at)} fileType={document?.mime === 'application/pdf' ? 'PDF' : document ? 'Bilddatei' : 'Dokument'} demo={demo} onClaim={onClaim} downloadError={Boolean(error)} download={document ? { url: document.url, filename: `Gutschrift-${credit.claim_number}.${extension}`, label: 'Gutschrift herunterladen' } : undefined}>
+  return <CreditDetailLayout key={credit.id} reference={credit.reference} claimNumber={credit.claim_number} termDate={termDate} provided={dateTime(credit.published_at)} fileType={document?.mime === 'application/pdf' ? 'PDF' : document ? 'Bilddatei' : 'Dokument'} onClaim={onClaim} downloadError={Boolean(error)} download={document ? { url: document.url, filename: `Gutschrift-${credit.claim_number}.${extension}`, label: 'Gutschrift herunterladen' } : undefined}>
     {error ? <Notice tone="error">{error}</Notice> : document ? document.mime === 'application/pdf' ? <PdfPreview url={document.url} title={`PDF-Vorschau der Gutschrift ${credit.reference}`}/> : <img className="credit-image-preview" src={document.url} alt={`Gutschrift ${credit.reference}`}/> : <p className="credit-pdf-loading" role="status">Dokument wird geladen …</p>}
   </CreditDetailLayout>
 }
@@ -166,7 +166,7 @@ function CreditDocumentPreview({ credit, termDate, demo, onClaim }: { credit: Cr
 export function CreditsPage({ data, navigate, selectedClaimId }: { data: Bootstrap; navigate: (page: string) => void; selectedClaimId?: string }) {
   const selected = data.credits?.find(credit => credit.claim_id === selectedClaimId)
   return <>
-    {selected ? <CreditDocumentPreview credit={selected} termDate={data.claims.find(claim => claim.id === selected.claim_id)?.term_date ? shortDate(data.claims.find(claim => claim.id === selected.claim_id)!.term_date) : undefined} demo={data.demo} onClaim={() => navigate(`claim:${selected.claim_id}`)}/> : <><PageTitle title="Gutschriften" subtitle="Ihre bereitgestellten Gutschriften und zugehörigen Meldungen."/>{data.credits?.length ? <section className="data-section"><div className="table-wrap"><table><thead><tr><th>Meldung</th><th>Referenz</th><th>Bereitgestellt</th><th>Aktionen</th></tr></thead><tbody>{data.credits.map(credit => <tr key={credit.id}><td>{credit.claim_number}</td><td>{credit.reference}</td><td>{dateTime(credit.published_at)}</td><td><div className="claim-row-actions"><Button variant="secondary" onClick={() => navigate(`claim:${credit.claim_id}`)}>Meldung ansehen</Button><button className="text-button" onClick={() => navigate(`credits:${credit.claim_id}`)}>Gutschrift <Icon name="arrow" size={15}/></button></div></td></tr>)}</tbody></table></div></section> : <Empty title="Noch keine Gutschriften" description="Sobald eine Gutschrift bereitsteht, erscheint sie hier und in der zugehörigen Meldung."/>}</>}
+    {selected ? <CreditDocumentPreview credit={selected} termDate={data.claims.find(claim => claim.id === selected.claim_id)?.term_date ? shortDate(data.claims.find(claim => claim.id === selected.claim_id)!.term_date) : undefined} onClaim={() => navigate(`claim:${selected.claim_id}`)}/> : <><PageTitle title="Gutschriften" subtitle="Ihre bereitgestellten Gutschriften und zugehörigen Meldungen."/>{data.credits?.length ? <section className="data-section"><div className="table-wrap"><table><thead><tr><th>Meldung</th><th>Referenz</th><th>Bereitgestellt</th><th>Aktionen</th></tr></thead><tbody>{data.credits.map(credit => <tr key={credit.id}><td>{credit.claim_number}</td><td>{credit.reference}</td><td>{dateTime(credit.published_at)}</td><td><div className="claim-row-actions"><Button variant="secondary" onClick={() => navigate(`claim:${credit.claim_id}`)}>Meldung ansehen</Button><button className="text-button" onClick={() => navigate(`credits:${credit.claim_id}`)}>Gutschrift <Icon name="arrow" size={15}/></button></div></td></tr>)}</tbody></table></div></section> : <Empty title="Noch keine Gutschriften" description="Sobald eine Gutschrift bereitsteht, erscheint sie hier und in der zugehörigen Meldung."/>}</>}
   </>
 }
 export function HelpPage() { return <HelpContent/> }

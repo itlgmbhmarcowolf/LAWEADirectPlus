@@ -62,11 +62,6 @@
 .credit-information dt{font-size:11px;font-weight:700;color:#758b9a}
 .credit-information dd{margin:0;font-size:12px;font-weight:750;color:#173d55;overflow-wrap:anywhere}
 .credit-claim-link{display:inline-flex;align-items:center;gap:6px;margin-top:15px;padding:0;border:0;background:transparent;color:#0a7184;font:inherit;font-size:12px;font-weight:750;cursor:pointer}
-.credit-demo-note{display:flex;align-items:flex-start;gap:10px;margin:18px 0 0;padding:12px;border:1px solid #d8e7ef;border-radius:7px;background:#f0f7fa;color:#37556a;font-size:11px;line-height:1.4}
-.credit-demo-note svg{flex:none;color:#436e89}
-.credit-demo-note strong,.credit-demo-note small{display:block}
-.credit-demo-note strong{margin-bottom:3px;font-size:11px;color:#24445c}
-.credit-demo-note small{font-size:10px;line-height:1.45}
 @media(max-width:900px){.credit-page-grid{grid-template-columns:minmax(0,1fr)}.credit-information dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.credit-information dl div{border-bottom:0}.credit-information{padding-bottom:12px}}
 @media(max-width:700px){.credit-detail .claim-row-actions .button{width:100%;justify-content:center}.credit-pdf-heading{align-items:flex-start;flex-direction:column}.credit-pdf-toolbar{justify-content:center}.credit-pdf-surface{padding:9px;min-height:300px}.credit-pdf-pages{gap:6px}.credit-pdf-pages button{font-size:11px}}
 @media(max-width:700px){.credit-page-header{align-items:stretch;flex-direction:column;gap:13px;margin-bottom:14px}.credit-page-identity{gap:8px}.credit-reference{flex-basis:100%}.credit-download{align-self:stretch}.credit-document-label{padding:12px 13px}.credit-document-panel .credit-pdf-surface{height:58vh;min-height:320px;padding:9px}.credit-information dl{grid-template-columns:1fr 1fr}.credit-information dl div{padding:10px 0}.credit-information dl div:last-child{grid-column:1/-1}.credit-document-panel .credit-pdf-toolbar{justify-content:center}}
