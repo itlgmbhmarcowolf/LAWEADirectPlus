@@ -5,7 +5,17 @@ export type SamplePosition = { pzn: string; article: string; charge: string; qua
 export type SampleEvent = { at: string; title: string; description: string; tone: 'done' | 'current' | 'issue'; revision?: string }
 
 // Ausschließlich fiktive, zusammenhängende Beispiele für die öffentliche Konzeptvorschau.
+const historicalClaims: SampleClaim[] = [2024, 2025].flatMap(year =>
+  Array.from({ length: 12 }, (_, monthIndex) => monthIndex + 1).flatMap(month =>
+    [1, 15].map(day => {
+      const sequence = String((month - 1) * 2 + (day === 1 ? 1 : 2)).padStart(3, '0')
+      const termDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+      return { number: `LV-DEMO-${year}-${sequence}`, termDate, status: 'COMPLETED' as Status, creditReference: `GS-DEMO-${year}-${sequence}` }
+    })
+  )
+)
 export const sampleClaims: SampleClaim[] = [
+  ...historicalClaims,
   ...['2026-01-01', '2026-01-15', '2026-02-01', '2026-02-15', '2026-03-01', '2026-03-15', '2026-04-01', '2026-04-15'].map((termDate, index) => ({ number: `LV-DEMO-2026-ALT-${String(index + 1).padStart(2, '0')}`, termDate, status: 'COMPLETED' as Status, creditReference: `GS-DEMO-2026-ALT-${String(index + 1).padStart(2, '0')}` })),
   { number: 'LV-DEMO-2026-001', termDate: '2026-05-01', status: 'COMPLETED', creditReference: 'GS-DEMO-2026-001' },
   { number: 'LV-DEMO-2026-002', termDate: '2026-05-15', status: 'COMPLETED', creditReference: 'GS-DEMO-2026-002' },
