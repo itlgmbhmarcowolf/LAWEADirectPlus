@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { Role } from './types'
 import { Button, Icon, Notice } from './ui'
 import { PasswordChecklist, passwordValid } from './PasswordChecklist'
@@ -11,11 +11,11 @@ type Profile = { name: string; email: string; organizationName: string }
 const previewPassword = 'Vorschau!2026'
 const previewCode = '123456'
 type Scenario = 'empty' | 'few' | 'many'
-const accounts: { role: Role; label: string; email: string; scenario: Scenario }[] = [
-  { role: 'PHARMACY_ADMIN', label: 'Viele Daten', email: 'apotheke@beispiel.test', scenario: 'many' },
-  { role: 'PHARMACY_ADMIN', label: 'Wenige Daten', email: 'wenige@beispiel.test', scenario: 'few' },
-  { role: 'PHARMACY_ADMIN', label: 'Neues leeres Konto', email: 'neu@beispiel.test', scenario: 'empty' },
-  { role: 'PHARMACY_STAFF', label: 'Mitarbeiterin', email: 'mitarbeiterin@beispiel.test', scenario: 'many' }
+const accounts: { role: Role; label: string; detail: string; email: string; scenario: Scenario }[] = [
+  { role: 'PHARMACY_ADMIN', label: 'Apotheke 1', detail: 'Viele Beispielmeldungen', email: 'apotheke@beispiel.test', scenario: 'many' },
+  { role: 'PHARMACY_ADMIN', label: 'Apotheke 2', detail: 'Wenige Beispielmeldungen', email: 'wenige@beispiel.test', scenario: 'few' },
+  { role: 'PHARMACY_ADMIN', label: 'Apotheke 3', detail: 'Neues leeres Konto', email: 'neu@beispiel.test', scenario: 'empty' },
+  { role: 'PHARMACY_STAFF', label: 'Mitarbeiterin', detail: 'Eingeladener Zugang', email: 'mitarbeiterin@beispiel.test', scenario: 'many' }
 ]
 const emptyRegistration = (): Registration => ({ pharmacyName: '', street: '', zip: '', city: '', owner: '', phone: '', iban: '', homepage: '', name: '' })
 
@@ -34,6 +34,22 @@ export function PreviewLogin({ onAuthenticated }: { onAuthenticated: (role: Role
   const [passwordOverrides, setPasswordOverrides] = useState<Record<string, string>>({})
   const [authFailures, setAuthFailures] = useState<Record<string, number>>({})
   const [lockedUntil, setLockedUntil] = useState<Record<string, number>>({})
+  const [testAccessOpen, setTestAccessOpen] = useState(false)
+  const testAccessRef = useRef<HTMLDivElement>(null)
+  const testAccessTriggerRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (!testAccessOpen) return
+    const closeOutside = (event: PointerEvent) => {
+      if (!testAccessRef.current?.contains(event.target as Node)) setTestAccessOpen(false)
+    }
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') { setTestAccessOpen(false); testAccessTriggerRef.current?.focus() }
+    }
+    document.addEventListener('pointerdown', closeOutside)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => { document.removeEventListener('pointerdown', closeOutside); document.removeEventListener('keydown', closeOnEscape) }
+  }, [testAccessOpen])
 
   // Nur Browser-Simulation; die lokale Demo erzwingt dieselbe Regel serverseitig.
   const lockMessage = (until: number) => `Demo-Anmeldung gesperrt. Erneut möglich ab ${new Intl.DateTimeFormat('de-DE', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Berlin' }).format(until)} Uhr.`
@@ -50,12 +66,13 @@ export function PreviewLogin({ onAuthenticated }: { onAuthenticated: (role: Role
     setError(`Demo-Anmeldung fehlgeschlagen. Noch ${3 - count} ${count === 2 ? 'Versuch' : 'Versuche'} bis zur vierstündigen Sperre.`)
   }
 
-  const open = (next: Mode) => { setMode(next); setError(''); setNotice(''); setCode('') }
+  const open = (next: Mode) => { setMode(next); setTestAccessOpen(false); setError(''); setNotice(''); setCode('') }
   const choose = (account: typeof accounts[number]) => {
     setSelected(account)
     setEmail(account.email)
     setPassword(passwordOverrides[account.email] || previewPassword)
     setError('')
+    setTestAccessOpen(false)
   }
   const registrationField = (key: keyof Registration, label: string, type = 'text', required = true) =>
     <label className="field" key={key}><span>{label}{required ? ' *' : ''}</span><input type={type} required={required} value={registration[key]} onChange={event => setRegistration(current => ({ ...current, [key]: event.target.value }))} autoComplete="off"/></label>
@@ -67,7 +84,7 @@ export function PreviewLogin({ onAuthenticated }: { onAuthenticated: (role: Role
     if (registered?.email === normalized) {
       if (!registered.approved) { setError('Das Beispielkonto wartet noch auf Freigabe.'); return }
       if (password !== registered.password) { failedAuth(normalized); return }
-      setSelected({ role: 'PHARMACY_ADMIN', label: 'Neue Apotheke', email: normalized, scenario: 'empty' })
+      setSelected({ role: 'PHARMACY_ADMIN', label: 'Neue Apotheke', detail: 'Eigenes Beispielkonto', email: normalized, scenario: 'empty' })
     } else {
       const account = accounts.find(item => item.email === normalized)
       if (!account) { setError('Bitte einen der eingeblendeten fiktiven Demo-Zugänge verwenden.'); return }
@@ -130,7 +147,7 @@ export function PreviewLogin({ onAuthenticated }: { onAuthenticated: (role: Role
     open('invite-otp')
   }
 
-  return <div className={`auth-layout preview-login-layout ${mode === 'register' ? 'auth-registration' : ''}`}>
+  return <div className={`auth-layout preview-login-layout ${mode === 'register' ? 'auth-registration' : ''} ${mode === 'login' ? 'preview-login-with-access' : ''}`}>
     <section className="auth-intro"><div className="auth-brand"><span>LAWEA</span> direkt<em>+</em></div><div className="auth-intro-copy"><h1>Lagerwertverluste. Klar geregelt.</h1><p>Ein Ort für Senkungstermine, Meldungen, Prüfung und Gutschriften.</p><div className="auth-steps"><span><Icon name="shield"/> Apotheke verifizieren</span><span><Icon name="file"/> Meldung erfassen</span><span><Icon name="check"/> Bearbeitung verfolgen</span></div></div><div className="auth-footer">LAWEA direkt+</div></section>
     <section className="auth-panel"><div className="auth-card">
       {error ? <Notice tone="warning">{error}</Notice> : null}
@@ -142,8 +159,6 @@ export function PreviewLogin({ onAuthenticated }: { onAuthenticated: (role: Role
         <button className="text-button" onClick={() => open('reset-request')}>Passwort vergessen?</button>
         <div className="auth-divider">Noch kein Konto?</div>
         <Button variant="secondary" onClick={() => { setEmail(''); setPassword(''); setPasswordAgain(''); setRegistration(emptyRegistration()); setLicenseSelected(false); open('register') }}>Konto erstellen</Button>
-        <div className="demo-users preview-login-accounts"><strong>Fiktive Testszenarien</strong><p>Beispielpasswort: <code>{previewPassword}</code></p><div>{accounts.map(account => <button key={account.email} type="button" className={selected.email === account.email ? 'selected' : ''} onClick={() => choose(account)} aria-pressed={selected.email === account.email}>{account.label}</button>)}</div></div>
-        <button className="text-button preview-secondary-link" onClick={() => { setEmail(accounts[3].email); setPassword(''); setPasswordAgain(''); open('invite') }}>Mitarbeiter-Einladung ansehen</button>
       </> : null}
 
       {mode === 'register' ? <>
@@ -180,6 +195,13 @@ export function PreviewLogin({ onAuthenticated }: { onAuthenticated: (role: Role
         <form className="form-stack" onSubmit={submitInvite}><div className="password-field"><label className="field"><span>Passwort</span><input type="password" minLength={12} required value={password} onChange={event => setPassword(event.target.value)}/></label><PasswordChecklist value={password}/></div><label className="field"><span>Passwort wiederholen</span><input type="password" minLength={12} required value={passwordAgain} onChange={event => setPasswordAgain(event.target.value)}/></label><Button type="submit">Einladung annehmen · Demo</Button></form>
       </> : null}
 
-    </div></section>
+    </div>{mode === 'login' ? <div className="preview-test-access" ref={testAccessRef}>
+      <button ref={testAccessTriggerRef} className="preview-test-trigger" type="button" aria-label="Testzugang wählen" aria-haspopup="dialog" aria-expanded={testAccessOpen} onClick={() => setTestAccessOpen(current => !current)}><Icon name="users" size={21}/></button>
+      {testAccessOpen ? <div className="preview-test-popover" role="dialog" aria-modal="false" aria-labelledby="preview-test-title">
+        <div className="preview-test-popover-heading"><div><strong id="preview-test-title">Testzugang wählen</strong><span>Fiktive Konten für die Vorschau</span></div><button type="button" aria-label="Testzugänge schließen" onClick={() => { setTestAccessOpen(false); testAccessTriggerRef.current?.focus() }}><Icon name="close" size={18}/></button></div>
+        <div className="preview-test-options">{accounts.map((account, index) => <button key={account.email} type="button" className={selected.email === account.email ? 'selected' : ''} aria-pressed={selected.email === account.email} onClick={() => { choose(account); testAccessTriggerRef.current?.focus() }}><span className="preview-test-avatar">{index < 3 ? `A${index + 1}` : 'M'}</span><span className="preview-test-option-copy"><strong>{account.label}</strong><small>{account.detail}</small></span>{selected.email === account.email ? <Icon name="check" size={17}/> : null}</button>)}</div>
+        <div className="preview-test-popover-footer"><span>Beispielpasswort <strong>{previewPassword}</strong></span><button type="button" onClick={() => { setEmail(accounts[3].email); setPassword(''); setPasswordAgain(''); open('invite') }}>Mitarbeiter-Einladung ansehen</button></div>
+      </div> : null}
+    </div> : null}</section>
   </div>
 }
