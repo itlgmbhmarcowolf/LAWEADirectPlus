@@ -4,7 +4,7 @@ import './credit-preview.css'
 
 type Download = { url: string; filename: string; label: string }
 
-export function CreditDetailLayout({ reference, claimNumber, termDate, provided, download, downloadError, fileType, onClaim, children }: {
+export function CreditDetailLayout({ reference, claimNumber, termDate, provided, download, downloadError, fileType, onClaim, submission, children }: {
   reference: string
   claimNumber: string
   termDate?: string
@@ -13,10 +13,10 @@ export function CreditDetailLayout({ reference, claimNumber, termDate, provided,
   downloadError?: boolean
   fileType: string
   onClaim: () => void
+  submission?: ReactNode
   children: ReactNode
 }) {
-  const [previewOpen, setPreviewOpen] = useState(false)
-  const [previewActivated, setPreviewActivated] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(true)
   const previewId = useId()
   return <article className="credit-page">
     <button className="credit-back" type="button" onClick={onClaim}>Zur Meldung</button>
@@ -33,12 +33,13 @@ export function CreditDetailLayout({ reference, claimNumber, termDate, provided,
           <div><dt>Bereitgestellt</dt><dd>{provided}</dd></div>
         </dl>
       </aside>
-      <section className="credit-document-panel" aria-label={`Dokumentvorschau (${fileType})`}>
-        <button className="credit-preview-toggle" type="button" aria-controls={previewId} aria-expanded={previewOpen} aria-label={previewOpen ? 'Dokumentvorschau einklappen' : 'Dokumentvorschau ausklappen'} onClick={() => { if (!previewOpen) setPreviewActivated(true); setPreviewOpen(open => !open) }}>
+      {submission ? <section className="credit-submission" aria-label="Angaben der Meldung">{submission}</section> : null}
+    </div>
+    <section className="credit-document-panel" aria-label={`Dokumentvorschau (${fileType})`}>
+        <button className="credit-preview-toggle" type="button" aria-controls={previewId} aria-expanded={previewOpen} aria-label={previewOpen ? 'Dokumentvorschau einklappen' : 'Dokumentvorschau ausklappen'} onClick={() => setPreviewOpen(open => !open)}>
           <span>Vorschau</span><span className="credit-preview-toggle-meta">{fileType}</span><Icon name="chevron" size={18}/>
         </button>
-        <div id={previewId} hidden={!previewOpen}>{previewActivated ? children : null}</div>
+        <div id={previewId} hidden={!previewOpen}>{children}</div>
       </section>
-    </div>
   </article>
 }

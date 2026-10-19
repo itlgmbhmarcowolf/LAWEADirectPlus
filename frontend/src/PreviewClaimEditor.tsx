@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { PreviewClaim, PreviewItem } from './PreviewApp'
+import type { PreviewClaim, PreviewItem, PreviewMember } from './PreviewApp'
 import { Button, Icon, PageTitle, StatusPill } from './ui'
 import { ClaimCreditEntry } from './ClaimCreditEntry'
 import './preview-claim-editor.css'
@@ -14,6 +14,8 @@ type Props = {
   updateItem: (id: number, change: Partial<PreviewItem>) => void
   removeItem: (id: number) => void
   submit: () => void
+  members: PreviewMember[]
+  currentEmail: string
   discard: () => void
   setMessage: (message: string) => void
 }
@@ -24,9 +26,21 @@ export const previewProductNames: Record<string, string> = {
   '04812345': 'Beispielpräparat C'
 }
 
-export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateClaim, addItem, updateItem, removeItem, submit, discard, setMessage }: Props) {
+export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateClaim, addItem, updateItem, removeItem, submit, members, currentEmail, discard, setMessage }: Props) {
   const editable = claim.status === 'DRAFT'
-  const showPositionHelp = claim.items.some(item => !item.pzn || !item.charge.trim() || !item.quantity)
+  const [showValidation, setShowValidation] = useState(false)
+  const validationRef = useRef<HTMLDivElement>(null)
+  const issues = [
+    ...(!claim.items.length ? ['Mindestens eine Position hinzufügen.'] : []),
+    ...claim.items.flatMap((item, index) => [
+      ...(!item.pzn ? [`Position ${index + 1}: PZN eintragen.`] : !previewProductNames[item.pzn] ? [`Position ${index + 1}: PZN ist im Beispielsortiment nicht vorhanden.`] : []),
+      ...(!item.charge.trim() ? [`Position ${index + 1}: Charge eintragen.`] : []),
+      ...(!Number.isInteger(Number(item.quantity)) || Number(item.quantity) < 1 ? [`Position ${index + 1}: Bestand als ganze Packungszahl größer null eintragen.`] : [])
+    ]),
+    ...(!claim.evidenceFile ? ['Bestandsnachweis hochladen.'] : []),
+    ...(!claim.declaration ? ['Richtigkeit der Angaben bestätigen.'] : [])
+  ]
+  const checkAndSubmit = () => { setShowValidation(true); if (issues.length) requestAnimationFrame(() => validationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })); else submit() }
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [evidenceUrl, setEvidenceUrl] = useState('')
   useEffect(() => {
@@ -57,7 +71,6 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
           <label><span className="mobile-label">Bestand in Packungen zum {term}</span><input type="number" min="1" step="1" value={item.quantity} onChange={event => updateItem(item.id, { quantity: event.target.value })} placeholder="0" aria-label={`Bestand in Packungen zum ${term}, Position ${index + 1}`}/></label>
           <button className="icon-button remove-item" aria-label={`Position ${index + 1} entfernen`} onClick={() => removeItem(item.id)}><Icon name="trash" size={18}/></button>
         </div>)}
-        {showPositionHelp ? <p className="preview-position-help">PZN: 8 Ziffern (z. B. 01234567 oder 07654321) · Charge: Nummer von der Packung · Bestand: Packungen am Stichtag</p> : null}
         <button className="add-row" onClick={addItem}><Icon name="plus" size={18}/> Position hinzufügen</button>
       </section>
 
@@ -69,11 +82,13 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
       </section>
 
       <section className="editor-section preview-claim-section" aria-labelledby="preview-comment-title">
+        <label className="field claim-contact-field"><span>Ansprechpartner der Apotheke</span><select value={claim.contactEmail || currentEmail} onChange={event => updateClaim({ contactEmail: event.target.value })}>{members.map(member => <option key={member.email} value={member.email}>{member.name}</option>)}</select></label>
         <label className="field"><span id="preview-comment-title">Kommentar (optional)</span><textarea rows={3} value={claim.comment} onChange={event => updateClaim({ comment: event.target.value })} placeholder="Falls Sie etwas ergänzen möchten"/></label>
         <label className="check-field"><input type="checkbox" checked={claim.declaration} onChange={event => updateClaim({ declaration: event.target.checked })}/><span>Ich bestätige die Richtigkeit der Angaben zum Bestand am Stichtag.</span></label>
       </section></div>
 
-      <div className="editor-actions"><Button variant="quiet" onClick={() => setMessage('Dieser Entwurf bleibt nur bis zum Neuladen im Browser erhalten.')}>Entwurf speichern</Button><Button icon="arrow" onClick={submit}>Angaben prüfen</Button><button className="text-button danger-text" onClick={discard}>Entwurf verwerfen</button></div>
+      {showValidation && issues.length ? <div className="claim-validation" ref={validationRef} role="alert"><strong>Bitte vor dem Einreichen korrigieren:</strong><ul>{issues.map(issue => <li key={issue}>{issue}</li>)}</ul></div> : null}
+      <div className="editor-actions"><Button variant="quiet" onClick={() => setMessage('Dieser Entwurf bleibt nur bis zum Neuladen im Browser erhalten.')}>Entwurf speichern</Button><Button icon="arrow" onClick={checkAndSubmit}>Angaben prüfen</Button><button className="text-button danger-text" onClick={discard}>Entwurf verwerfen</button></div>
     </> : <>
       <PageTitle title="Meldung im Überblick" subtitle={`${claimNumber} · Senkungstermin ${term}`}/>
       <div className="term-summary"><div><span>Stichtag</span><strong>{term}</strong></div><div><span>Vorgang</span><strong>{claimNumber}</strong></div><div><span>Status</span><strong><StatusPill status={claim.status} label={claim.status === 'COMPLETED' ? 'Ausgezahlt · Demo' : claim.status === 'MANUAL_REVIEW' ? 'Eingereicht' : undefined}/></strong></div></div>

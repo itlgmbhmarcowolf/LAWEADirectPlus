@@ -552,8 +552,11 @@ app.put('/api/claims/:id/draft', requireUser, requireRole('PHARMACY_ADMIN', 'PHA
   const input = parse(draftSchema, req.body)
   if (input.version !== claim.version) throw problem(409, 'Der Entwurf wurde inzwischen geändert. Bitte laden Sie ihn neu.', 'VERSION_CONFLICT')
   const { version, ...draftInput } = input
-  // Der Kontakt stammt aus der authentifizierten Sitzung, nicht aus einem Formularfeld.
-  const draft = { ...draftInput, contactName: req.session.name, contactEmail: req.session.email }
+  // Die Auswahl wird serverseitig auf aktive Mitglieder desselben Mandanten begrenzt.
+  const selectedEmail = draftInput.contactEmail || req.session.email
+  const contact = db.prepare("SELECT name,email FROM users WHERE organization_id=? AND email=? AND status='ACTIVE'").get(req.session.organization_id, selectedEmail)
+  if (!contact) throw problem(422, 'Bitte einen aktiven Mitarbeiter dieser Apotheke auswählen.')
+  const draft = { ...draftInput, contactName: contact.name, contactEmail: contact.email }
   const changed = db.prepare("UPDATE claims SET draft_json=?, version=version+1, updated_at=? WHERE id=? AND version=? AND status='DRAFT'")
     .run(JSON.stringify(draft), now(), claim.id, version)
   if (!changed.changes) throw problem(409, 'Der Entwurf wurde inzwischen geändert.', 'VERSION_CONFLICT')
@@ -583,10 +586,13 @@ app.post('/api/claims/:id/cancel', requireUser, requireRole('PHARMACY_ADMIN', 'P
 function validateSubmission(claim, submitter) {
   const term = db.prepare('SELECT * FROM terms WHERE id=?').get(claim.term_id)
   if (!isOpen(term)) throw problem(409, 'Die Einreichungsfrist ist abgelaufen. Ihr Entwurf bleibt erhalten.')
-  const draft = { ...JSON.parse(claim.draft_json), contactName: submitter.name, contactEmail: submitter.email }
+  const savedDraft = JSON.parse(claim.draft_json)
+  const contact = db.prepare("SELECT name,email FROM users WHERE organization_id=? AND email=? AND status='ACTIVE'").get(claim.organization_id, savedDraft.contactEmail || submitter.email)
+  if (!contact) throw problem(422, 'Der ausgewählte Mitarbeiter ist nicht mehr aktiv. Bitte eine andere Person auswählen.')
+  const draft = { ...savedDraft, contactName: contact.name, contactEmail: contact.email }
   const errors = []
   if (!draft.items.length) errors.push('Mindestens eine Position erfassen.')
-  if (!draft.contactName?.trim() || !email.safeParse(draft.contactEmail).success) errors.push('Angemeldete Person konnte nicht zugeordnet werden.')
+  if (!draft.contactName?.trim() || !email.safeParse(draft.contactEmail).success) errors.push('Ansprechpartner konnte nicht zugeordnet werden.')
   if (!draft.declaration) errors.push('Richtigkeit der Angaben bestätigen.')
   const docs = db.prepare("SELECT id,scan_status FROM documents WHERE claim_id=? AND kind='EVIDENCE' AND removed_at IS NULL").all(claim.id)
   if (!docs.length) errors.push('Mindestens einen Nachweis hochladen.')
@@ -617,7 +623,7 @@ app.post('/api/claims/:id/submit', requireUser, requireRole('PHARMACY_ADMIN', 'P
     const claim = pharmacyClaim(req, req.params.id, true)
     const { draft, docIds } = validateSubmission(claim, req.session)
     const submittedAt = now()
-    const snapshot = { ...draft, documentIds: docIds, termId: claim.term_id, submittedAt }
+    const snapshot = { ...draft, submittedByName: req.session.name, submittedByEmail: req.session.email, documentIds: docIds, termId: claim.term_id, submittedAt }
     const flags = draft.items.filter(i => i.quantity > 25).map(i => ({ pzn: i.pzn, rule: 'DEMO_QUANTITY_SAMPLE', note: 'Demo-Beispielgrenze; fachlich nicht freigegeben' }))
     const ruleResult = { version: 'DEMO-1', flags, automaticApproval: false, adapter: 'DEMO_LAWEA' }
     db.prepare(`INSERT INTO claim_revisions VALUES (?,?,?,?,?,?,?,?,?,?)`).run(claim.id, claim.revision_no, JSON.stringify(snapshot), digest(JSON.stringify(snapshot)), 'MANUAL_REVIEW', req.session.uid, submittedAt, null, null, null)

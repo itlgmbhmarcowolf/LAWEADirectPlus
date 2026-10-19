@@ -12,5 +12,6 @@
 .preview-claim-section .preview-evidence-zone{max-width:420px;min-height:84px}
 .preview-hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 .preview-claim-section .check-field{margin:16px 0 0;padding-top:15px;border-top:1px solid #e6eef1}
+.claim-contact-field{margin:0 0 15px}.claim-validation{margin:18px 0;padding:13px 16px;border:1px solid #e9bdc3;border-left:4px solid #b73f50;border-radius:8px;background:#fff6f7;color:#863746;font-size:13px}.claim-validation strong{display:block;margin-bottom:6px}.claim-validation ul{margin:0;padding-left:20px}.claim-validation li+li{margin-top:4px}
 @media(min-width:1100px){.preview-claim-details{display:grid;grid-template-columns:1fr 1fr;gap:16px}.preview-claim-details .preview-claim-section{min-width:0}}
 @media(max-width:620px){.preview-claim-heading{display:block;margin-bottom:19px}.preview-claim-heading h1{font-size:28px}.preview-claim-heading span{display:block;margin-top:5px}.preview-claim-section{padding:16px;margin-bottom:13px}.preview-claim-section>h2{font-size:19px}.preview-claim-section .position-row:last-of-type{border-radius:5px}.preview-claim-section .add-row{width:100%;justify-content:center}.preview-claim-section .preview-evidence-zone{max-width:none}}

@@ -46,11 +46,11 @@ const previewStatus = (status: Status | null) => {
 export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoadDelayMs = 0 }: { terms: DashboardTerm[]; navigate: (page: string) => void; view: DashboardView; onViewChange: (view: DashboardView) => void; demoLoadDelayMs?: number }) {
   const { sortOrder, selectedStatuses, visibleMonths } = view
   const [loadingMore, setLoadingMore] = useState(false)
-  const [autoLoadArmed, setAutoLoadArmed] = useState(true)
+  const [autoLoadArmed, setAutoLoadArmed] = useState(false)
   const updateView = (change: Partial<DashboardView>) => {
     if (change.sortOrder !== undefined || change.selectedStatuses !== undefined) {
       setLoadingMore(false)
-      setAutoLoadArmed(true)
+      setAutoLoadArmed(false)
     }
     onViewChange({ ...view, ...change })
   }
@@ -179,7 +179,7 @@ export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoad
         setAutoLoadArmed(false)
         loadMore()
       }
-    }, { rootMargin: '0px' })
+    }, { rootMargin: `0px 0px ${Math.round(window.innerHeight * .55)}px 0px` })
     observer.observe(node)
     return () => observer.disconnect()
   }, [hasMore, loadingMore, autoLoadArmed, visibleMonths, groupedMonths.length, view.selectedStatuses, view.sortOrder, onViewChange])
@@ -201,6 +201,7 @@ export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoad
         </button>)}</div>
       </div>) : <div className="overview-empty" role="status"><strong>Keine Stichtage für diese Auswahl</strong><span>Wählen Sie einen anderen Status, um weitere Stichtage zu sehen.</span></div>}
     </section>
-    <div className="overview-load-more" ref={sentinelRef} aria-live="polite"><span>{months.length} von {groupedMonths.length} Monaten · {shownTerms.length} von {filteredTerms.length} Stichtagen</span>{hasMore ? <button type="button" aria-disabled={loadingMore} aria-busy={loadingMore} onClick={loadMore}>{loadingMore ? <><span className="overview-loading-spinner" aria-hidden="true"/>Ältere Monate werden geladen …</> : 'Ältere Monate laden'}</button> : null}</div>
+    <div className="overview-load-more" ref={sentinelRef}><span>{months.length} von {groupedMonths.length} Monaten · {shownTerms.length} von {filteredTerms.length} Stichtagen</span></div>
+    {loadingMore ? <div className="overview-loading-overlay" role="status" aria-live="polite"><span className="overview-loading-spinner" aria-hidden="true"/>Ältere Monate werden geladen …</div> : null}
   </div>
 }
