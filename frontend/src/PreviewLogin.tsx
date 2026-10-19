@@ -11,11 +11,11 @@ type Profile = { name: string; email: string; organizationName: string }
 const previewPassword = 'Vorschau!2026'
 const previewCode = '123456'
 type Scenario = 'empty' | 'few' | 'many'
-const accounts: { role: Role; label: string; detail: string; email: string; scenario: Scenario }[] = [
-  { role: 'PHARMACY_ADMIN', label: 'Apotheke 1', detail: 'Viele Beispielmeldungen', email: 'apotheke@beispiel.test', scenario: 'many' },
-  { role: 'PHARMACY_ADMIN', label: 'Apotheke 2', detail: 'Wenige Beispielmeldungen', email: 'wenige@beispiel.test', scenario: 'few' },
-  { role: 'PHARMACY_ADMIN', label: 'Apotheke 3', detail: 'Neues leeres Konto', email: 'neu@beispiel.test', scenario: 'empty' },
-  { role: 'PHARMACY_STAFF', label: 'Mitarbeiterin', detail: 'Eingeladener Zugang', email: 'mitarbeiterin@beispiel.test', scenario: 'many' }
+const accounts: { role: Role; label: string; initials: string; detail: string; email: string; scenario: Scenario }[] = [
+  { role: 'PHARMACY_ADMIN', label: 'Stadt-Apotheke', initials: 'SA', detail: 'Viele Beispielmeldungen', email: 'apotheke@beispiel.test', scenario: 'many' },
+  { role: 'PHARMACY_ADMIN', label: 'Park-Apotheke', initials: 'PA', detail: 'Wenige Beispielmeldungen', email: 'wenige@beispiel.test', scenario: 'few' },
+  { role: 'PHARMACY_ADMIN', label: 'Neue Apotheke', initials: 'NA', detail: 'Noch keine Meldungen', email: 'neu@beispiel.test', scenario: 'empty' },
+  { role: 'PHARMACY_STAFF', label: 'Mitarbeiterin', initials: 'M', detail: 'Eingeladener Zugang', email: 'mitarbeiterin@beispiel.test', scenario: 'many' }
 ]
 const emptyRegistration = (): Registration => ({ pharmacyName: '', street: '', zip: '', city: '', owner: '', phone: '', iban: '', homepage: '', name: '' })
 
@@ -84,7 +84,7 @@ export function PreviewLogin({ onAuthenticated }: { onAuthenticated: (role: Role
     if (registered?.email === normalized) {
       if (!registered.approved) { setError('Das Beispielkonto wartet noch auf Freigabe.'); return }
       if (password !== registered.password) { failedAuth(normalized); return }
-      setSelected({ role: 'PHARMACY_ADMIN', label: 'Neue Apotheke', detail: 'Eigenes Beispielkonto', email: normalized, scenario: 'empty' })
+      setSelected({ role: 'PHARMACY_ADMIN', label: 'Neue Apotheke', initials: 'NA', detail: 'Eigenes Beispielkonto', email: normalized, scenario: 'empty' })
     } else {
       const account = accounts.find(item => item.email === normalized)
       if (!account) { setError('Bitte einen der eingeblendeten fiktiven Demo-Zugänge verwenden.'); return }
@@ -199,7 +199,7 @@ export function PreviewLogin({ onAuthenticated }: { onAuthenticated: (role: Role
       <button ref={testAccessTriggerRef} className="preview-test-trigger" type="button" aria-label="Testzugang wählen" aria-haspopup="dialog" aria-expanded={testAccessOpen} onClick={() => setTestAccessOpen(current => !current)}><Icon name="users" size={21}/></button>
       {testAccessOpen ? <div className="preview-test-popover" role="dialog" aria-modal="false" aria-labelledby="preview-test-title">
         <div className="preview-test-popover-heading"><div><strong id="preview-test-title">Testzugang wählen</strong><span>Fiktive Konten für die Vorschau</span></div><button type="button" aria-label="Testzugänge schließen" onClick={() => { setTestAccessOpen(false); testAccessTriggerRef.current?.focus() }}><Icon name="close" size={18}/></button></div>
-        <div className="preview-test-options">{accounts.map((account, index) => <button key={account.email} type="button" className={selected.email === account.email ? 'selected' : ''} aria-pressed={selected.email === account.email} onClick={() => { choose(account); testAccessTriggerRef.current?.focus() }}><span className="preview-test-avatar">{index < 3 ? `A${index + 1}` : 'M'}</span><span className="preview-test-option-copy"><strong>{account.label}</strong><small>{account.detail}</small></span>{selected.email === account.email ? <Icon name="check" size={17}/> : null}</button>)}</div>
+        <div className="preview-test-options">{accounts.map(account => <button key={account.email} type="button" className={selected.email === account.email ? 'selected' : ''} aria-pressed={selected.email === account.email} onClick={() => { choose(account); testAccessTriggerRef.current?.focus() }}><span className="preview-test-avatar">{account.initials}</span><span className="preview-test-option-copy"><strong>{account.label}</strong><small>{account.detail}</small></span>{selected.email === account.email ? <Icon name="check" size={17}/> : null}</button>)}</div>
         <div className="preview-test-popover-footer"><span>Beispielpasswort <strong>{previewPassword}</strong></span><button type="button" onClick={() => { setEmail(accounts[3].email); setPassword(''); setPasswordAgain(''); open('invite') }}>Mitarbeiter-Einladung ansehen</button></div>
       </div> : null}
     </div> : null}</section>
