@@ -47,7 +47,7 @@ export function PreviewLogin({ onAuthenticated }: { onAuthenticated: (role: Role
     const count = lockedUntil[address] && lockedUntil[address] <= Date.now() ? 1 : (authFailures[address] || 0) + 1
     setAuthFailures(current => ({ ...current, [address]: count }))
     if (count >= 3) { const until = Date.now() + 4 * 3600000; setLockedUntil(current => ({ ...current, [address]: until })); setError(lockMessage(until)); return }
-    setError('Demo-Anmeldung fehlgeschlagen. Bitte Passwort oder Einmalcode prüfen.')
+    setError(`Demo-Anmeldung fehlgeschlagen. Noch ${3 - count} ${count === 2 ? 'Versuch' : 'Versuche'} bis zur vierstündigen Sperre.`)
   }
 
   const open = (next: Mode) => { setMode(next); setError(''); setNotice(''); setCode('') }
@@ -137,7 +137,7 @@ export function PreviewLogin({ onAuthenticated }: { onAuthenticated: (role: Role
       {notice ? <Notice tone="info">{notice}</Notice> : null}
 
       {mode === 'login' ? <>
-        <h2>Willkommen zurück</h2><p className="auth-lead">Melden Sie sich an, um die Beispielvorgänge anzusehen.</p>
+        <h2>Willkommen zurück</h2><p className="auth-lead">Melden Sie sich an, um die Beispielvorgänge anzusehen.</p><p className="auth-lock-hint"><Icon name="shield" size={16}/><span>Nach drei falschen Passwort- oder Anmeldecodeeingaben wird der Zugang für vier Stunden gesperrt.</span></p>
         <form className="form-stack" onSubmit={submitLogin} autoComplete="off"><label className="field"><span>E-Mail-Adresse</span><input name="preview-email" type="email" required value={email} onChange={event => setEmail(event.target.value)} autoComplete="off"/></label><label className="field"><span>Passwort</span><input name="preview-password" type="password" required value={password} onChange={event => setPassword(event.target.value)} autoComplete="off"/></label><Button type="submit" icon="arrow">Demo-Anmeldung starten</Button></form>
         <button className="text-button" onClick={() => open('reset-request')}>Passwort vergessen?</button>
         <div className="auth-divider">Noch kein Konto?</div>
@@ -159,7 +159,7 @@ export function PreviewLogin({ onAuthenticated }: { onAuthenticated: (role: Role
 
       {['login-otp','register-otp','invite-otp'].includes(mode) ? <>
         <button className="back-link" onClick={() => open(mode === 'register-otp' ? 'register' : mode === 'invite-otp' ? 'invite' : 'login')}>← Zurück</button>
-        <h2>E-Mail-Adresse bestätigen</h2><p className="auth-lead">Für diese Vorschau wird kein Code versendet. Nutzen Sie den eingeblendeten Beispielcode.</p><Notice><strong>Beispielcode:</strong> {previewCode}</Notice>
+        <h2>E-Mail-Adresse bestätigen</h2><p className="auth-lead">Für diese Vorschau wird kein Code versendet. Nutzen Sie den eingeblendeten Beispielcode.</p>{mode === 'login-otp' ? <p className="auth-lock-hint"><Icon name="shield" size={16}/><span>Passwort- und Anmeldecodefehler zählen gemeinsam: Nach drei Fehlversuchen wird der Zugang für vier Stunden gesperrt.</span></p> : null}<Notice><strong>Beispielcode:</strong> {previewCode}</Notice>
         <form className="form-stack" onSubmit={submitCode}><label className="field"><span>Einmalcode</span><input inputMode="numeric" pattern="[0-9]{6}" maxLength={6} required value={code} onChange={event => setCode(event.target.value)} autoComplete="off"/></label><Button type="submit" icon="arrow">Bestätigen</Button></form>
       </> : null}
 

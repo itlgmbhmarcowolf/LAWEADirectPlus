@@ -28,7 +28,7 @@ Eine Person kann mehrere Rollen haben, aber jede Aktion prüft ihre konkrete Ber
 
 **REG-05:** N-Connect/NGDA ist eine zweite Verifizierungsroute: bestätigte Identität und Stammdaten werden anhand eines vertraglich definierten Adapters übernommen und mit Quellen-/Zeitstempel gespeichert. Ein Ausfall führt zum manuellen Weg oder `vorläufig`; niemals zur stillen Freigabe. Föderierter Login bleibt separat zu entscheiden.
 
-**AUTH-01:** Normales Login erfordert E-Mail, Passwort und OTP als zweiten Faktor. Passwortreset nutzt einen befristeten Einmal-Link und invalidiert alte Sitzungen gemäß Sicherheitskonzept. Zugang ist gesperrt, solange Konto/Apotheke nicht freigegeben oder Benutzer deaktiviert ist. Rate-Limits und generische Fehltexte verhindern Kontoauskundschaftung.
+**AUTH-01:** Normales Login erfordert E-Mail, Passwort und OTP als zweiten Faktor. Passwortreset nutzt einen befristeten Einmal-Link und invalidiert alte Sitzungen gemäß Sicherheitskonzept. Zugang ist gesperrt, solange Konto/Apotheke nicht freigegeben oder Benutzer deaktiviert ist. Vor dem Login wird erklärt, dass der Zugang nach drei falschen Passwort- oder Anmeldecodeeingaben für vier Stunden gesperrt wird. Die Fehlarten zählen gemeinsam; die Sperre nennt den Zeitpunkt der nächsten Anmeldung. Rate-Limits und generische Fehltexte verhindern Kontoauskundschaftung.
 
 **AUTH-02:** Neu gesetzte Passwörter benötigen mindestens 12 Zeichen, einen Großbuchstaben, einen Kleinbuchstaben, eine Ziffer und ein Sonderzeichen. Die Kriterien werden während der Eingabe angezeigt und beim Absenden serverseitig geprüft.
 
