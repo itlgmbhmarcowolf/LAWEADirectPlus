@@ -37,7 +37,7 @@
 .credit-submission+.credit-document-panel{border-top:1px solid #dce7eb}
 .credit-preview-heading{display:flex;align-items:center;gap:12px;min-height:48px;padding:6px 14px 6px 19px;background:#f8fafb;border-bottom:1px solid #dce7eb}
 .credit-preview-heading h2{margin:0;color:#24445c;font-size:14px;font-weight:750}
-.credit-preview-toggle{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:34px;flex:none;padding:5px 10px;border:1px solid #c8dce4;border-radius:7px;background:#fff;color:#08738a;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.credit-preview-toggle{display:grid;place-items:center;width:34px;height:34px;flex:none;padding:0;border:1px solid #c8dce4;border-radius:7px;background:#fff;color:#08738a;cursor:pointer}
 .credit-preview-toggle:hover{background:#e8f6f8;border-color:#8bbdca}
 .credit-preview-toggle:focus-visible{outline:3px solid #63bfd0;outline-offset:2px}
 .credit-preview-toggle-meta{margin-left:auto;color:#748895;font-size:11px;font-weight:500}

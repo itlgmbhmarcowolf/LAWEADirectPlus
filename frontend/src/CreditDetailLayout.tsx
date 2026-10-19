@@ -33,7 +33,6 @@ export function CreditDetailLayout({ reference, download, downloadError, fileTyp
           <span className="credit-preview-toggle-meta">{fileType}</span>
           <button className="credit-preview-toggle" type="button" aria-controls={previewId} aria-expanded={previewOpen} aria-label={previewOpen ? 'Gutschrift einklappen' : 'Gutschrift ausklappen'} onClick={() => { if (!previewOpen) setPreviewMounted(true); setPreviewOpen(open => !open) }}>
             <Icon name={previewOpen ? 'eyeOff' : 'eye'} size={19}/>
-            <span>{previewOpen ? 'Einklappen' : 'Ausklappen'}</span>
           </button>
         </div>
         <div id={previewId} hidden={!previewOpen}>{previewMounted ? children : null}</div>
