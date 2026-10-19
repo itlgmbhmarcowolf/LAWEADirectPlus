@@ -16,7 +16,8 @@ export function CreditDetailLayout({ reference, download, downloadError, fileTyp
   submission?: ReactNode
   children: ReactNode
 }) {
-  const [previewOpen, setPreviewOpen] = useState(true)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewMounted, setPreviewMounted] = useState(false)
   const previewId = useId()
   return <article className="credit-page">
     <button className="credit-back" type="button" onClick={onClaim}>Zur Meldung</button>
@@ -28,13 +29,14 @@ export function CreditDetailLayout({ reference, download, downloadError, fileTyp
       {submission ? <section className="credit-submission" aria-label="Angaben der Meldung">{submission}</section> : null}
       <section className="credit-document-panel" aria-label={`Dokumentvorschau (${fileType})`}>
         <div className="credit-preview-heading">
-          <h2>Vorschau</h2>
+          <h2>Gutschrift</h2>
           <span className="credit-preview-toggle-meta">{fileType}</span>
-          <button className="credit-preview-toggle" type="button" aria-controls={previewId} aria-expanded={previewOpen} aria-label={previewOpen ? 'Dokumentvorschau ausblenden' : 'Dokumentvorschau anzeigen'} onClick={() => setPreviewOpen(open => !open)}>
+          <button className="credit-preview-toggle" type="button" aria-controls={previewId} aria-expanded={previewOpen} aria-label={previewOpen ? 'Gutschrift einklappen' : 'Gutschrift ausklappen'} onClick={() => { if (!previewOpen) setPreviewMounted(true); setPreviewOpen(open => !open) }}>
             <Icon name={previewOpen ? 'eyeOff' : 'eye'} size={19}/>
+            <span>{previewOpen ? 'Einklappen' : 'Ausklappen'}</span>
           </button>
         </div>
-        <div id={previewId} hidden={!previewOpen}>{children}</div>
+        <div id={previewId} hidden={!previewOpen}>{previewMounted ? children : null}</div>
       </section>
     </div>
   </article>
