@@ -43,9 +43,17 @@ const previewStatus = (status: Status | null) => {
   return ''
 }
 
-export function PreviewDashboard({ terms, navigate, view, onViewChange }: { terms: DashboardTerm[]; navigate: (page: string) => void; view: DashboardView; onViewChange: (view: DashboardView) => void }) {
+export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoadDelayMs = 0 }: { terms: DashboardTerm[]; navigate: (page: string) => void; view: DashboardView; onViewChange: (view: DashboardView) => void; demoLoadDelayMs?: number }) {
   const { sortOrder, selectedStatuses, visibleMonths } = view
-  const updateView = (change: Partial<DashboardView>) => onViewChange({ ...view, ...change })
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [autoLoadArmed, setAutoLoadArmed] = useState(true)
+  const updateView = (change: Partial<DashboardView>) => {
+    if (change.sortOrder !== undefined || change.selectedStatuses !== undefined) {
+      setLoadingMore(false)
+      setAutoLoadArmed(true)
+    }
+    onViewChange({ ...view, ...change })
+  }
   const sentinelRef = useRef<HTMLDivElement>(null)
   const sortRef = useRef<HTMLDivElement>(null)
   const sortTriggerRef = useRef<HTMLButtonElement>(null)
@@ -129,18 +137,52 @@ export function PreviewDashboard({ terms, navigate, view, onViewChange }: { term
   const months = groupedMonths.slice(0, visibleMonths)
   const shownTerms = months.flatMap(month => month.terms)
   const hasMore = visibleMonths < groupedMonths.length
+  const loadMore = () => {
+    if (!hasMore || loadingMore) return
+    if (demoLoadDelayMs > 0) setLoadingMore(true)
+    else updateView({ visibleMonths: Math.min(visibleMonths + 2, groupedMonths.length) })
+  }
+  useEffect(() => {
+    if (!loadingMore) return
+    const timer = window.setTimeout(() => {
+      setLoadingMore(false)
+      onViewChange({ ...view, visibleMonths: Math.min(view.visibleMonths + 2, groupedMonths.length) })
+    }, demoLoadDelayMs)
+    return () => window.clearTimeout(timer)
+  }, [loadingMore, demoLoadDelayMs, visibleMonths, groupedMonths.length, view.selectedStatuses, view.sortOrder, onViewChange])
+  useEffect(() => {
+    if (autoLoadArmed || loadingMore || !hasMore) return
+    const arm = () => setAutoLoadArmed(true)
+    const armOnKey = (event: globalThis.KeyboardEvent) => {
+      if (!sentinelRef.current?.contains(event.target as Node) && ['ArrowDown', 'PageDown', 'End', ' '].includes(event.key)) arm()
+    }
+    const armOnPointer = (event: PointerEvent) => {
+      if (!sentinelRef.current?.contains(event.target as Node)) arm()
+    }
+    window.addEventListener('wheel', arm, { passive: true })
+    window.addEventListener('touchmove', arm, { passive: true })
+    window.addEventListener('pointerdown', armOnPointer)
+    window.addEventListener('keydown', armOnKey)
+    return () => {
+      window.removeEventListener('wheel', arm)
+      window.removeEventListener('touchmove', arm)
+      window.removeEventListener('pointerdown', armOnPointer)
+      window.removeEventListener('keydown', armOnKey)
+    }
+  }, [autoLoadArmed, loadingMore, hasMore])
   useEffect(() => {
     const node = sentinelRef.current
-    if (!node || !hasMore || !('IntersectionObserver' in window)) return
+    if (!node || !hasMore || loadingMore || !autoLoadArmed || !('IntersectionObserver' in window)) return
     const observer = new IntersectionObserver(entries => {
       if (entries[0]?.isIntersecting) {
         observer.disconnect()
-        onViewChange({ ...view, visibleMonths: Math.min(view.visibleMonths + 2, groupedMonths.length) })
+        setAutoLoadArmed(false)
+        loadMore()
       }
     }, { rootMargin: '0px' })
     observer.observe(node)
     return () => observer.disconnect()
-  }, [hasMore, visibleMonths, groupedMonths.length, view.selectedStatuses, view.sortOrder, onViewChange])
+  }, [hasMore, loadingMore, autoLoadArmed, visibleMonths, groupedMonths.length, view.selectedStatuses, view.sortOrder, onViewChange])
 
   return <div className="overview-simple">
     <header className="overview-simple-heading">
@@ -159,6 +201,6 @@ export function PreviewDashboard({ terms, navigate, view, onViewChange }: { term
         </button>)}</div>
       </div>) : <div className="overview-empty" role="status"><strong>Keine Stichtage für diese Auswahl</strong><span>Wählen Sie einen anderen Status, um weitere Stichtage zu sehen.</span></div>}
     </section>
-    <div className="overview-load-more" ref={sentinelRef} aria-live="polite"><span>{months.length} von {groupedMonths.length} Monaten · {shownTerms.length} von {filteredTerms.length} Stichtagen</span>{hasMore ? <button type="button" onClick={() => updateView({ visibleMonths: Math.min(visibleMonths + 2, groupedMonths.length) })}>Ältere Monate laden</button> : null}</div>
+    <div className="overview-load-more" ref={sentinelRef} aria-live="polite"><span>{months.length} von {groupedMonths.length} Monaten · {shownTerms.length} von {filteredTerms.length} Stichtagen</span>{hasMore ? <button type="button" aria-disabled={loadingMore} aria-busy={loadingMore} onClick={loadMore}>{loadingMore ? <><span className="overview-loading-spinner" aria-hidden="true"/>Ältere Monate werden geladen …</> : 'Ältere Monate laden'}</button> : null}</div>
   </div>
 }
