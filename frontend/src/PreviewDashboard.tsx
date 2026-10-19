@@ -46,11 +46,9 @@ const previewStatus = (status: Status | null) => {
 export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoadDelayMs = 0 }: { terms: DashboardTerm[]; navigate: (page: string) => void; view: DashboardView; onViewChange: (view: DashboardView) => void; demoLoadDelayMs?: number }) {
   const { sortOrder, selectedStatuses, visibleMonths } = view
   const [loadingMore, setLoadingMore] = useState(false)
-  const [autoLoadArmed, setAutoLoadArmed] = useState(false)
   const updateView = (change: Partial<DashboardView>) => {
     if (change.sortOrder !== undefined || change.selectedStatuses !== undefined) {
       setLoadingMore(false)
-      setAutoLoadArmed(false)
     }
     onViewChange({ ...view, ...change })
   }
@@ -151,38 +149,19 @@ export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoad
     return () => window.clearTimeout(timer)
   }, [loadingMore, demoLoadDelayMs, visibleMonths, groupedMonths.length, view.selectedStatuses, view.sortOrder, onViewChange])
   useEffect(() => {
-    if (autoLoadArmed || loadingMore || !hasMore) return
-    const arm = () => setAutoLoadArmed(true)
-    const armOnKey = (event: globalThis.KeyboardEvent) => {
-      if (!sentinelRef.current?.contains(event.target as Node) && ['ArrowDown', 'PageDown', 'End', ' '].includes(event.key)) arm()
-    }
-    const armOnPointer = (event: PointerEvent) => {
-      if (!sentinelRef.current?.contains(event.target as Node)) arm()
-    }
-    window.addEventListener('wheel', arm, { passive: true })
-    window.addEventListener('touchmove', arm, { passive: true })
-    window.addEventListener('pointerdown', armOnPointer)
-    window.addEventListener('keydown', armOnKey)
-    return () => {
-      window.removeEventListener('wheel', arm)
-      window.removeEventListener('touchmove', arm)
-      window.removeEventListener('pointerdown', armOnPointer)
-      window.removeEventListener('keydown', armOnKey)
-    }
-  }, [autoLoadArmed, loadingMore, hasMore])
-  useEffect(() => {
     const node = sentinelRef.current
-    if (!node || !hasMore || loadingMore || !autoLoadArmed || !('IntersectionObserver' in window)) return
-    const observer = new IntersectionObserver(entries => {
-      if (entries[0]?.isIntersecting) {
-        observer.disconnect()
-        setAutoLoadArmed(false)
-        loadMore()
-      }
-    }, { rootMargin: `0px 0px ${Math.round(window.innerHeight * .55)}px 0px` })
-    observer.observe(node)
-    return () => observer.disconnect()
-  }, [hasMore, loadingMore, autoLoadArmed, visibleMonths, groupedMonths.length, view.selectedStatuses, view.sortOrder, onViewChange])
+    if (!node || !hasMore || loadingMore) return
+    const checkForMore = () => {
+      if (window.scrollY > 0 && node.getBoundingClientRect().top - window.innerHeight <= Math.max(240, window.innerHeight * .75)) loadMore()
+    }
+    window.addEventListener('scroll', checkForMore, { passive: true })
+    window.addEventListener('resize', checkForMore)
+    checkForMore()
+    return () => {
+      window.removeEventListener('scroll', checkForMore)
+      window.removeEventListener('resize', checkForMore)
+    }
+  }, [hasMore, loadingMore, visibleMonths, groupedMonths.length, view.selectedStatuses, view.sortOrder, onViewChange])
 
   return <div className="overview-simple">
     <header className="overview-simple-heading">

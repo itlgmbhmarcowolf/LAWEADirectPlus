@@ -27,7 +27,11 @@ const initialMembers = (): PreviewMember[] => [
 ]
 const openTerms = [
   { iso: '2026-10-01', date: '01.10.2026', number: 'LV-2026-BEISPIEL-01' },
+  { iso: '2026-10-15', date: '15.10.2026', number: 'LV-2026-BEISPIEL-05' },
   { iso: '2026-09-15', date: '15.09.2026', number: 'LV-2026-BEISPIEL-02' },
+  { iso: '2026-09-01', date: '01.09.2026', number: 'LV-2026-BEISPIEL-06' },
+  { iso: '2026-08-15', date: '15.08.2026', number: 'LV-2026-BEISPIEL-07' },
+  { iso: '2026-08-01', date: '01.08.2026', number: 'LV-2026-BEISPIEL-08' },
   { iso: '2026-07-15', date: '15.07.2026', number: 'LV-2026-BEISPIEL-03' },
   { iso: '2026-07-01', date: '01.07.2026', number: 'LV-2026-BEISPIEL-04' }
 ] as const
@@ -103,12 +107,12 @@ export function PreviewApp() {
     }
     setConfirmSubmit(true)
   }
-  const visibleSamples = scenario === 'many' ? sampleClaims : scenario === 'few' ? sampleClaims.slice(-2) : []
+  const visibleSamples = scenario === 'many' ? sampleClaims : scenario === 'few' ? sampleClaims.filter(item => ['2026-08-01', '2026-08-15', '2026-09-01'].includes(item.termDate)) : []
   const credits = [...openTerms.filter(term => claims[term.iso].status === 'COMPLETED').map(term => ({ claimNumber: term.number, reference: `BEISPIEL-GS-${term.number.slice(-2)}`, provided: 'In dieser Sitzung', termDate: term.iso })), ...sampleCredits.filter(credit => visibleSamples.some(claim => claim.number === credit.claimNumber))]
-  const dashboardTerms = [
+  const dashboardTerms = [...new Map([
     ...openTerms.map(term => ({ iso: term.iso, date: term.date, status: claims[term.iso].status === 'DRAFT' && !hasDraftData(claims[term.iso]) ? null : claims[term.iso].status, target: claims[term.iso].status === 'COMPLETED' ? `credits:${term.number}` : `claim:${term.iso}` })),
     ...visibleSamples.map(item => ({ iso: item.termDate, date: new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${item.termDate}T12:00:00Z`)), status: sampleCorrections[item.number]?.phase === 'draft' ? 'DRAFT' as Status : sampleCorrections[item.number]?.phase === 'submitted' ? 'MANUAL_REVIEW' as Status : item.status, target: item.status === 'COMPLETED' && item.creditReference ? `credits:${item.number}` : `sample:${item.number}` }))
-  ]
+  ].map(item => [item.iso, item] as const)).values()]
   if (!signedIn) return <PreviewLogin onAuthenticated={(nextRole, newProfile, nextScenario = 'many', accountEmail) => { setScenario(nextScenario); setClaims(initialClaims(nextScenario)); setSampleCorrections({}); setProfile(newProfile || null); setMembers(newProfile ? [{ name: newProfile.name, email: newProfile.email, admin: true, status: 'Aktiv' }] : nextScenario === 'many' ? initialMembers() : [{ name: 'Demo Apotheke', email: accountEmail || 'neu@beispiel.test', admin: true, status: 'Aktiv' }]); setSignedInEmail(newProfile?.email || accountEmail || (nextRole === 'PHARMACY_STAFF' ? 'mitarbeiterin@beispiel.test' : 'apotheke@beispiel.test')); setViewAsEmail(null); setRole(nextRole); resetPage(nextRole.startsWith('PHARMACY') ? pageFromRoute() : nextRole === 'REVIEWER' ? 'review' : 'finance'); setSignedIn(true) }}/>
 
   let content: React.ReactNode
