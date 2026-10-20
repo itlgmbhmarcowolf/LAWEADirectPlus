@@ -20,7 +20,7 @@ const topics: Topic[] = [
     { title: 'Nachweis hinzufügen', text: 'Wählen Sie im Bereich „Nachweis“ eine Datei aus. Das Formular zeigt die unterstützten Dateitypen und die zulässige Größe.' },
     { title: 'Angaben prüfen', text: 'Kontrollieren Sie PZN, Charge, Packungszahl und Stichtag. Wählen Sie einen Ansprechpartner Ihrer Apotheke und bestätigen Sie die Richtigkeit.' },
     { title: 'Einreichen', text: '„Angaben prüfen“ zeigt fehlende Felder. Erst „Jetzt einreichen“ sendet die Meldung verbindlich. Die eingereichte Revision bleibt unveränderlich.' }
-  ], note: 'Die Assistenz kann Hinweise geben, bestätigt die Angaben aber nicht und reicht keine Meldung für Sie ein.' },
+  ] },
   { id: 'korrektur', title: 'Korrektur nach Ablehnung', summary: 'Rückmeldung lesen und eine neue Revision einreichen', keywords: 'fehler ablehnung erneut', intro: 'Kommt eine Meldung zur Korrektur zurück, sehen Sie den Grund direkt in der Meldung. Die bereits eingereichte Fassung bleibt im Verlauf erhalten.', steps: [
     { title: 'Grund lesen', text: 'Öffnen Sie den Stichtag mit dem Stand „Bitte korrigieren“ und lesen Sie die Rückmeldung.' },
     { title: 'Neue Revision erstellen', text: 'Wählen Sie „Neue Revision erstellen“. Korrigieren Sie die Angaben. Sie können den Nachweis erneut hochladen und einen Kommentar ergänzen.' },

@@ -1,56 +1,53 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { SamplePosition } from './sample-claim-data'
 import { previewProductNames } from './PreviewClaimEditor'
-import { Button, Notice } from './ui'
+import { Button, Icon } from './ui'
 import './sample-correction-flow.css'
 
 export type SampleCorrection = {
   phase: 'draft' | 'submitted'
   positions: SamplePosition[]
   comment: string
+  contactEmail: string
   declaration: boolean
   evidenceFile: File | null
   submittedAt?: string
 }
 
 export function SampleCorrectionFlow({
-  original, value, onChange, onSubmit
+  value, contacts, onChange, onSubmit
 }: {
-  original: SamplePosition[]
   value: SampleCorrection
+  contacts: { name: string; email: string }[]
   onChange: (next: SampleCorrection) => void
   onSubmit: () => void
 }) {
   const [reviewing, setReviewing] = useState(false)
-  const [error, setError] = useState('')
-  const change = (next: SampleCorrection) => { onChange(next); setReviewing(false); setError('') }
+  const [errors, setErrors] = useState<string[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const change = (next: SampleCorrection) => { onChange(next); setReviewing(false); setErrors([]) }
   const changePosition = (index: number, update: Partial<SamplePosition>) => {
     change({ ...value, positions: value.positions.map((position, current) => current === index ? { ...position, ...update } : position) })
   }
   const review = () => {
-    if (value.positions.some(position => !previewProductNames[position.pzn] || !position.charge.trim() || !Number.isInteger(position.quantity) || position.quantity < 1)) {
-      setError('Bitte prüfen Sie PZN, Charge und eine positive ganze Packungszahl für jede Position.')
-      return
-    }
-    const changed = value.positions.some((position, index) => position.pzn !== original[index]?.pzn || position.charge !== original[index]?.charge || position.quantity !== original[index]?.quantity)
-    if (!changed && !value.comment.trim() && !value.evidenceFile) {
-      setError('Bitte korrigieren Sie eine Angabe, laden Sie einen Nachweis hoch oder erläutern Sie den Ablehnungsgrund.')
-      return
-    }
-    if (!value.evidenceFile) {
-      setError('Bitte laden Sie den Nachweis für die korrigierte Revision erneut hoch.')
-      return
-    }
-    if (!value.declaration) {
-      setError('Bitte bestätigen Sie die Richtigkeit der korrigierten Angaben.')
-      return
-    }
-    setError('')
+    const missing: string[] = []
+    value.positions.forEach((position, index) => {
+      const prefix = `Position ${index + 1}`
+      if (!position.pzn) missing.push(`${prefix}: PZN eintragen.`)
+      else if (!previewProductNames[position.pzn]) missing.push(`${prefix}: gültige PZN auswählen.`)
+      if (!position.charge.trim()) missing.push(`${prefix}: Charge eintragen.`)
+      if (!Number.isInteger(position.quantity) || position.quantity < 1) missing.push(`${prefix}: Bestand als ganze Packungszahl größer null eintragen.`)
+    })
+    if (!contacts.some(contact => contact.email === value.contactEmail)) missing.push('Aktiven Ansprechpartner der Apotheke auswählen.')
+    if (!value.evidenceFile) missing.push('Nachweis für Revision 2 hochladen.')
+    if (!value.declaration) missing.push('Richtigkeit der korrigierten Angaben bestätigen.')
+    setErrors(missing)
+    if (missing.length) return
     setReviewing(true)
   }
 
   return <section className="data-section sample-correction" aria-labelledby="sample-correction-title">
-    <div className="section-header"><div><h2 id="sample-correction-title">Revision 2 korrigieren</h2><p>Die eingereichte Revision 1 bleibt unverändert im Verlauf.</p></div><span className="sample-correction-draft">Entwurf · Demo</span></div>
+    <div className="section-header"><div><h2 id="sample-correction-title">Revision 2 korrigieren</h2><p>Die eingereichte Revision 1 bleibt unverändert im Verlauf.</p></div></div>
     <div className="sample-correction-fields">
       {value.positions.map((position, index) => <div className="sample-correction-position" key={index}>
         <strong>Position {index + 1}</strong>
@@ -60,24 +57,31 @@ export function SampleCorrectionFlow({
         <label>Bestand in Packungen<input type="number" min="1" step="1" value={position.quantity || ''} onChange={event => changePosition(index, { quantity: Number(event.target.value) })}/></label>
       </div>)}
       <label className="sample-correction-comment">Erläuterung zur Korrektur<textarea rows={3} value={value.comment} onChange={event => change({ ...value, comment: event.target.value })} placeholder="Was haben Sie korrigiert?"/></label>
+      <label className="sample-correction-contact">Ansprechpartner der Apotheke
+        <select value={value.contactEmail} onChange={event => change({ ...value, contactEmail: event.target.value })}>
+          <option value="">Bitte auswählen</option>
+          {contacts.map(contact => <option key={contact.email} value={contact.email}>{contact.name}</option>)}
+        </select>
+      </label>
       <div className="sample-correction-upload">
-        <label htmlFor="sample-correction-file">Nachweis für Revision 2 erneut hochladen</label>
-        <input id="sample-correction-file" type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={event => {
+        <strong>Nachweis für Revision 2</strong>
+        <input ref={fileInputRef} className="preview-hidden-file" type="file" accept=".pdf,.jpg,.jpeg,.png" tabIndex={-1} aria-label="Nachweis für Revision 2 auswählen" onChange={event => {
           const file = event.target.files?.[0]
           if (!file) return
           if (!['application/pdf', 'image/jpeg', 'image/png'].includes(file.type) || file.size > 5 * 1024 * 1024) {
-            setError('Bitte wählen Sie eine PDF-, JPG- oder PNG-Datei mit höchstens 5 MB.')
+            setErrors(['Nachweis: PDF-, JPG- oder PNG-Datei mit höchstens 5 MB auswählen.'])
             event.target.value = ''
             return
           }
           change({ ...value, evidenceFile: file })
           event.target.value = ''
         }}/>
-        {value.evidenceFile ? <div className="sample-correction-file"><span>{value.evidenceFile.name}</span><button type="button" className="text-button" onClick={() => change({ ...value, evidenceFile: null })}>Entfernen</button></div> : <p>PDF, JPG oder PNG · maximal 5 MB</p>}
+        <button type="button" className="preview-evidence-zone" onClick={() => fileInputRef.current?.click()}><Icon name={value.evidenceFile ? 'check' : 'upload'} size={25}/><strong>{value.evidenceFile ? value.evidenceFile.name : 'Nachweis hochladen'}</strong><small>PDF, JPG, PNG · maximal 5 MB</small></button>
+        {value.evidenceFile ? <button type="button" className="text-button sample-correction-remove-file" onClick={() => change({ ...value, evidenceFile: null })}>Nachweis entfernen</button> : null}
       </div>
       <label className="check-field"><input type="checkbox" checked={value.declaration} onChange={event => change({ ...value, declaration: event.target.checked })}/><span>Ich bestätige die Richtigkeit der korrigierten Angaben.</span></label>
     </div>
-    {error ? <Notice tone="warning">{error}</Notice> : null}
-    {reviewing ? <div className="sample-correction-review" role="status"><strong>Korrektur bereit zur Einreichung</strong><p>{value.positions.length} Positionen · Erläuterung: {value.comment.trim() || 'Angaben korrigiert'} · Nachweis: {value.evidenceFile?.name}</p><div className="sample-correction-actions"><Button variant="secondary" onClick={() => setReviewing(false)}>Weiter bearbeiten</Button><Button onClick={onSubmit}>Revision 2 erneut einreichen</Button></div></div> : <div className="sample-correction-actions"><Button onClick={review}>Angaben prüfen</Button></div>}
+    {errors.length ? <div className="sample-correction-issues" role="alert"><strong>Bitte vor dem Einreichen ergänzen:</strong><ul>{errors.map(issue => <li key={issue}>{issue}</li>)}</ul></div> : null}
+    {reviewing ? <div className="sample-correction-review" role="status"><strong>Korrektur bereit zur Einreichung</strong><p>{value.positions.length} Positionen · Ansprechpartner: {contacts.find(contact => contact.email === value.contactEmail)?.name} · Erläuterung: {value.comment.trim() || 'Angaben korrigiert'} · Nachweis: {value.evidenceFile?.name}</p><div className="sample-correction-actions"><Button variant="secondary" onClick={() => setReviewing(false)}>Weiter bearbeiten</Button><Button onClick={onSubmit}>Revision 2 erneut einreichen</Button></div></div> : <div className="sample-correction-actions"><Button onClick={review}>Angaben prüfen</Button></div>}
   </section>
 }

@@ -2,7 +2,6 @@
 .sample-correction .section-header{align-items:flex-start}
 .sample-correction .section-header h2{margin:0 0 4px}
 .sample-correction .section-header p{margin:0;color:#637b83;font-size:12px}
-.sample-correction-draft{flex:none;border-radius:999px;background:#e9f6f0;color:#176b54;padding:6px 10px;font-size:11px;font-weight:750}
 .sample-correction-fields{display:grid;gap:15px;margin-top:18px}
 .sample-correction-position{display:grid;grid-template-columns:75px minmax(125px,.8fr) minmax(135px,1.1fr) minmax(125px,1fr) minmax(125px,.8fr);align-items:end;gap:11px;padding:13px;border:1px solid #dbe8eb;border-radius:9px;background:#fff}
 .sample-correction-position>strong{align-self:center;color:#31576a;font-size:12px}
@@ -10,19 +9,24 @@
 .sample-correction-position input,.sample-correction-comment textarea{width:100%;min-width:0;border:1px solid #cbdde5;border-radius:6px;background:#fff;color:#143755;padding:9px 10px;font:inherit;font-size:13px}
 .sample-correction-position input:focus-visible,.sample-correction-comment textarea:focus-visible{outline:3px solid #63bfd0;outline-offset:2px}
 .sample-correction-article{align-self:center;color:#31576a;font-size:12px;overflow-wrap:anywhere}
-.sample-correction-upload{display:grid;gap:8px;padding:15px;border:1px solid #dbe8eb;border-radius:9px;background:#fff;color:#35586a;font-size:13px}
-.sample-correction-upload>label{font-weight:750}
-.sample-correction-upload input{max-width:100%;font:inherit}
-.sample-correction-upload input:focus-visible{outline:3px solid #63bfd0;outline-offset:3px}
-.sample-correction-upload p{margin:0;color:#60798a;font-size:12px}
-.sample-correction-file{display:flex;align-items:center;justify-content:space-between;gap:12px;overflow-wrap:anywhere}
+.sample-correction-upload{display:grid;justify-items:start;gap:8px;padding:15px;border:1px solid #dbe8eb;border-radius:9px;background:#fff;color:#35586a;font-size:13px}
+.sample-correction-upload>.preview-evidence-zone{max-width:420px;min-height:98px;cursor:pointer}
+.sample-correction-upload>strong{font-weight:750}
+.sample-correction-contact{display:grid;gap:6px;color:#4c687b;font-size:12px;font-weight:700}
+.sample-correction-contact select{width:100%;max-width:420px;border:1px solid #cbdde5;border-radius:6px;background:#fff;color:#143755;padding:10px;font:inherit;font-size:13px}
+.sample-correction-contact select:focus-visible{outline:3px solid #63bfd0;outline-offset:2px}
+.sample-correction-remove-file{justify-self:start}
+.sample-correction-issues{margin-top:16px;padding:13px 16px;border:1px solid #e9bdc3;border-left:4px solid #b73f50;border-radius:8px;background:#fff6f7;color:#863746;font-size:13px}
+.sample-correction-issues strong{display:block;margin-bottom:6px}
+.sample-correction-issues ul{margin:0;padding-left:20px}
+.sample-correction-issues li+li{margin-top:5px}
 .sample-correction-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:18px}
 .sample-correction-review{margin-top:16px;padding:15px;border:1px solid #b9ddd3;border-radius:8px;background:#f1faf6;color:#255a4b}
 .sample-correction-review strong{font-size:13px}
 .sample-correction-review p{margin:6px 0 0;font-size:12px}
 .sample-correction-review .sample-correction-actions{margin-top:13px}
 @media(max-width:1050px){.sample-correction-position{grid-template-columns:repeat(2,minmax(0,1fr))}.sample-correction-position>strong,.sample-correction-article{grid-column:span 2}}
-@media(max-width:520px){.sample-correction-position{grid-template-columns:1fr}.sample-correction-position>strong,.sample-correction-article{grid-column:auto}.sample-correction-actions .button{width:100%}}
+@media(max-width:520px){.sample-correction-position{grid-template-columns:1fr}.sample-correction-position>strong,.sample-correction-article{grid-column:auto}.sample-correction-upload>.preview-evidence-zone{max-width:none}.sample-correction-actions .button{width:100%}}
 .sample-correction-submitted{border-color:#c7e4dc}
 .sample-correction-submitted h2{margin:0 0 16px}
 .sample-correction-submitted p{margin:15px 0;color:#35586a;font-size:13px}
