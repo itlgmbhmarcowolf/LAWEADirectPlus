@@ -165,7 +165,7 @@ export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoad
 
   return <div className="overview-simple">
     <header className="overview-simple-heading">
-      <div><h1>Stichtage</h1>{groupedMonths.length > 6 ? <p role="status" aria-live="polite">{months.length} von {groupedMonths.length} Monaten sichtbar · {hasMore ? 'Ältere Monate erscheinen beim Scrollen.' : 'Alle älteren Monate geladen.'}</p> : null}</div>
+      <div><h1>Stichtage</h1></div>
       <div className="overview-controls">
         <div className="overview-sort" ref={sortRef}><span id="overview-sort-label">Nach Datum sortieren</span><button ref={sortTriggerRef} type="button" className="overview-sort-trigger" aria-labelledby="overview-sort-label overview-sort-value" aria-haspopup="menu" aria-expanded={sortMenuOpen} onClick={() => setSortMenuOpen(open => !open)} onKeyDown={event => { if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); setSortMenuOpen(true) } }}><span id="overview-sort-value">{sortOrder === 'newest' ? 'Neueste zuerst' : 'Älteste zuerst'}</span><Icon name="chevron" size={16}/></button>{sortMenuOpen ? <div ref={sortMenuRef} className="overview-sort-menu" role="menu" aria-label="Nach Datum sortieren" onKeyDown={onSortMenuKeyDown}>{(['newest', 'oldest'] as const).map(order => <button key={order} type="button" role="menuitemradio" aria-checked={sortOrder === order} onClick={() => { updateView({ sortOrder: order, visibleMonths: 6 }); setSortMenuOpen(false); sortTriggerRef.current?.focus() }}><span>{order === 'newest' ? 'Neueste zuerst' : 'Älteste zuerst'}</span>{sortOrder === order ? <Icon name="check" size={16}/> : null}</button>)}</div> : null}</div>
       </div>
