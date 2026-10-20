@@ -1,6 +1,8 @@
 .claim-editor-heading{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 22px}
 .claim-editor-heading h1{margin:0;color:#102e51;font-size:32px;letter-spacing:-.035em;line-height:1.15}
 .claim-editor-heading span{color:#5e7288;font-size:14px;font-weight:650}
+.correction-deadline{display:flex;flex-wrap:wrap;gap:4px;margin:14px 0!important;padding:11px 13px;border-radius:7px;background:#edf7f9;color:#31576a;font-size:13px}
+.correction-deadline strong{color:#0a6075}
 .claim-editor-section{padding:23px 24px 24px;margin-bottom:16px;border:1px solid #d9e6eb;border-radius:12px;background:#fff;box-shadow:0 8px 24px rgba(21,58,79,.045)}
 .claim-editor-section>h2{margin:0 0 16px;color:#102e51;font-size:21px;letter-spacing:-.02em}
 .claim-editor-section .position-header{border-radius:7px 7px 0 0}

@@ -1,6 +1,6 @@
 import type { Status } from './types'
 
-export type SampleClaim = { number: string; termDate: string; status: Status; creditReference?: string }
+export type SampleClaim = { number: string; termDate: string; status: Status; creditReference?: string; correctionDeadline?: string }
 export type SamplePosition = { pzn: string; article: string; charge: string; quantity: number }
 export type SampleEvent = { at: string; title: string; description: string; tone: 'done' | 'current' | 'issue'; revision?: string }
 
@@ -20,7 +20,8 @@ export const sampleClaims: SampleClaim[] = [
   { number: 'LV-DEMO-2026-001', termDate: '2026-05-01', status: 'COMPLETED', creditReference: 'GS-DEMO-2026-001' },
   { number: 'LV-DEMO-2026-002', termDate: '2026-05-15', status: 'COMPLETED', creditReference: 'GS-DEMO-2026-002' },
   { number: 'LV-DEMO-2026-003', termDate: '2026-06-01', status: 'COMPLETED', creditReference: 'GS-DEMO-2026-003' },
-  { number: 'LV-DEMO-2026-004', termDate: '2026-06-15', status: 'REJECTED' },
+  // Reines Testdatum für den Korrekturablauf; keine fachlich vereinbarte Frist.
+  { number: 'LV-DEMO-2026-004', termDate: '2026-06-15', status: 'REJECTED', correctionDeadline: '2026-10-31T22:59:00Z' },
   { number: 'LV-DEMO-2026-014', termDate: '2026-08-15', status: 'COMPLETED', creditReference: 'GS-DEMO-2026-014' },
   { number: 'LV-DEMO-2026-011', termDate: '2026-09-01', status: 'MANUAL_REVIEW' },
   { number: 'LV-DEMO-2026-009', termDate: '2026-08-01', status: 'COMPLETED', creditReference: 'GS-DEMO-2026-009' }

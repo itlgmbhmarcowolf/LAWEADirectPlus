@@ -113,14 +113,18 @@ export function PreviewApp() {
     } catch { setMessage('Speichern fehlgeschlagen. Bitte prüfen Sie den verfügbaren Browserspeicher.') }
   }
   const updateSampleCorrection = (number: string, next: SampleCorrection) => setSampleCorrections(current => ({ ...current, [number]: next }))
-  const submitSampleCorrection = (number: string) => setSampleCorrections(current => ({
+  const submitSampleCorrection = (number: string) => {
+    const deadline = sampleClaims.find(claim => claim.number === number)?.correctionDeadline
+    if (!deadline || Date.now() > Date.parse(deadline)) { setMessage('Die Korrekturfrist ist abgelaufen.'); return }
+    setSampleCorrections(current => ({
     ...current,
     [number]: {
       ...current[number],
       phase: 'submitted',
       submittedAt: new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' }).format(new Date()).replace(', ', ' · ') + ' Uhr'
     }
-  }))
+    }))
+  }
   const addItem = () => { setClaims(current => ({ ...current, [activeTerm.iso]: { ...current[activeTerm.iso], items: [...current[activeTerm.iso].items, { id: nextItemId, pzn: '', charge: '', quantity: '' }] } })); setNextItemId(current => current + 1) }
   const updateItem = (id: number, change: Partial<PreviewItem>) => setClaims(current => ({ ...current, [activeTerm.iso]: { ...current[activeTerm.iso], items: current[activeTerm.iso].items.map(item => item.id === id ? { ...item, ...change } : item) } }))
   const removeItem = (id: number) => setClaims(current => ({ ...current, [activeTerm.iso]: { ...current[activeTerm.iso], items: current[activeTerm.iso].items.filter(item => item.id !== id) } }))

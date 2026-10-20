@@ -15,10 +15,12 @@ export type SampleCorrection = {
 }
 
 export function SampleCorrectionFlow({
-  value, contacts, onChange, onSubmit
+  value, contacts, deadline, deadlineOpen, onChange, onSubmit
 }: {
   value: SampleCorrection
   contacts: { name: string; email: string }[]
+  deadline: string
+  deadlineOpen: boolean
   onChange: (next: SampleCorrection) => void
   onSubmit: () => void
 }) {
@@ -31,6 +33,7 @@ export function SampleCorrectionFlow({
   }
   const review = () => {
     const missing: string[] = []
+    if (!deadlineOpen) missing.push('Die Korrekturfrist ist abgelaufen. Diese Revision kann nicht mehr eingereicht werden.')
     value.positions.forEach((position, index) => {
       const prefix = `Position ${index + 1}`
       if (!position.pzn) missing.push(`${prefix}: PZN eintragen.`)
@@ -48,6 +51,7 @@ export function SampleCorrectionFlow({
 
   return <section className="data-section sample-correction" aria-labelledby="sample-correction-title">
     <div className="section-header"><div><h2 id="sample-correction-title">Revision 2 korrigieren</h2><p>Die eingereichte Revision 1 bleibt unverändert im Verlauf.</p></div></div>
+    <p className="sample-correction-deadline">{deadlineOpen ? 'Korrektur erneut einreichen bis' : 'Korrekturfrist abgelaufen am'} <strong>{deadline}</strong></p>
     <div className="sample-correction-fields">
       {value.positions.map((position, index) => <div className="sample-correction-position" key={index}>
         <strong>Position {index + 1}</strong>
@@ -82,6 +86,6 @@ export function SampleCorrectionFlow({
       <label className="check-field"><input type="checkbox" checked={value.declaration} onChange={event => change({ ...value, declaration: event.target.checked })}/><span>Ich bestätige die Richtigkeit der korrigierten Angaben.</span></label>
     </div>
     {errors.length ? <div className="sample-correction-issues" role="alert"><strong>Bitte vor dem Einreichen ergänzen:</strong><ul>{errors.map(issue => <li key={issue}>{issue}</li>)}</ul></div> : null}
-    {reviewing ? <div className="sample-correction-review" role="status"><strong>Korrektur bereit zur Einreichung</strong><p>{value.positions.length} Positionen · Ansprechpartner: {contacts.find(contact => contact.email === value.contactEmail)?.name} · Erläuterung: {value.comment.trim() || 'Angaben korrigiert'} · Nachweis: {value.evidenceFile?.name}</p><div className="sample-correction-actions"><Button variant="secondary" onClick={() => setReviewing(false)}>Weiter bearbeiten</Button><Button onClick={onSubmit}>Revision 2 erneut einreichen</Button></div></div> : <div className="sample-correction-actions"><Button onClick={review}>Angaben prüfen</Button></div>}
+    {reviewing ? <div className="sample-correction-review" role="status"><strong>Korrektur bereit zur Einreichung</strong><p>{value.positions.length} Positionen · Ansprechpartner: {contacts.find(contact => contact.email === value.contactEmail)?.name} · Erläuterung: {value.comment.trim() || 'Angaben korrigiert'} · Nachweis: {value.evidenceFile?.name}</p><div className="sample-correction-actions"><Button variant="secondary" onClick={() => setReviewing(false)}>Weiter bearbeiten</Button><Button disabled={!deadlineOpen} onClick={onSubmit}>Revision 2 erneut einreichen</Button></div></div> : <div className="sample-correction-actions"><Button onClick={review}>Angaben prüfen</Button></div>}
   </section>
 }
