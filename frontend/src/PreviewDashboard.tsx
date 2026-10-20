@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import type { Status } from './types'
 import { Icon } from './ui'
 import './preview-dashboard.css'
@@ -43,12 +43,18 @@ const previewStatus = (status: Status | null) => {
   return ''
 }
 
-export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoadDelayMs = 0 }: { terms: DashboardTerm[]; navigate: (page: string) => void; view: DashboardView; onViewChange: (view: DashboardView) => void; demoLoadDelayMs?: number }) {
+const MONTHS_PER_LOAD = 12
+
+export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoadDelayMs = 600 }: { terms: DashboardTerm[]; navigate: (page: string) => void; view: DashboardView; onViewChange: (view: DashboardView) => void; demoLoadDelayMs?: number }) {
   const { sortOrder, selectedStatuses, visibleMonths } = view
   const [loadingMore, setLoadingMore] = useState(false)
+  const [hasScrollIntent, setHasScrollIntent] = useState(false)
+  const loadingRef = useRef(false)
   const updateView = (change: Partial<DashboardView>) => {
     if (change.sortOrder !== undefined || change.selectedStatuses !== undefined) {
+      loadingRef.current = false
       setLoadingMore(false)
+      setHasScrollIntent(false)
     }
     onViewChange({ ...view, ...change })
   }
@@ -135,33 +141,59 @@ export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoad
   const months = groupedMonths.slice(0, visibleMonths)
   const shownTerms = months.flatMap(month => month.terms)
   const hasMore = visibleMonths < groupedMonths.length
-  const loadMore = () => {
-    if (!hasMore || loadingMore) return
-    if (demoLoadDelayMs > 0) setLoadingMore(true)
-    else updateView({ visibleMonths: Math.min(visibleMonths + 2, groupedMonths.length) })
-  }
+  const placeholderMonths = Math.min(MONTHS_PER_LOAD, groupedMonths.length - visibleMonths)
+  const loadMore = useCallback(() => {
+    if (!hasMore || loadingRef.current) return
+    loadingRef.current = true
+    setLoadingMore(true)
+  }, [hasMore])
+  const finishLoading = useCallback(() => {
+    if (!loadingRef.current) return
+    loadingRef.current = false
+    setLoadingMore(false)
+    onViewChange({ ...view, visibleMonths: Math.min(view.visibleMonths + MONTHS_PER_LOAD, groupedMonths.length) })
+  }, [view, groupedMonths.length, onViewChange])
   useEffect(() => {
     if (!loadingMore) return
-    const timer = window.setTimeout(() => {
-      setLoadingMore(false)
-      onViewChange({ ...view, visibleMonths: Math.min(view.visibleMonths + 2, groupedMonths.length) })
-    }, demoLoadDelayMs)
-    return () => window.clearTimeout(timer)
-  }, [loadingMore, demoLoadDelayMs, visibleMonths, groupedMonths.length, view.selectedStatuses, view.sortOrder, onViewChange])
+    const finishBeforeEdge = () => {
+      const remaining = document.documentElement.scrollHeight - window.scrollY - window.innerHeight
+      if (remaining < window.innerHeight * 1.25) finishLoading()
+    }
+    const timer = window.setTimeout(finishLoading, demoLoadDelayMs)
+    window.addEventListener('scroll', finishBeforeEdge, { passive: true })
+    window.addEventListener('resize', finishBeforeEdge)
+    finishBeforeEdge()
+    return () => {
+      window.clearTimeout(timer)
+      window.removeEventListener('scroll', finishBeforeEdge)
+      window.removeEventListener('resize', finishBeforeEdge)
+    }
+  }, [loadingMore, demoLoadDelayMs, finishLoading])
+  useEffect(() => {
+    const markScrollIntent = () => setHasScrollIntent(true)
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (['ArrowDown', 'PageDown', 'End', ' '].includes(event.key)) markScrollIntent()
+    }
+    window.addEventListener('wheel', markScrollIntent, { passive: true })
+    window.addEventListener('touchmove', markScrollIntent, { passive: true })
+    window.addEventListener('scroll', markScrollIntent, { passive: true })
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('wheel', markScrollIntent)
+      window.removeEventListener('touchmove', markScrollIntent)
+      window.removeEventListener('scroll', markScrollIntent)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [])
   useEffect(() => {
     const node = sentinelRef.current
-    if (!node || !hasMore || loadingMore) return
-    const checkForMore = () => {
-      if (window.scrollY > 0 && node.getBoundingClientRect().top - window.innerHeight <= Math.max(240, window.innerHeight * .75)) loadMore()
-    }
-    window.addEventListener('scroll', checkForMore, { passive: true })
-    window.addEventListener('resize', checkForMore)
-    checkForMore()
-    return () => {
-      window.removeEventListener('scroll', checkForMore)
-      window.removeEventListener('resize', checkForMore)
-    }
-  }, [hasMore, loadingMore, visibleMonths, groupedMonths.length, view.selectedStatuses, view.sortOrder, onViewChange])
+    if (!node || !hasMore || loadingMore || !hasScrollIntent) return
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) loadMore()
+    }, { rootMargin: '0px 0px 120% 0px' })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [hasMore, loadingMore, hasScrollIntent, visibleMonths, loadMore])
 
   return <div className="overview-simple">
     <header className="overview-simple-heading">
@@ -179,8 +211,14 @@ export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoad
           <span className={`overview-simple-status ${term.status ? `overview-simple-status-${term.status.toLowerCase()}` : ''}`}>{term.disabled && !term.status ? 'Nicht mehr offen' : previewStatus(term.status) || 'Neu'}</span>
         </button>)}</div>
       </div>) : terms.length === 0 ? <div className="overview-empty overview-empty-first" role="status"><div className="overview-empty-icon"><Icon name="file" size={30}/></div><strong>Noch keine Meldungen</strong><p>Sobald ein Stichtag für Ihre Apotheke verfügbar ist, erscheint er hier.</p></div> : <div className="overview-empty" role="status"><strong>Keine Stichtage für diese Auswahl</strong><span>Wählen Sie einen anderen Status, um weitere Stichtage zu sehen.</span></div>}
+      {hasMore ? <div className="overview-load-trigger" ref={sentinelRef} aria-hidden="true"/> : null}
+      {loadingMore ? <div className="overview-feed-loading" role="status" aria-live="polite">
+        <div className="overview-feed-loading-label"><span className="overview-loading-spinner" aria-hidden="true"/>Ältere Stichtage werden geladen …</div>
+        <div aria-hidden="true">{Array.from({ length: placeholderMonths }, (_, index) => <div className="overview-month overview-month-placeholder" key={index}>
+          <div className="overview-month-label"><span className="overview-skeleton overview-skeleton-month"/><span className="overview-skeleton overview-skeleton-year"/></div>
+          <div className="overview-month-rows">{[0, 1].map(row => <div className="overview-simple-row" key={row}><span className="overview-skeleton overview-skeleton-date"/><span className="overview-skeleton overview-skeleton-status"/></div>)}</div>
+        </div>)}</div>
+      </div> : null}
     </section>
-    {terms.length > 0 ? <div className="overview-load-more" ref={sentinelRef}><span>{months.length} von {groupedMonths.length} Monaten · {shownTerms.length} von {filteredTerms.length} Stichtagen</span></div> : null}
-    {loadingMore ? <div className="overview-loading-overlay" role="status" aria-live="polite"><span className="overview-loading-spinner" aria-hidden="true"/>Ältere Monate werden geladen …</div> : null}
   </div>
 }
