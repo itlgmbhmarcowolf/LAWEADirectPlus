@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import type { PreviewClaim, PreviewItem, PreviewMember } from './PreviewApp'
 import { Button, Icon, PageTitle, StatusPill } from './ui'
 import { ClaimCreditEntry } from './ClaimCreditEntry'
@@ -30,18 +30,26 @@ export const previewProductNames: Record<string, string> = {
 export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateClaim, saveDraft, addItem, updateItem, removeItem, submit, members, currentEmail, discard, setMessage }: Props) {
   const editable = claim.status === 'DRAFT'
   const [showValidation, setShowValidation] = useState(false)
-  const validationRef = useRef<HTMLDivElement>(null)
-  const issues = [
-    ...(!claim.items.length ? ['Mindestens eine Position hinzufügen.'] : []),
-    ...claim.items.flatMap((item, index) => [
-      ...(!item.pzn ? [`Position ${index + 1}: PZN eintragen.`] : !previewProductNames[item.pzn] ? [`Position ${index + 1}: PZN ist im Beispielsortiment nicht vorhanden.`] : []),
-      ...(!item.charge.trim() ? [`Position ${index + 1}: Charge eintragen.`] : []),
-      ...(!Number.isInteger(Number(item.quantity)) || Number(item.quantity) < 1 ? [`Position ${index + 1}: Bestand als ganze Packungszahl größer null eintragen.`] : [])
-    ]),
-    ...(!claim.evidenceFile ? ['Bestandsnachweis hochladen.'] : []),
-    ...(!claim.declaration ? ['Richtigkeit der Angaben bestätigen.'] : [])
-  ]
-  const checkAndSubmit = () => { setShowValidation(true); if (issues.length) requestAnimationFrame(() => validationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })); else submit() }
+  const [fileError, setFileError] = useState('')
+  const editorRef = useRef<HTMLDivElement>(null)
+  const errorId = useId()
+  const positionErrors = claim.items.map(item => ({
+    pzn: !item.pzn ? 'PZN eintragen.' : !previewProductNames[item.pzn] ? 'PZN ist im Beispielsortiment nicht vorhanden.' : '',
+    charge: !item.charge.trim() ? 'Charge eintragen.' : '',
+    quantity: !Number.isInteger(Number(item.quantity)) || Number(item.quantity) < 1 ? 'Bestand als ganze Packungszahl größer null eintragen.' : ''
+  }))
+  const contactError = members.some(member => member.email === (claim.contactEmail || currentEmail)) ? '' : 'Aktiven Ansprechpartner auswählen.'
+  const evidenceError = fileError || (!claim.evidenceFile ? 'Bestandsnachweis hochladen.' : '')
+  const declarationError = claim.declaration ? '' : 'Richtigkeit der Angaben bestätigen.'
+  const hasErrors = !claim.items.length || positionErrors.some(errors => Object.values(errors).some(Boolean)) || !!contactError || !!evidenceError || !!declarationError
+  const checkAndSubmit = () => {
+    setShowValidation(true)
+    if (hasErrors) {
+      requestAnimationFrame(() => editorRef.current?.querySelector<HTMLElement>('.preview-field-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+      return
+    }
+    submit()
+  }
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [evidenceUrl, setEvidenceUrl] = useState('')
   useEffect(() => {
@@ -52,12 +60,13 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
   }, [claim.evidenceFile])
   const chooseEvidence = (file?: File) => {
     if (!file) return
-    if (!['application/pdf', 'image/jpeg', 'image/png'].includes(file.type) || file.size > 5 * 1024 * 1024) { setMessage('Bitte wählen Sie eine PDF-, JPG- oder PNG-Datei mit höchstens 5 MB.'); return }
+    if (!['application/pdf', 'image/jpeg', 'image/png'].includes(file.type) || file.size > 5 * 1024 * 1024) { setFileError('PDF-, JPG- oder PNG-Datei mit höchstens 5 MB auswählen.'); setShowValidation(true); return }
+    setFileError('')
     updateClaim({ evidence: true, evidenceFile: file })
     setMessage('Nachweis nur für diese Browsersitzung übernommen.')
   }
 
-  return <div className="preview-claim-editor">
+  return <div ref={editorRef} className="preview-claim-editor">
     <button className="back-link" onClick={() => navigate('dashboard')}>← Zurück zur Übersicht</button>
     {editable ? <>
       <header className="preview-claim-heading"><h1>Meldung für den {term} erfassen</h1></header>
@@ -66,29 +75,30 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
         <h2 id="preview-positions-title">Positionen</h2>
         {claim.items.length ? <div className="position-grid position-header"><span>PZN</span><span>Artikelbezeichnung</span><span>Charge</span><span>Bestand in Packungen zum {term}</span><span></span></div> : null}
         {claim.items.map((item, index) => <div className="position-grid position-row" key={item.id}>
-          <label><span className="mobile-label">PZN</span><input inputMode="numeric" maxLength={8} value={item.pzn} onChange={event => updateItem(item.id, { pzn: event.target.value.replace(/\D/g, '').slice(0, 8) })} placeholder="z. B. 01234567" aria-label={`PZN Position ${index + 1}`} aria-invalid={item.pzn.length === 8 && !previewProductNames[item.pzn]}/></label>
+          <label><span className="mobile-label">PZN</span><input inputMode="numeric" maxLength={8} value={item.pzn} onChange={event => updateItem(item.id, { pzn: event.target.value.replace(/\D/g, '').slice(0, 8) })} placeholder="z. B. 01234567" aria-label={`PZN Position ${index + 1}`} aria-invalid={showValidation && !!positionErrors[index].pzn} aria-describedby={showValidation && positionErrors[index].pzn ? `${errorId}-pzn-${item.id}` : undefined}/>{showValidation && positionErrors[index].pzn ? <span className="preview-field-error" id={`${errorId}-pzn-${item.id}`} role="alert">{positionErrors[index].pzn}</span> : null}</label>
           <div className={`product-name ${item.pzn.length === 8 && !previewProductNames[item.pzn] ? 'preview-product-unknown' : ''}`}>{previewProductNames[item.pzn] || (item.pzn.length === 8 ? 'Kein Beispielartikel gefunden' : 'Artikel erscheint nach PZN-Eingabe')}</div>
-          <label><span className="mobile-label">Charge</span><input value={item.charge} onChange={event => updateItem(item.id, { charge: event.target.value })} placeholder="Chargennummer" aria-label={`Charge Position ${index + 1}`}/></label>
-          <label><span className="mobile-label">Bestand in Packungen zum {term}</span><input type="number" min="1" step="1" value={item.quantity} onChange={event => updateItem(item.id, { quantity: event.target.value })} placeholder="0" aria-label={`Bestand in Packungen zum ${term}, Position ${index + 1}`}/></label>
+          <label><span className="mobile-label">Charge</span><input value={item.charge} onChange={event => updateItem(item.id, { charge: event.target.value })} placeholder="Chargennummer" aria-label={`Charge Position ${index + 1}`} aria-invalid={showValidation && !!positionErrors[index].charge} aria-describedby={showValidation && positionErrors[index].charge ? `${errorId}-charge-${item.id}` : undefined}/>{showValidation && positionErrors[index].charge ? <span className="preview-field-error" id={`${errorId}-charge-${item.id}`} role="alert">{positionErrors[index].charge}</span> : null}</label>
+          <label><span className="mobile-label">Bestand in Packungen zum {term}</span><input type="number" min="1" step="1" value={item.quantity} onChange={event => updateItem(item.id, { quantity: event.target.value })} placeholder="0" aria-label={`Bestand in Packungen zum ${term}, Position ${index + 1}`} aria-invalid={showValidation && !!positionErrors[index].quantity} aria-describedby={showValidation && positionErrors[index].quantity ? `${errorId}-quantity-${item.id}` : undefined}/>{showValidation && positionErrors[index].quantity ? <span className="preview-field-error" id={`${errorId}-quantity-${item.id}`} role="alert">{positionErrors[index].quantity}</span> : null}</label>
           <button className="icon-button remove-item" aria-label={`Position ${index + 1} entfernen`} onClick={() => removeItem(item.id)}><Icon name="trash" size={18}/></button>
         </div>)}
         <button className="add-row" onClick={addItem}><Icon name="plus" size={18}/> Position hinzufügen</button>
+        {showValidation && !claim.items.length ? <span className="preview-field-error" role="alert">Mindestens eine Position hinzufügen.</span> : null}
       </section>
 
       <div className="preview-claim-details"><section className="editor-section preview-claim-section" aria-labelledby="preview-evidence-title">
         <h2 id="preview-evidence-title">Nachweis</h2>
         <input ref={fileInputRef} className="preview-hidden-file" type="file" accept=".pdf,.jpg,.jpeg,.png" tabIndex={-1} aria-label="Nachweisdatei auswählen" onChange={event => { chooseEvidence(event.target.files?.[0]); event.target.value = '' }}/>
-        <button className="preview-evidence-zone" onClick={() => fileInputRef.current?.click()}><Icon name={claim.evidenceFile ? 'check' : 'upload'} size={25}/><strong>{claim.evidenceFile ? claim.evidenceFile.name : 'Nachweis auswählen'}</strong><small>PDF, JPG, PNG · bis 5 MB · nur im Browser</small></button>
-        {claim.evidenceFile ? <button className="text-button" onClick={() => updateClaim({ evidence: false, evidenceFile: null })}>Nachweis entfernen</button> : null}
+        <button className="preview-evidence-zone" aria-invalid={showValidation && !!evidenceError} aria-describedby={showValidation && evidenceError ? `${errorId}-evidence` : undefined} onClick={() => fileInputRef.current?.click()}><Icon name={claim.evidenceFile ? 'check' : 'upload'} size={25}/><strong>{claim.evidenceFile ? claim.evidenceFile.name : 'Nachweis auswählen'}</strong><small>PDF, JPG, PNG · bis 5 MB · nur im Browser</small></button>
+        {showValidation && evidenceError ? <span className="preview-field-error" id={`${errorId}-evidence`} role="alert">{evidenceError}</span> : null}
+        {claim.evidenceFile ? <button className="text-button" onClick={() => { setFileError(''); updateClaim({ evidence: false, evidenceFile: null }) }}>Nachweis entfernen</button> : null}
       </section>
 
       <section className="editor-section preview-claim-section" aria-labelledby="preview-comment-title">
-        <label className="field claim-contact-field"><span>Ansprechpartner der Apotheke</span><select value={claim.contactEmail || currentEmail} onChange={event => updateClaim({ contactEmail: event.target.value })}>{members.map(member => <option key={member.email} value={member.email}>{member.name}</option>)}</select></label>
+        <label className="field claim-contact-field"><span>Ansprechpartner der Apotheke</span><select value={claim.contactEmail || currentEmail} aria-invalid={showValidation && !!contactError} aria-describedby={showValidation && contactError ? `${errorId}-contact` : undefined} onChange={event => updateClaim({ contactEmail: event.target.value })}>{members.map(member => <option key={member.email} value={member.email}>{member.name}</option>)}</select>{showValidation && contactError ? <span className="preview-field-error" id={`${errorId}-contact`} role="alert">{contactError}</span> : null}</label>
         <label className="field"><span id="preview-comment-title">Kommentar (optional)</span><textarea rows={3} value={claim.comment} onChange={event => updateClaim({ comment: event.target.value })} placeholder="Falls Sie etwas ergänzen möchten"/></label>
-        <label className="check-field"><input type="checkbox" checked={claim.declaration} onChange={event => updateClaim({ declaration: event.target.checked })}/><span>Ich bestätige die Richtigkeit der Angaben zum Bestand am Stichtag.</span></label>
+        <div className="preview-claim-declaration"><label className="check-field"><input type="checkbox" checked={claim.declaration} aria-invalid={showValidation && !!declarationError} aria-describedby={showValidation && declarationError ? `${errorId}-declaration` : undefined} onChange={event => updateClaim({ declaration: event.target.checked })}/><span>Ich bestätige die Richtigkeit der Angaben zum Bestand am Stichtag.</span></label>{showValidation && declarationError ? <span className="preview-field-error" id={`${errorId}-declaration`} role="alert">{declarationError}</span> : null}</div>
       </section></div>
 
-      {showValidation && issues.length ? <div className="claim-validation" ref={validationRef} role="alert"><strong>Bitte vor dem Einreichen korrigieren:</strong><ul>{issues.map(issue => <li key={issue}>{issue}</li>)}</ul></div> : null}
       <div className="editor-actions"><Button variant="quiet" onClick={saveDraft}>Entwurf speichern</Button><Button icon="arrow" onClick={checkAndSubmit}>Angaben prüfen</Button><button className="text-button danger-text" onClick={discard}>Entwurf verwerfen</button></div>
     </> : <>
       <PageTitle title="Meldung im Überblick" subtitle={`${claimNumber} · Senkungstermin ${term}`}/>
