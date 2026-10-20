@@ -12,12 +12,12 @@
 .overview-empty-icon{position:relative;display:grid;place-items:center;width:72px;height:72px;margin-bottom:19px;border:1px solid #cbe5e9;border-radius:22px;background:#eaf7f8;color:#08798e;box-shadow:0 9px 22px #0a637814}
 .overview-empty-first strong{color:#103a54;font-size:23px;letter-spacing:-.025em}
 .overview-empty-first p{max-width:370px;margin:9px 0 0;color:#627b8b;font-size:14px;line-height:1.5}
-.overview-simple-columns{display:grid;grid-template-columns:220px minmax(0,1fr) 264px;gap:0;border-radius:10px 10px 0 0;background:#ecf5f8;color:#46677b;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.overview-simple-columns{display:grid;grid-template-columns:220px minmax(0,1fr) 264px;gap:0;border-radius:10px 10px 0 0;background:#ecf5f8;color:#294e63;font-size:14px;font-weight:750;letter-spacing:.04em;text-transform:uppercase}
 .overview-simple-columns span{padding:15px 26px}
 .overview-simple-columns span:first-child{border-right:1px solid #d7e5eb}
 .overview-status-filter{position:relative;display:flex;align-items:center;gap:10px;padding:8px 20px 8px 26px;min-width:0;letter-spacing:.08em}
 .overview-status-filter span{padding:0;white-space:nowrap}
-.overview-status-trigger,.overview-sort-trigger{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:1;min-width:0;min-height:36px;padding:7px 10px 7px 12px;border:1px solid #b9d5dd;border-radius:8px;background:#fff;color:#143b55;font:inherit;font-size:12px;font-weight:750;letter-spacing:normal;text-align:left;text-transform:none;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.overview-status-trigger,.overview-sort-trigger{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:1;min-width:0;min-height:36px;padding:7px 10px 7px 12px;border:1px solid #b9d5dd;border-radius:8px;background:#fff;color:#143b55;font:inherit;font-size:13px;font-weight:750;letter-spacing:normal;text-align:left;text-transform:none;cursor:pointer;transition:border-color .15s,box-shadow .15s}
 .overview-status-trigger svg,.overview-sort-trigger svg{flex:none;color:#538096;transition:transform .15s}
 .overview-status-trigger[aria-expanded="true"],.overview-sort-trigger[aria-expanded="true"]{border-color:#3a9db1;box-shadow:0 0 0 3px #ccecf1}
 .overview-status-trigger[aria-expanded="true"] svg,.overview-sort-trigger[aria-expanded="true"] svg{transform:rotate(180deg)}
