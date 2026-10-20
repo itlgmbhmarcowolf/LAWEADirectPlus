@@ -56,7 +56,7 @@ export function sampleClaimDetail(claim: SampleClaim) {
     { at: at(claim.termDate, 1, '09:17'), title: 'Regelprüfung abgeschlossen', description: 'Die Beispielpositionen wurden zur manuellen Prüfung weitergeleitet.', tone: 'done', revision: 'Revision 1' }
   ]
   if (revised || rejected) {
-    events.push({ at: at(claim.termDate, 2, '11:40'), title: 'Revision 1 abgelehnt', description: 'Demo-Prüfung: Die Charge der zweiten Position war zu erläutern.', tone: 'issue', revision: 'Revision 1' })
+    events.push({ at: at(claim.termDate, 2, '11:40'), title: 'Revision 1 abgelehnt', description: 'Die Charge der zweiten Position war zu erläutern.', tone: 'issue', revision: 'Revision 1' })
   }
   if (revised) {
     events.push(
