@@ -31,7 +31,7 @@ const topics: Topic[] = [
     { title: 'Person einladen', text: 'Wählen Sie „Mitarbeiter einladen“ und geben Sie Namen, E-Mail-Adresse und Rolle ein. „Mitarbeiter“ bearbeitet Meldungen; „Unternehmensadministrator“ darf zusätzlich Zugänge verwalten.' },
     { title: 'Zugang aktivieren', text: 'Die eingeladene Person legt ein eigenes Passwort fest und bestätigt ihre E-Mail mit einem Einmalcode. Erst danach wird der Zugang aktiv.' },
     { title: 'Zugänge pflegen', text: 'Nutzen Sie Suche und Reiter für aktive, gesperrte und eingeladene Personen. Im Aktionsmenü können Administratoren Rollen ändern, einen Passwort-Reset auslösen oder einen Zugang sperren und reaktivieren.' }
-  ], note: 'Der eigene Zugang kann hier nicht gesperrt werden. Mindestens ein aktiver Administrator und ein aktiver Mitarbeiter müssen erhalten bleiben. Meldungen bleiben bei einer Zugangssperre bestehen.' },
+  ] },
   { id: 'gutschrift', title: 'Gutschrift finden', summary: 'Dokument zu einer Meldung ansehen und herunterladen', keywords: 'pdf vorschau auszahlung', intro: 'Eine Gutschrift gehört zu einer bestimmten Meldung und ist dort mit einer eigenen Referenz verknüpft.', steps: [
     { title: 'Stichtag öffnen', text: 'Wählen Sie einen abgeschlossenen Stichtag. In der Meldung finden Sie die zugeordnete Gutschrift.' },
     { title: 'Dokument öffnen', text: 'Die Detailseite zeigt gemeldete Positionen und Nachweise. Die Dokumentsektion heißt „Gutschrift“.' },
@@ -39,7 +39,7 @@ const topics: Topic[] = [
   ] }
 ]
 
-export function HelpContent({ preview = false, initialTopic = 'stichtage', onNavigate, canManageMembers = false }: { preview?: boolean; initialTopic?: TopicId; onNavigate?: (page: string) => void; canManageMembers?: boolean }) {
+export function HelpContent({ initialTopic = 'stichtage', onNavigate, canManageMembers = false }: { initialTopic?: TopicId; onNavigate?: (page: string) => void; canManageMembers?: boolean }) {
   const [selected, setSelected] = useState<TopicId>(initialTopic)
   const [query, setQuery] = useState('')
   const articleRef = useRef<HTMLElement>(null)
@@ -55,7 +55,21 @@ export function HelpContent({ preview = false, initialTopic = 'stichtage', onNav
     <label className="help-search"><Icon name="search" size={20}/><span className="sr-only">Hilfethemen durchsuchen</span><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Wobei können wir helfen?" aria-label="Hilfethemen durchsuchen"/>{query ? <button type="button" aria-label="Suche löschen" onClick={() => setQuery('')}><Icon name="close" size={17}/></button> : null}</label>
     <div className="help-layout">
       <nav className="help-topics" aria-label="Hilfethemen"><span className="help-topics-label">Themen</span>{filtered.length ? filtered.map(topic => <button key={topic.id} type="button" className={active?.id === topic.id ? 'active' : ''} aria-current={active?.id === topic.id ? 'page' : undefined} onClick={() => openTopic(topic.id)}><strong>{topic.title}</strong><small>{topic.summary}</small><Icon name="arrow" size={17}/></button>) : <p className="help-no-results">Keine passenden Themen. Versuchen Sie einen anderen Suchbegriff.</p>}</nav>
-      {active ? <article ref={articleRef} className="help-article" key={active.id} aria-labelledby="help-article-title"><header><span>Hilfeartikel</span><h2 id="help-article-title">{active.title}</h2><p>{active.summary}</p></header><div className="help-article-body"><p className="help-lead">{active.intro}</p><h3>So funktioniert es</h3><ol className="help-steps">{active.steps.map(step => <li key={step.title}><strong>{step.title}</strong><span>{step.text}</span></li>)}</ol>{active.id === 'mitarbeiter' ? <><h3>Weitere Fragen</h3><div className="help-faq"><details><summary>Warum sehe ich „Mitarbeiter verwalten“ nicht?</summary><p>Dieser Menüpunkt ist Unternehmensadministratoren vorbehalten. Mitarbeitende können keine Rollen oder Zugänge ändern.</p></details><details><summary>Was passiert, wenn eine Person die Apotheke verlässt?</summary><p>Sperren Sie den Zugang im Aktionsmenü. Die Person kann sich nicht mehr anmelden; Meldungen und Verlauf bleiben erhalten.</p></details><details><summary>Was tun mit einer abgelaufenen Einladung?</summary><p>{preview ? 'Die Konzeptvorschau simuliert Einladungen nur im Browser. In der lokalen Demo kann ein Administrator eine Einladung erneut erstellen.' : 'Öffnen Sie den Reiter „Einladungen“ und wählen Sie „Erneut senden“. Der alte Link wird ungültig.'}</p></details></div></> : null}{active.note ? <div className="help-note"><Icon name="help" size={20}/><p>{active.note}</p></div> : null}{preview && active.id === 'mitarbeiter' ? <p className="help-preview-note">In dieser Konzeptvorschau werden Einladungen und Änderungen nur simuliert. Es werden keine E-Mails verschickt.</p> : null}{preview && active.id === 'stichtage' ? <p className="help-preview-note">Gespeicherte Entwürfe bleiben in dieser Browsersitzung erhalten. Nach einem Neuladen müssen Sie hochgeladene Dateien erneut auswählen.</p> : null}{preview && active.id === 'gutschrift' ? <p className="help-preview-note">Die Vorschau zeigt fiktive Dokumente und bestätigt keine echte Auszahlung.</p> : null}{onNavigate && active.id === 'mitarbeiter' && canManageMembers ? <Button variant="secondary" onClick={() => onNavigate('members')}>Mitarbeiterverwaltung öffnen</Button> : null}{onNavigate && active.id === 'stichtage' ? <Button variant="secondary" onClick={() => onNavigate('dashboard')}>Stichtage öffnen</Button> : null}</div></article> : null}
+      {active ? <article ref={articleRef} className="help-article" key={active.id} aria-labelledby="help-article-title">
+        <header><span>Hilfeartikel</span><h2 id="help-article-title">{active.title}</h2><p>{active.summary}</p></header>
+        <div className="help-article-body">
+          <p className="help-lead">{active.intro}</p>
+          <h3>So funktioniert es</h3>
+          <ol className="help-steps">{active.steps.map(step => <li key={step.title}><strong>{step.title}</strong><span>{step.text}</span></li>)}</ol>
+          {active.id === 'mitarbeiter' ? <><h3>Weitere Fragen</h3><div className="help-faq">
+            <details><summary>Was passiert, wenn eine Person die Apotheke verlässt?</summary><p>Sperren Sie den Zugang im Aktionsmenü. Die Person kann sich nicht mehr anmelden; Meldungen und Verlauf bleiben erhalten.</p></details>
+            <details><summary>Was tun mit einer abgelaufenen Einladung?</summary><p>Öffnen Sie den Reiter „Einladungen“ und wählen Sie „Erneut senden“. Der bisherige Link wird ungültig; die eingeladene Person erhält einen neuen Einladungslink.</p></details>
+          </div></> : null}
+          {active.note ? <div className="help-note"><Icon name="help" size={20}/><p>{active.note}</p></div> : null}
+          {onNavigate && active.id === 'mitarbeiter' && canManageMembers ? <Button variant="secondary" onClick={() => onNavigate('members')}>Mitarbeiterverwaltung öffnen</Button> : null}
+          {onNavigate && active.id === 'stichtage' ? <Button variant="secondary" onClick={() => onNavigate('dashboard')}>Stichtage öffnen</Button> : null}
+        </div>
+      </article> : null}
     </div>
   </div>
 }

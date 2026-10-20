@@ -43,7 +43,6 @@
 .help-faq details{border-bottom:1px solid #e0eaf0;padding:12px 0}
 .help-faq summary{cursor:pointer;color:#123960;font-weight:660;padding:3px 0}
 .help-faq details p{margin:9px 0 3px;color:#536680;font-size:13px}
-.help-preview-note{color:#60758e;font-size:12px;line-height:1.6;margin:17px 0 20px}
 .help-article-body>.button{margin-top:4px}
 @media(max-width:840px){.help-layout{grid-template-columns:1fr}.help-topics{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.help-topics-label{grid-column:1/-1}.help-topics button{min-height:76px}}
 @media(max-width:560px){.help-heading p{font-size:15px}.help-search{margin-bottom:18px}.help-topics{grid-template-columns:1fr}.help-topics button{min-height:0;padding:11px 34px 11px 12px}.help-topics button svg{top:14px}.help-article>header{padding:22px 20px}.help-article-body{padding:22px 20px 26px}.help-article-body .help-lead{font-size:15px}}
