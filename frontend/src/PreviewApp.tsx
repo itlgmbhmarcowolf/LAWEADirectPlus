@@ -35,6 +35,8 @@ const openTerms = [
   { iso: '2026-07-15', date: '15.07.2026', number: 'LV-2026-BEISPIEL-03' },
   { iso: '2026-07-01', date: '01.07.2026', number: 'LV-2026-BEISPIEL-04' }
 ] as const
+// Annahme nur für die statische Vorschau: Diese beiden Beispieltermine gelten hier als aktuell angeboten.
+const currentPreviewTermIsos = new Set(['2026-10-01', '2026-10-15'])
 type PreviewScenario = 'empty' | 'few' | 'many'
 const initialClaims = (scenario: PreviewScenario = 'many'): Record<string, PreviewClaim> => ({
   ...Object.fromEntries(openTerms.map(term => [term.iso, initialClaim()])),
@@ -138,7 +140,7 @@ export function PreviewApp() {
   const visibleSamples = scenario === 'many' ? sampleClaims : scenario === 'few' ? sampleClaims.filter(item => ['2026-08-01', '2026-08-15', '2026-09-01'].includes(item.termDate)) : []
   const credits = [...openTerms.filter(term => claims[term.iso].status === 'COMPLETED').map(term => ({ claimNumber: term.number, reference: `BEISPIEL-GS-${term.number.slice(-2)}`, provided: 'In dieser Sitzung', termDate: term.iso })), ...sampleCredits.filter(credit => visibleSamples.some(claim => claim.number === credit.claimNumber))]
   const dashboardTerms = [...new Map([
-    ...openTerms.map(term => ({ iso: term.iso, date: term.date, status: claims[term.iso].status === 'DRAFT' && !hasDraftData(claims[term.iso]) ? null : claims[term.iso].status, target: `term:${term.iso}` })),
+    ...openTerms.filter(term => scenario !== 'empty' || currentPreviewTermIsos.has(term.iso) || hasDraftData(claims[term.iso])).map(term => ({ iso: term.iso, date: term.date, status: claims[term.iso].status === 'DRAFT' && !hasDraftData(claims[term.iso]) ? null : claims[term.iso].status, target: `term:${term.iso}` })),
     ...visibleSamples.map(item => ({ iso: item.termDate, date: new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${item.termDate}T12:00:00Z`)), status: sampleCorrections[item.number]?.phase === 'draft' ? 'DRAFT' as Status : sampleCorrections[item.number]?.phase === 'submitted' ? 'MANUAL_REVIEW' as Status : item.status, target: `term:${item.termDate}` }))
   ].map(item => [item.iso, item] as const)).values()]
   if (!signedIn) return <PreviewLogin onAuthenticated={(nextRole, newProfile, nextScenario = 'many', accountEmail) => { const email = newProfile?.email || accountEmail || (nextRole === 'PHARMACY_STAFF' ? 'mitarbeiterin@beispiel.test' : 'apotheke@beispiel.test'); setScenario(nextScenario); setClaims(restoredClaims(nextScenario, email)); setSampleCorrections({}); setProfile(newProfile || null); setMembers(newProfile ? [{ name: newProfile.name, email: newProfile.email, admin: true, status: 'Aktiv' }] : nextScenario === 'many' ? initialMembers() : [{ name: 'Demo Apotheke', email: accountEmail || 'neu@beispiel.test', admin: true, status: 'Aktiv' }]); setSignedInEmail(email); setViewAsEmail(null); setRole(nextRole); resetPage(nextRole.startsWith('PHARMACY') ? pageFromRoute() : nextRole === 'REVIEWER' ? 'review' : 'finance'); setSignedIn(true) }}/>
