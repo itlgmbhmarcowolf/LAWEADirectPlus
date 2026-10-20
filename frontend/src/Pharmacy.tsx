@@ -23,8 +23,7 @@ async function startClaim(termId: string, navigate: (page: string) => void, refr
   navigate(`claim:${result.id}`)
 }
 
-function PharmacyTermList({ data, navigate, refresh, view, onViewChange }: { data: Bootstrap; navigate: (page: string) => void; refresh: () => Promise<Bootstrap>; view: DashboardView; onViewChange: (view: DashboardView) => void }) {
-  const [error, setError] = useState('')
+function PharmacyTermList({ data, navigate, view, onViewChange }: { data: Bootstrap; navigate: (page: string) => void; view: DashboardView; onViewChange: (view: DashboardView) => void }) {
   // Nur offene Termine und Termine mit einem eigenen Vorgang kommen aus /bootstrap.
   const terms = data.terms.map(term => {
     const existing = claimForTerm(data, term)
@@ -32,21 +31,30 @@ function PharmacyTermList({ data, navigate, refresh, view, onViewChange }: { dat
       iso: term.date,
       date: shortDate(term.date),
       status: existing?.status || null,
-      target: existing?.status === 'COMPLETED' && data.credits?.some(credit => credit.claim_id === existing.id)
-        ? `credits:${existing.id}`
-        : existing ? `claim:${existing.id}` : `term:${term.id}`,
+      target: `term:${term.date}`,
       disabled: !existing && !termOpen(term)
     }
   })
-  const open = (target: string) => {
-    if (target.startsWith('term:')) startClaim(target.slice(5), navigate, refresh).catch(e => setError(e instanceof Error ? e.message : 'Meldung konnte nicht geöffnet werden.'))
-    else navigate(target)
-  }
-  return <>{error ? <Notice tone="error">{error}</Notice> : null}<PreviewDashboard terms={terms} navigate={open} view={view} onViewChange={onViewChange}/></>
+  return <PreviewDashboard terms={terms} navigate={navigate} view={view} onViewChange={onViewChange}/>
 }
 
-export function PharmacyDashboard({ data, navigate, refresh, view, onViewChange }: { data: Bootstrap; navigate: (page: string) => void; refresh: () => Promise<Bootstrap>; view: DashboardView; onViewChange: (view: DashboardView) => void }) {
-  return <PharmacyTermList data={data} navigate={navigate} refresh={refresh} view={view} onViewChange={onViewChange}/>
+export function PharmacyDashboard({ data, navigate, view, onViewChange }: { data: Bootstrap; navigate: (page: string) => void; view: DashboardView; onViewChange: (view: DashboardView) => void }) {
+  return <PharmacyTermList data={data} navigate={navigate} view={view} onViewChange={onViewChange}/>
+}
+
+export function PharmacyTermPage({ iso, data, navigate, refresh, onSubmitted }: { iso: string; data: Bootstrap; navigate: (page: string) => void; refresh: () => Promise<Bootstrap>; onSubmitted: (claimNumber: string) => void }) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const term = data.terms.find(item => item.date === iso)
+  if (!term) return <Notice tone="warning">Dieser Stichtag ist nicht verfügbar.</Notice>
+  const existing = claimForTerm(data, term)
+  if (existing) return <ClaimEditor key={existing.id} id={existing.id} data={data} navigate={navigate} refresh={refresh} onSubmitted={onSubmitted}/>
+  return <>
+    <button className="back-link" onClick={() => navigate('dashboard')}>← Zurück zur Übersicht</button>
+    <PageTitle title={`Stichtag ${shortDate(term.date)}`} subtitle="Für diesen Stichtag liegt noch keine Meldung vor."/>
+    {error ? <Notice tone="error">{error}</Notice> : null}
+    <section className="data-section"><h2>Meldung erfassen</h2><p>Beginnen Sie eine Meldung für diesen Stichtag. Sie können den Entwurf speichern und später über das Datum wieder öffnen.</p><Button disabled={busy || !termOpen(term)} onClick={async () => { setBusy(true); setError(''); try { await post('/claims', { termId: term.id }); await refresh() } catch (e) { setError(e instanceof Error ? e.message : 'Meldung konnte nicht begonnen werden.') } finally { setBusy(false) } }}>Meldung erfassen</Button></section>
+  </>
 }
 
 export function ClaimsPage({ data, navigate, refresh }: { data: Bootstrap; navigate: (page: string) => void; refresh: () => Promise<Bootstrap> }) {

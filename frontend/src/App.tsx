@@ -3,7 +3,7 @@ import { api, post, setCsrf } from './api'
 import type { Bootstrap, User } from './types'
 import { Auth } from './Auth'
 import { Shell, Icon, Notice } from './ui'
-import { PharmacyDashboard, ClaimEditor, CreditsPage, HelpPage } from './Pharmacy'
+import { PharmacyDashboard, PharmacyTermPage, ClaimEditor, CreditsPage, HelpPage } from './Pharmacy'
 import { MembersPage } from './Members'
 import { ReviewPage, RegistrationsPage, FinancePage, AuditPage } from './Staff'
 import { AccountSettings } from './AccountSettings'
@@ -38,7 +38,8 @@ export function App() {
   let content
   if (page === 'account') content = <AccountSettings user={data.user} onSave={async name => { await post('/account/name', { name }); await refresh() }} onChangePassword={async (currentPassword, newPassword, newPasswordAgain) => { await post('/account/password', { currentPassword, newPassword, newPasswordAgain }) }} emailEditable={false} preview={false}/>
   else if (pharmacy) {
-    if (page === 'dashboard' || page === 'claims') content = <>{submittedNotice ? <Notice tone="success">{submittedNotice}</Notice> : null}<PharmacyDashboard data={data} navigate={navigate} refresh={refresh} view={dashboardView} onViewChange={setDashboardView}/></>
+    if (page === 'dashboard' || page === 'claims') content = <>{submittedNotice ? <Notice tone="success">{submittedNotice}</Notice> : null}<PharmacyDashboard data={data} navigate={navigate} view={dashboardView} onViewChange={setDashboardView}/></>
+    else if (page.startsWith('term:')) content = <PharmacyTermPage iso={page.slice(5)} data={data} navigate={navigate} refresh={refresh} onSubmitted={number => { setSubmittedNotice(`Meldung ${number} wurde eingereicht. Sie sehen den Status in der Übersicht.`); navigate('dashboard') }}/>
     else if (page.startsWith('claim:')) content = <ClaimEditor key={page} id={page.slice(6)} data={data} navigate={navigate} refresh={refresh} onSubmitted={number => { setSubmittedNotice(`Meldung ${number} wurde eingereicht. Sie sehen den Status in der Übersicht.`); navigate('dashboard') }}/>
     else if (page === 'members') content = <MembersPage data={data} refresh={refresh}/>
     else if (page === 'credits' || page.startsWith('credits:')) content = <CreditsPage data={data} navigate={navigate} selectedClaimId={page.startsWith('credits:') ? page.slice(8) : undefined}/>

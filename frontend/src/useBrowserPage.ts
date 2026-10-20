@@ -6,6 +6,7 @@ const routeNames: Record<string, string> = { dashboard: 'stichtage', account: 'p
 const fromNames: Record<string, string> = { ...Object.fromEntries(Object.entries(routeNames).map(([key, value]) => [value, key])), stichtage: 'dashboard' }
 export function routeFor(page: string) {
   const [kind, id] = page.split(':')
+  if (kind === 'term' && id) return `#/stichtag/${encodeURIComponent(id)}`
   if (kind === 'claim' && id) return `#/meldung/${encodeURIComponent(id)}`
   if (kind === 'sample' && id) return `#/beispielmeldung/${encodeURIComponent(id)}`
   if (kind === 'credits' && id) return `#/gutschrift/${encodeURIComponent(id)}`
@@ -15,6 +16,7 @@ export function pageFromRoute() {
   const segments = window.location.hash.replace(/^#\/?/, '').split('/')
   let id = ''
   try { id = segments[1] ? decodeURIComponent(segments[1]) : '' } catch { return 'dashboard' }
+  if (segments[0] === 'stichtag' && id) return `term:${id}`
   if (segments[0] === 'meldung' && id) return `claim:${id}`
   if (segments[0] === 'beispielmeldung' && id) return `sample:${id}`
   if (segments[0] === 'gutschrift' && id) return `credits:${id}`

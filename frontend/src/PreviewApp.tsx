@@ -18,8 +18,8 @@ import './preview-terms.css'
 // Ausschließlich fiktive, flüchtige Konzeptdaten. Dieser Einstiegspunkt importiert keine API.
 export type PreviewMember = { name: string; email: string; admin: boolean; status: string }
 export type PreviewItem = { id: number; pzn: string; charge: string; quantity: string }
-export type PreviewClaim = { status: Status; items: PreviewItem[]; comment: string; evidence: boolean; evidenceFile: File | null; declaration: boolean; contactEmail: string; reason: string }
-const initialClaim = (): PreviewClaim => ({ status: 'DRAFT', items: [], comment: '', evidence: false, evidenceFile: null, declaration: false, contactEmail: '', reason: '' })
+export type PreviewClaim = { status: Status; saved: boolean; items: PreviewItem[]; comment: string; evidence: boolean; evidenceFile: File | null; declaration: boolean; contactEmail: string; reason: string }
+const initialClaim = (): PreviewClaim => ({ status: 'DRAFT', saved: false, items: [], comment: '', evidence: false, evidenceFile: null, declaration: false, contactEmail: '', reason: '' })
 const initialMembers = (): PreviewMember[] => [
   { name: 'Julia Berger', email: 'apotheke@beispiel.test', admin: true, status: 'Aktiv' },
   { name: 'Maria Keller', email: 'mitarbeiterin@beispiel.test', admin: false, status: 'Aktiv' },
@@ -44,7 +44,21 @@ const initialClaims = (scenario: PreviewScenario = 'many'): Record<string, Previ
 export type PreviewCredit = { claimNumber: string; reference: string; provided: string; termDate: string }
 // Frei erfundene Datensätze für die öffentliche, statische Konzeptvorschau.
 const sampleCredits: PreviewCredit[] = [...sampleClaims].filter(claim => claim.creditReference).sort((a, b) => b.termDate.localeCompare(a.termDate)).map(claim => ({ claimNumber: claim.number, reference: claim.creditReference!, provided: sampleClaimDetail(claim).provided, termDate: claim.termDate }))
-const hasDraftData = (claim: PreviewClaim) => Boolean(claim.items.length || claim.comment.trim() || claim.evidence || claim.declaration)
+const hasDraftData = (claim: PreviewClaim) => Boolean(claim.saved || claim.items.length || claim.comment.trim() || claim.evidence || claim.declaration)
+const draftStorageKey = (email: string, iso: string) => `lawea-preview-draft:${email}:${iso}`
+const restoredClaims = (scenario: PreviewScenario, email: string) => {
+  const result = initialClaims(scenario)
+  for (const term of openTerms) {
+    try {
+      const stored = window.sessionStorage.getItem(draftStorageKey(email, term.iso))
+      if (!stored) continue
+      const draft = JSON.parse(stored) as Partial<PreviewClaim>
+      if (!Array.isArray(draft.items) || typeof draft.comment !== 'string') continue
+      result[term.iso] = { ...initialClaim(), ...draft, status: 'DRAFT', saved: true, evidence: false, evidenceFile: null }
+    } catch { /* Fehlerhafte Vorschau-Daten werden verworfen. */ }
+  }
+  return result
+}
 
 export function PreviewApp() {
   const [signedIn, setSignedIn] = useState(false)
@@ -64,7 +78,7 @@ export function PreviewApp() {
   const [exportedTerms, setExportedTerms] = useState<string[]>([])
   const [registrationApproved, setRegistrationApproved] = useState(false)
   const [nextItemId, setNextItemId] = useState(2)
-  const activeTerm = openTerms.find(term => term.iso === (page.startsWith('claim:') ? page.slice(6) : activeTermIso)) || openTerms[0]
+  const activeTerm = openTerms.find(term => term.iso === ((page.startsWith('claim:') || page.startsWith('term:')) ? page.slice(page.indexOf(':') + 1) : activeTermIso)) || openTerms[0]
   const claim = claims[activeTerm.iso]
   const term = activeTerm.date
   const claimNumber = activeTerm.number
@@ -76,8 +90,8 @@ export function PreviewApp() {
   const identity = pharmacy ? viewedMember || signedInMember : undefined
   const user: User = { id: identity?.email || 'preview', name: identity?.name || (pharmacy ? 'Demo Apotheke' : role === 'REVIEWER' ? 'Portalprüfung' : 'Abwicklung'), email: identity?.email || signedInEmail, role: effectiveRole, organizationId: pharmacy ? 'preview-pharmacy' : null, organizationName: pharmacy ? profile?.organizationName || 'Beispielapotheke' : null }
   const ownUser: User = { ...user, id: signedInEmail, name: signedInMember?.name || user.name, email: signedInEmail, role }
-  const navigate = (target: string) => { const termIso = target.startsWith('claim:') ? target.slice(6) : ''; if (openTerms.some(term => term.iso === termIso)) setActiveTermIso(termIso); pushPage(target); setMessage(''); setConfirmSubmit(false) }
-  const reset = () => { setClaims(initialClaims()); setSampleCorrections({}); setScenario('many'); setActiveTermIso(openTerms[0].iso); setNextItemId(2); setMembers(initialMembers()); setProfile(null); setSignedInEmail('apotheke@beispiel.test'); setExportedTerms([]); setRegistrationApproved(false); setViewAsEmail(null); setRole('PHARMACY_ADMIN'); setDashboardView(initialDashboardView(true)); resetPage(); setSignedIn(false); setMessage('') }
+  const navigate = (target: string) => { const termIso = target.startsWith('claim:') || target.startsWith('term:') ? target.slice(target.indexOf(':') + 1) : ''; if (openTerms.some(term => term.iso === termIso)) setActiveTermIso(termIso); pushPage(target); setMessage(''); setConfirmSubmit(false) }
+  const reset = () => { openTerms.forEach(item => window.sessionStorage.removeItem(draftStorageKey(signedInEmail, item.iso))); setClaims(initialClaims()); setSampleCorrections({}); setScenario('many'); setActiveTermIso(openTerms[0].iso); setNextItemId(2); setMembers(initialMembers()); setProfile(null); setSignedInEmail('apotheke@beispiel.test'); setExportedTerms([]); setRegistrationApproved(false); setViewAsEmail(null); setRole('PHARMACY_ADMIN'); setDashboardView(initialDashboardView(true)); resetPage(); setSignedIn(false); setMessage('') }
   const switchToMember = (email: string) => { if (role !== 'PHARMACY_ADMIN' || !members.some(member => member.email === email && !member.admin && member.status === 'Aktiv')) return; setViewAsEmail(email); navigate('dashboard') }
   const returnToAdmin = () => { setViewAsEmail(null); navigate('dashboard') }
   const saveOwnSettings = (name: string, email: string) => {
@@ -88,6 +102,14 @@ export function PreviewApp() {
     if (profile) setProfile({ ...profile, name, email })
   }
   const updateClaim = (change: Partial<PreviewClaim>) => setClaims(current => ({ ...current, [activeTerm.iso]: { ...current[activeTerm.iso], ...change } }))
+  const savePreviewDraft = () => {
+    const saved = { ...claim, status: 'DRAFT' as Status, saved: true, evidence: false, evidenceFile: null }
+    try {
+      window.sessionStorage.setItem(draftStorageKey(signedInEmail, activeTerm.iso), JSON.stringify(saved))
+      updateClaim({ saved: true })
+      setMessage(`Entwurf zum Stichtag ${term} gespeichert. Sie können ihn über das Datum erneut öffnen.${claim.evidenceFile ? ' Nach einem Neuladen muss der Nachweis erneut ausgewählt werden.' : ''}`)
+    } catch { setMessage('Speichern fehlgeschlagen. Bitte prüfen Sie den verfügbaren Browserspeicher.') }
+  }
   const updateSampleCorrection = (number: string, next: SampleCorrection) => setSampleCorrections(current => ({ ...current, [number]: next }))
   const submitSampleCorrection = (number: string) => setSampleCorrections(current => ({
     ...current,
@@ -110,15 +132,16 @@ export function PreviewApp() {
   const visibleSamples = scenario === 'many' ? sampleClaims : scenario === 'few' ? sampleClaims.filter(item => ['2026-08-01', '2026-08-15', '2026-09-01'].includes(item.termDate)) : []
   const credits = [...openTerms.filter(term => claims[term.iso].status === 'COMPLETED').map(term => ({ claimNumber: term.number, reference: `BEISPIEL-GS-${term.number.slice(-2)}`, provided: 'In dieser Sitzung', termDate: term.iso })), ...sampleCredits.filter(credit => visibleSamples.some(claim => claim.number === credit.claimNumber))]
   const dashboardTerms = [...new Map([
-    ...openTerms.map(term => ({ iso: term.iso, date: term.date, status: claims[term.iso].status === 'DRAFT' && !hasDraftData(claims[term.iso]) ? null : claims[term.iso].status, target: claims[term.iso].status === 'COMPLETED' ? `credits:${term.number}` : `claim:${term.iso}` })),
-    ...visibleSamples.map(item => ({ iso: item.termDate, date: new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${item.termDate}T12:00:00Z`)), status: sampleCorrections[item.number]?.phase === 'draft' ? 'DRAFT' as Status : sampleCorrections[item.number]?.phase === 'submitted' ? 'MANUAL_REVIEW' as Status : item.status, target: item.status === 'COMPLETED' && item.creditReference ? `credits:${item.number}` : `sample:${item.number}` }))
+    ...openTerms.map(term => ({ iso: term.iso, date: term.date, status: claims[term.iso].status === 'DRAFT' && !hasDraftData(claims[term.iso]) ? null : claims[term.iso].status, target: `term:${term.iso}` })),
+    ...visibleSamples.map(item => ({ iso: item.termDate, date: new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${item.termDate}T12:00:00Z`)), status: sampleCorrections[item.number]?.phase === 'draft' ? 'DRAFT' as Status : sampleCorrections[item.number]?.phase === 'submitted' ? 'MANUAL_REVIEW' as Status : item.status, target: `term:${item.termDate}` }))
   ].map(item => [item.iso, item] as const)).values()]
-  if (!signedIn) return <PreviewLogin onAuthenticated={(nextRole, newProfile, nextScenario = 'many', accountEmail) => { setScenario(nextScenario); setClaims(initialClaims(nextScenario)); setSampleCorrections({}); setProfile(newProfile || null); setMembers(newProfile ? [{ name: newProfile.name, email: newProfile.email, admin: true, status: 'Aktiv' }] : nextScenario === 'many' ? initialMembers() : [{ name: 'Demo Apotheke', email: accountEmail || 'neu@beispiel.test', admin: true, status: 'Aktiv' }]); setSignedInEmail(newProfile?.email || accountEmail || (nextRole === 'PHARMACY_STAFF' ? 'mitarbeiterin@beispiel.test' : 'apotheke@beispiel.test')); setViewAsEmail(null); setRole(nextRole); resetPage(nextRole.startsWith('PHARMACY') ? pageFromRoute() : nextRole === 'REVIEWER' ? 'review' : 'finance'); setSignedIn(true) }}/>
+  if (!signedIn) return <PreviewLogin onAuthenticated={(nextRole, newProfile, nextScenario = 'many', accountEmail) => { const email = newProfile?.email || accountEmail || (nextRole === 'PHARMACY_STAFF' ? 'mitarbeiterin@beispiel.test' : 'apotheke@beispiel.test'); setScenario(nextScenario); setClaims(restoredClaims(nextScenario, email)); setSampleCorrections({}); setProfile(newProfile || null); setMembers(newProfile ? [{ name: newProfile.name, email: newProfile.email, admin: true, status: 'Aktiv' }] : nextScenario === 'many' ? initialMembers() : [{ name: 'Demo Apotheke', email: accountEmail || 'neu@beispiel.test', admin: true, status: 'Aktiv' }]); setSignedInEmail(email); setViewAsEmail(null); setRole(nextRole); resetPage(nextRole.startsWith('PHARMACY') ? pageFromRoute() : nextRole === 'REVIEWER' ? 'review' : 'finance'); setSignedIn(true) }}/>
 
   let content: React.ReactNode
   if (page === 'account') content = <AccountSettings key={ownUser.email} user={ownUser} onSave={saveOwnSettings} onChangePassword={() => {}} emailEditable preview viewingAs={viewedMember?.name} onReturn={returnToAdmin}/>
   else if (pharmacy && (page === 'dashboard' || page === 'claims')) content = <PreviewDashboard terms={dashboardTerms} navigate={navigate} view={dashboardView} onViewChange={setDashboardView} demoLoadDelayMs={1500}/>
-  else if (pharmacy && page.startsWith('claim:')) content = <PreviewClaimEditor claim={claim} term={term} claimNumber={claimNumber} navigate={navigate} updateClaim={updateClaim} addItem={addItem} updateItem={updateItem} removeItem={removeItem} submit={submit} members={members.filter(member => member.status === 'Aktiv')} currentEmail={user.email} discard={() => { updateClaim(initialClaim()); navigate('dashboard'); setMessage('Beispielentwurf verworfen.') }} setMessage={setMessage}/>
+  else if (pharmacy && (page.startsWith('claim:') || page.startsWith('term:')) && openTerms.some(item => item.iso === page.slice(page.indexOf(':') + 1)) && !(page.startsWith('term:') && visibleSamples.some(item => item.termDate === page.slice(5)))) content = <PreviewClaimEditor claim={claim} term={term} claimNumber={claimNumber} navigate={navigate} updateClaim={updateClaim} saveDraft={savePreviewDraft} addItem={addItem} updateItem={updateItem} removeItem={removeItem} submit={submit} members={members.filter(member => member.status === 'Aktiv')} currentEmail={user.email} discard={() => { window.sessionStorage.removeItem(draftStorageKey(signedInEmail, activeTerm.iso)); updateClaim(initialClaim()); navigate('dashboard'); setMessage('Beispielentwurf verworfen.') }} setMessage={setMessage}/>
+  else if (pharmacy && page.startsWith('term:')) { const sample = visibleSamples.find(item => item.termDate === page.slice(5)); content = sample ? <PreviewSampleClaimDetail claim={sample} navigate={navigate} correction={sampleCorrections[sample.number]} onStartCorrection={() => updateSampleCorrection(sample.number, { phase: 'draft', positions: sampleClaimDetail(sample).positions.map(position => ({ ...position })), comment: '', declaration: false })} onChangeCorrection={next => updateSampleCorrection(sample.number, next)} onSubmitCorrection={() => submitSampleCorrection(sample.number)}/> : <Notice tone="warning">Stichtag nicht gefunden.</Notice> }
   else if (pharmacy && page.startsWith('sample:')) { const sample = visibleSamples.find(item => item.number === page.slice(7)); content = sample ? <PreviewSampleClaimDetail claim={sample} navigate={navigate} correction={sampleCorrections[sample.number]} onStartCorrection={() => updateSampleCorrection(sample.number, { phase: 'draft', positions: sampleClaimDetail(sample).positions.map(position => ({ ...position })), comment: '', declaration: false })} onChangeCorrection={next => updateSampleCorrection(sample.number, next)} onSubmitCorrection={() => submitSampleCorrection(sample.number)}/> : <Notice tone="warning">Beispielmeldung nicht gefunden.</Notice> }
   else if (pharmacy && page === 'members') content = <PreviewMembers members={members} setMembers={setMembers} currentEmail={user.email} canManage={effectiveRole === 'PHARMACY_ADMIN'} setMessage={setMessage}/>
   else if (pharmacy && (page === 'credits' || page.startsWith('credits:'))) content = <PreviewCredits credits={credits} selectedClaimNumber={page.startsWith('credits:') ? page.slice(8) : undefined} currentClaims={openTerms.map(term => ({ number: term.number, termDate: term.iso, claim: claims[term.iso] }))} navigate={navigate}/>
@@ -131,6 +154,6 @@ export function PreviewApp() {
   return <Shell user={user} page={page} demo onNavigate={navigate} onLogout={reset} account={{ onSettings: () => navigate('account'), onMembers: pharmacy && role === 'PHARMACY_ADMIN' ? () => navigate('members') : undefined, switchable: role === 'PHARMACY_ADMIN' && !viewAsEmail ? members.filter(member => !member.admin && member.status === 'Aktiv').map(member => ({ id: member.email, name: member.name, email: member.email })) : [], onSwitch: switchToMember, viewingAs: viewedMember?.name, onReturn: returnToAdmin }}>
     {message ? <Notice tone={message.startsWith('Bitte') || message.startsWith('Mindestens') || message.startsWith('Diese Adresse') ? 'warning' : 'info'}>{message}</Notice> : null}
     {content}
-    {confirmSubmit ? <div className="modal-backdrop"><div className="modal" role="dialog" aria-modal="true" aria-labelledby="preview-confirm-title"><h2 id="preview-confirm-title">Beispielmeldung einreichen?</h2><p>In dieser Vorschau ändert sich nur der sichtbare Status im Browser. Eine echte Meldung wird nicht gespeichert oder versendet.</p><div className="confirm-summary"><div><span>Termin</span><strong>{term}</strong></div><div><span>Positionen</span><strong>{claim.items.length}</strong></div><div><span>Nachweis</span><strong>{claim.evidence ? 'Beispielbeleg' : 'Fehlt'}</strong></div></div><label className="field claim-contact-field"><span>Ansprechpartner der Apotheke</span><select value={claim.contactEmail || user.email} onChange={event => updateClaim({ contactEmail: event.target.value })}>{members.filter(member => member.status === 'Aktiv').map(member => <option key={member.email} value={member.email}>{member.name}</option>)}</select></label><p className="field-hint">Eingereicht wird von {user.name}. Die Auswahl benennt den Ansprechpartner.</p><div className="modal-actions"><Button variant="secondary" onClick={() => setConfirmSubmit(false)}>Zurück</Button><Button onClick={() => { updateClaim({ status: 'MANUAL_REVIEW' }); navigate('dashboard'); setMessage('Beispielmeldung eingereicht. Sie sehen den Status jetzt in der Übersicht.'); requestAnimationFrame(() => window.scrollTo(0, 0)) }}>Einreichung simulieren</Button></div></div></div> : null}
+    {confirmSubmit ? <div className="modal-backdrop"><div className="modal" role="dialog" aria-modal="true" aria-labelledby="preview-confirm-title"><h2 id="preview-confirm-title">Beispielmeldung einreichen?</h2><p>In dieser Vorschau ändert sich nur der sichtbare Status im Browser. Eine echte Meldung wird nicht gespeichert oder versendet.</p><div className="confirm-summary"><div><span>Termin</span><strong>{term}</strong></div><div><span>Positionen</span><strong>{claim.items.length}</strong></div><div><span>Nachweis</span><strong>{claim.evidence ? 'Beispielbeleg' : 'Fehlt'}</strong></div></div><label className="field claim-contact-field"><span>Ansprechpartner der Apotheke</span><select value={claim.contactEmail || user.email} onChange={event => updateClaim({ contactEmail: event.target.value })}>{members.filter(member => member.status === 'Aktiv').map(member => <option key={member.email} value={member.email}>{member.name}</option>)}</select></label><p className="field-hint">Eingereicht wird von {user.name}. Die Auswahl benennt den Ansprechpartner.</p><div className="modal-actions"><Button variant="secondary" onClick={() => setConfirmSubmit(false)}>Zurück</Button><Button onClick={() => { window.sessionStorage.removeItem(draftStorageKey(signedInEmail, activeTerm.iso)); updateClaim({ status: 'MANUAL_REVIEW' }); navigate('dashboard'); setMessage('Beispielmeldung eingereicht. Sie sehen den Status jetzt in der Übersicht.'); requestAnimationFrame(() => window.scrollTo(0, 0)) }}>Einreichung simulieren</Button></div></div></div> : null}
   </Shell>
 }

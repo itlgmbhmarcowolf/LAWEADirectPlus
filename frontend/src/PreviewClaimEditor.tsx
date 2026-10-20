@@ -10,6 +10,7 @@ type Props = {
   claimNumber: string
   navigate: (page: string) => void
   updateClaim: (change: Partial<PreviewClaim>) => void
+  saveDraft: () => void
   addItem: () => void
   updateItem: (id: number, change: Partial<PreviewItem>) => void
   removeItem: (id: number) => void
@@ -26,7 +27,7 @@ export const previewProductNames: Record<string, string> = {
   '04812345': 'Beispielpräparat C'
 }
 
-export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateClaim, addItem, updateItem, removeItem, submit, members, currentEmail, discard, setMessage }: Props) {
+export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateClaim, saveDraft, addItem, updateItem, removeItem, submit, members, currentEmail, discard, setMessage }: Props) {
   const editable = claim.status === 'DRAFT'
   const [showValidation, setShowValidation] = useState(false)
   const validationRef = useRef<HTMLDivElement>(null)
@@ -88,7 +89,7 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
       </section></div>
 
       {showValidation && issues.length ? <div className="claim-validation" ref={validationRef} role="alert"><strong>Bitte vor dem Einreichen korrigieren:</strong><ul>{issues.map(issue => <li key={issue}>{issue}</li>)}</ul></div> : null}
-      <div className="editor-actions"><Button variant="quiet" onClick={() => setMessage('Dieser Entwurf bleibt nur bis zum Neuladen im Browser erhalten.')}>Entwurf speichern</Button><Button icon="arrow" onClick={checkAndSubmit}>Angaben prüfen</Button><button className="text-button danger-text" onClick={discard}>Entwurf verwerfen</button></div>
+      <div className="editor-actions"><Button variant="quiet" onClick={saveDraft}>Entwurf speichern</Button><Button icon="arrow" onClick={checkAndSubmit}>Angaben prüfen</Button><button className="text-button danger-text" onClick={discard}>Entwurf verwerfen</button></div>
     </> : <>
       <PageTitle title="Meldung im Überblick" subtitle={`${claimNumber} · Senkungstermin ${term}`}/>
       <div className="term-summary"><div><span>Stichtag</span><strong>{term}</strong></div><div><span>Vorgang</span><strong>{claimNumber}</strong></div><div><span>Status</span><strong><StatusPill status={claim.status} label={claim.status === 'COMPLETED' ? 'Ausgezahlt · Demo' : claim.status === 'MANUAL_REVIEW' ? 'Eingereicht' : undefined}/></strong></div></div>
