@@ -45,7 +45,7 @@ function MemberMenu({ member, currentUserId, adminCount, onAction }: {
   </div>
 }
 
-export function MembersPage({ data, refresh }: { data: Bootstrap; refresh: () => Promise<Bootstrap> }) {
+export function MembersPage({ data, refresh, onHelp }: { data: Bootstrap; refresh: () => Promise<Bootstrap>; onHelp: () => void }) {
   const admin = data.user.role === 'PHARMACY_ADMIN'
   const members = data.members || []
   const invitations = admin ? data.invitations || [] : []
@@ -141,7 +141,7 @@ export function MembersPage({ data, refresh }: { data: Bootstrap; refresh: () =>
   const confirmDescription = confirm?.kind === 'role' ? 'Die bisherigen Sitzungen dieser Person werden beendet. Neue Berechtigungen gelten ab der nächsten Anmeldung.' : confirm?.kind === 'reset' ? `Für ${confirm.member.name} wird ein neuer Passwort-Link erstellt und per E-Mail verschickt.` : confirm?.kind === 'disable' ? 'Diese Person wird sofort abgemeldet und kann sich bis zur Reaktivierung nicht anmelden.' : confirm?.kind === 'enable' ? 'Die Person kann sich anschließend mit ihrem bestehenden Passwort wieder anmelden.' : 'Der Einladungslink wird sofort ungültig.'
 
   return <div className="team-page">
-    <header className="team-heading"><div><h1>Mitarbeiter</h1><p>Verwalten Sie die Zugänge Ihrer Apotheke.</p></div>{admin ? <Button icon="userPlus" onClick={openInvite}>Mitarbeiter einladen</Button> : null}</header>
+    <header className="team-heading"><div><h1>Mitarbeiter</h1><p>Verwalten Sie die Zugänge Ihrer Apotheke.</p></div><div className="team-heading-actions"><button type="button" className="team-help-link" onClick={onHelp}><Icon name="help" size={18}/> So funktioniert es</button>{admin ? <Button icon="userPlus" onClick={openInvite}>Mitarbeiter einladen</Button> : null}</div></header>
     {error ? <Notice tone="error">{error}</Notice> : null}
     {notice ? <Notice tone="success">{notice}</Notice> : null}
     {demoLink ? <div className="team-demo-link" role="status"><div><strong>Demo-Link für den Zugang</strong><p>Öffnen Sie den Link in einem privaten Browserfenster für die betreffende Person.</p><code>{demoLink}</code></div><button type="button" onClick={() => navigator.clipboard.writeText(`${window.location.origin}${demoLink}`).then(() => setNotice('Demo-Link kopiert.')).catch(() => setError('Link konnte nicht kopiert werden.'))}>Link kopieren</button></div> : null}

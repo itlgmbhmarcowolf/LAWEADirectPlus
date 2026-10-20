@@ -9,13 +9,14 @@ type Props = {
   currentEmail: string
   canManage: boolean
   setMessage: (message: string) => void
+  onHelp: () => void
 }
 type Filter = 'all' | 'active' | 'invited' | 'disabled'
 
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).map(part => part[0]).slice(0, 2).join('').toUpperCase()
 const normalized = (value: string) => value.trim().toLocaleLowerCase('de-DE')
 
-export function PreviewMembers({ members, setMembers, currentEmail, canManage, setMessage }: Props) {
+export function PreviewMembers({ members, setMembers, currentEmail, canManage, setMessage, onHelp }: Props) {
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [roleFilter, setRoleFilter] = useState('all')
@@ -63,7 +64,7 @@ export function PreviewMembers({ members, setMembers, currentEmail, canManage, s
   }
 
   return <div className="team-page">
-    <header className="team-heading"><div><h1>Mitarbeiter</h1><p>{canManage ? 'Verwalten Sie die Zugänge Ihrer Apotheke.' : 'Alle Zugänge Ihrer Apotheke im Überblick.'}</p></div>{canManage ? <Button icon="userPlus" onClick={() => setInviteOpen(value => !value)}>Mitarbeiter einladen</Button> : null}</header>
+    <header className="team-heading"><div><h1>Mitarbeiter</h1><p>{canManage ? 'Verwalten Sie die Zugänge Ihrer Apotheke.' : 'Alle Zugänge Ihrer Apotheke im Überblick.'}</p></div><div className="team-heading-actions"><button type="button" className="team-help-link" onClick={onHelp}><Icon name="help" size={18}/> So funktioniert es</button>{canManage ? <Button icon="userPlus" onClick={() => setInviteOpen(value => !value)}>Mitarbeiter einladen</Button> : null}</div></header>
     <section className="team-summary" aria-label="Teamübersicht"><div><span className="team-summary-icon"><Icon name="users" size={22}/></span><strong>{active}</strong><span>aktive Zugänge</span></div><div><span className="team-summary-icon"><Icon name="shield" size={22}/></span><strong>{admins}</strong><span>{admins === 1 ? 'Administrator' : 'Administratoren'}</span></div><div><span className="team-summary-icon"><Icon name="mail" size={22}/></span><strong>{invited}</strong><span>{invited === 1 ? 'offene Einladung' : 'offene Einladungen'}</span></div></section>
     <div className={`team-layout ${inviteOpen ? 'team-layout-with-invite' : ''}`}><div className="team-main"><section className="team-directory" aria-label="Mitarbeiter suchen und verwalten">
       <div className="team-toolbar"><label className="team-search"><Icon name="search" size={20}/><input type="search" aria-label="Mitarbeiter suchen" placeholder="Name oder E-Mail suchen" value={query} onChange={event => setQuery(event.target.value)}/></label><label className="team-role-select"><span className="sr-only">Rolle filtern</span><select value={roleFilter} onChange={event => setRoleFilter(event.target.value)}><option value="all">Alle Rollen</option><option value="admin">Administratoren</option><option value="staff">Mitarbeiter</option></select></label></div>

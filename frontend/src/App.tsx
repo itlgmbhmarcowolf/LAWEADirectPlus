@@ -41,9 +41,9 @@ export function App() {
     if (page === 'dashboard' || page === 'claims') content = <>{submittedNotice ? <Notice tone="success">{submittedNotice}</Notice> : null}<PharmacyDashboard data={data} navigate={navigate} view={dashboardView} onViewChange={setDashboardView}/></>
     else if (page.startsWith('term:')) content = <PharmacyTermPage iso={page.slice(5)} data={data} navigate={navigate} refresh={refresh} onSubmitted={number => { setSubmittedNotice(`Meldung ${number} wurde eingereicht. Sie sehen den Status in der Übersicht.`); navigate('dashboard') }}/>
     else if (page.startsWith('claim:')) content = <ClaimEditor key={page} id={page.slice(6)} data={data} navigate={navigate} refresh={refresh} onSubmitted={number => { setSubmittedNotice(`Meldung ${number} wurde eingereicht. Sie sehen den Status in der Übersicht.`); navigate('dashboard') }}/>
-    else if (page === 'members') content = <MembersPage data={data} refresh={refresh}/>
+    else if (page === 'members') content = <MembersPage data={data} refresh={refresh} onHelp={() => navigate('help:members')}/>
     else if (page === 'credits' || page.startsWith('credits:')) content = <CreditsPage data={data} navigate={navigate} selectedClaimId={page.startsWith('credits:') ? page.slice(8) : undefined}/>
-    else content = <HelpPage />
+    else content = <HelpPage initialTopic={page === 'help:members' ? 'mitarbeiter' : 'stichtage'} navigate={navigate} canManageMembers={data.user.role === 'PHARMACY_ADMIN'}/>
   } else if (data.user.role === 'REVIEWER') {
     if (page === 'registrations') content = <RegistrationsPage data={data} refresh={refresh}/>
     else if (page === 'audit') content = <AuditPage />
