@@ -14,5 +14,8 @@
 .claim-editor-section .check-field{margin:16px 0 0;padding-top:15px;border-top:1px solid #e6eef1}
 .modal .confirm-summary{flex-wrap:wrap}
 .claim-contact-field{margin:0 0 15px}.claim-validation{margin:18px 0;padding:13px 16px;border:1px solid #e9bdc3;border-left:4px solid #b73f50;border-radius:8px;background:#fff6f7;color:#863746;font-size:13px}.claim-validation strong{display:block;margin-bottom:6px}.claim-validation ul{margin:0;padding-left:20px}.claim-validation li+li{margin-top:4px}
+.claim-field-error{display:block;margin-top:6px;color:#a43647;font-size:12px;font-weight:650;line-height:1.4}
+.claim-editor-section input[aria-invalid="true"],.claim-editor-section select[aria-invalid="true"],.claim-editor-section .upload-zone[aria-invalid="true"]{border-color:#c65363}
+.claim-declaration .check-field{margin-bottom:0}
 @media(min-width:1100px){.claim-editor-details{display:grid;grid-template-columns:1fr 1fr;gap:16px}.claim-editor-details .claim-editor-section{min-width:0}}
 @media(max-width:620px){.claim-editor-heading{display:block;margin-bottom:19px}.claim-editor-heading h1{font-size:28px}.claim-editor-heading span{display:block;margin-top:5px}.claim-editor-section{padding:16px;margin-bottom:13px}.claim-editor-section>h2{font-size:19px}.claim-editor-section .position-row:last-of-type{border-radius:5px}.claim-editor-section .add-row{width:100%;justify-content:center}.claim-editor-section .upload-zone{max-width:none}}
