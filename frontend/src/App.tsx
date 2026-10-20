@@ -43,7 +43,7 @@ export function App() {
     else if (page.startsWith('claim:')) content = <ClaimEditor key={page} id={page.slice(6)} data={data} navigate={navigate} refresh={refresh} onSubmitted={number => { setSubmittedNotice(`Meldung ${number} wurde eingereicht. Sie sehen den Status in der Übersicht.`); navigate('dashboard') }}/>
     else if (page === 'members') content = <MembersPage data={data} refresh={refresh} onHelp={() => navigate('help:members')}/>
     else if (page === 'credits' || page.startsWith('credits:')) content = <CreditsPage data={data} navigate={navigate} selectedClaimId={page.startsWith('credits:') ? page.slice(8) : undefined}/>
-    else content = <HelpPage initialTopic={page === 'help:members' ? 'mitarbeiter' : 'stichtage'} navigate={navigate} canManageMembers={data.user.role === 'PHARMACY_ADMIN'}/>
+    else content = <HelpPage initialTopic={page === 'help:members' ? 'mitarbeiter' : 'stichtage'} navigate={navigate}/>
   } else if (data.user.role === 'REVIEWER') {
     if (page === 'registrations') content = <RegistrationsPage data={data} refresh={refresh}/>
     else if (page === 'audit') content = <AuditPage />

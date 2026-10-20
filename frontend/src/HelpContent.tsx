@@ -23,9 +23,9 @@ const topics: Topic[] = [
   ], note: 'Die Assistenz kann Hinweise geben, bestätigt die Angaben aber nicht und reicht keine Meldung für Sie ein.' },
   { id: 'korrektur', title: 'Korrektur nach Ablehnung', summary: 'Rückmeldung lesen und eine neue Revision einreichen', keywords: 'fehler ablehnung erneut', intro: 'Kommt eine Meldung zur Korrektur zurück, sehen Sie den Grund direkt in der Meldung. Die bereits eingereichte Fassung bleibt im Verlauf erhalten.', steps: [
     { title: 'Grund lesen', text: 'Öffnen Sie den Stichtag mit dem Stand „Bitte korrigieren“ und lesen Sie die Rückmeldung.' },
-    { title: 'Neue Revision erstellen', text: 'Wählen Sie „Neue Revision erstellen“. Korrigieren Sie die Angaben und ergänzen Sie bei Bedarf Kommentar oder Nachweis.' },
+    { title: 'Neue Revision erstellen', text: 'Wählen Sie „Neue Revision erstellen“. Korrigieren Sie die Angaben. Sie können den Nachweis erneut hochladen und einen Kommentar ergänzen.' },
     { title: 'Erneut einreichen', text: 'Bestätigen Sie die Richtigkeit erneut und reichen Sie die neue Revision bewusst ein. Die frühere Fassung bleibt sichtbar.' }
-  ], note: 'Eine Korrektur ist nur innerhalb des geltenden Einreichungsfensters möglich. Eine Verlängerung ist fachlich noch nicht festgelegt.' },
+  ], note: 'Eine Korrektur ist nur innerhalb des geltenden Einreichungsfensters möglich.' },
   { id: 'mitarbeiter', title: 'Mitarbeiterverwaltung', summary: 'Einladen, Rollen ändern und Zugänge verwalten', keywords: 'team administrator einladung sperren passwort', intro: 'Jede Person nutzt einen eigenen Zugang zur Apotheke. Unternehmensadministratoren verwalten Einladungen, Rollen und Zugänge. Mitarbeitende können die Liste nur ansehen.', steps: [
     { title: 'Verwaltung öffnen', text: 'Öffnen Sie oben rechts das Profilmenü und wählen Sie „Mitarbeiter verwalten“. Dieser Menüpunkt erscheint nur für Unternehmensadministratoren.' },
     { title: 'Person einladen', text: 'Wählen Sie „Mitarbeiter einladen“ und geben Sie Namen, E-Mail-Adresse und Rolle ein. „Mitarbeiter“ bearbeitet Meldungen; „Unternehmensadministrator“ darf zusätzlich Zugänge verwalten.' },
@@ -39,7 +39,7 @@ const topics: Topic[] = [
   ] }
 ]
 
-export function HelpContent({ initialTopic = 'stichtage', onNavigate, canManageMembers = false }: { initialTopic?: TopicId; onNavigate?: (page: string) => void; canManageMembers?: boolean }) {
+export function HelpContent({ initialTopic = 'stichtage', onNavigate }: { initialTopic?: TopicId; onNavigate?: (page: string) => void }) {
   const [selected, setSelected] = useState<TopicId>(initialTopic)
   const [query, setQuery] = useState('')
   const articleRef = useRef<HTMLElement>(null)
@@ -54,7 +54,7 @@ export function HelpContent({ initialTopic = 'stichtage', onNavigate, canManageM
     <header className="help-heading"><h1>Hilfe</h1><p>Schritt für Schritt durch Stichtage, Meldungen und Mitarbeiterverwaltung.</p></header>
     <label className="help-search"><Icon name="search" size={20}/><span className="sr-only">Hilfethemen durchsuchen</span><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Wobei können wir helfen?" aria-label="Hilfethemen durchsuchen"/>{query ? <button type="button" aria-label="Suche löschen" onClick={() => setQuery('')}><Icon name="close" size={17}/></button> : null}</label>
     <div className="help-layout">
-      <nav className="help-topics" aria-label="Hilfethemen"><span className="help-topics-label">Themen</span>{filtered.length ? filtered.map(topic => <button key={topic.id} type="button" className={active?.id === topic.id ? 'active' : ''} aria-current={active?.id === topic.id ? 'page' : undefined} onClick={() => openTopic(topic.id)}><strong>{topic.title}</strong><small>{topic.summary}</small><Icon name="arrow" size={17}/></button>) : <p className="help-no-results">Keine passenden Themen. Versuchen Sie einen anderen Suchbegriff.</p>}</nav>
+      <nav className="help-topics" aria-label="Hilfethemen"><span className="help-topics-label">Themen</span>{filtered.length ? filtered.map(topic => <button key={topic.id} type="button" className={active?.id === topic.id ? 'active' : ''} aria-current={active?.id === topic.id ? 'page' : undefined} onClick={() => openTopic(topic.id)}><strong>{topic.title}</strong><small>{topic.summary}</small></button>) : <p className="help-no-results">Keine passenden Themen. Versuchen Sie einen anderen Suchbegriff.</p>}</nav>
       {active ? <article ref={articleRef} className="help-article" key={active.id} aria-labelledby="help-article-title">
         <header><span>Hilfeartikel</span><h2 id="help-article-title">{active.title}</h2><p>{active.summary}</p></header>
         <div className="help-article-body">
@@ -66,7 +66,6 @@ export function HelpContent({ initialTopic = 'stichtage', onNavigate, canManageM
             <details><summary>Was tun mit einer abgelaufenen Einladung?</summary><p>Öffnen Sie den Reiter „Einladungen“ und wählen Sie „Erneut senden“. Der bisherige Link wird ungültig; die eingeladene Person erhält einen neuen Einladungslink.</p></details>
           </div></> : null}
           {active.note ? <div className="help-note"><Icon name="help" size={20}/><p>{active.note}</p></div> : null}
-          {onNavigate && active.id === 'mitarbeiter' && canManageMembers ? <Button variant="secondary" onClick={() => onNavigate('members')}>Mitarbeiterverwaltung öffnen</Button> : null}
           {onNavigate && active.id === 'stichtage' ? <Button variant="secondary" onClick={() => onNavigate('dashboard')}>Stichtage öffnen</Button> : null}
         </div>
       </article> : null}
