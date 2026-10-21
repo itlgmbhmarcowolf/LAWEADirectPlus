@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Status } from './types'
 import { Icon } from './ui'
 import './preview-dashboard.css'
@@ -27,10 +27,10 @@ const matchesSingleFilter = (term: DashboardTerm, filter: StatusFilter) => {
 
 const filters: { key: StatusFilter; label: string }[] = [
   { key: 'new', label: 'Neu' },
-  { key: 'draft', label: 'Entwürfe' },
+  { key: 'draft', label: 'Entwurf' },
   { key: 'submitted', label: 'Eingereicht' },
   { key: 'correction', label: 'Bitte korrigieren' },
-  { key: 'completed', label: 'Abgeschlossen' }
+  { key: 'completed', label: 'Ausgezahlt' }
 ]
 
 const previewStatus = (status: Status | null) => {
@@ -59,71 +59,6 @@ export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoad
     onViewChange({ ...view, ...change })
   }
   const sentinelRef = useRef<HTMLDivElement>(null)
-  const sortRef = useRef<HTMLDivElement>(null)
-  const sortTriggerRef = useRef<HTMLButtonElement>(null)
-  const sortMenuRef = useRef<HTMLDivElement>(null)
-  const [sortMenuOpen, setSortMenuOpen] = useState(false)
-  const statusFilterRef = useRef<HTMLDivElement>(null)
-  const statusTriggerRef = useRef<HTMLButtonElement>(null)
-  const statusMenuRef = useRef<HTMLDivElement>(null)
-  const [statusMenuOpen, setStatusMenuOpen] = useState(false)
-  const onSortMenuKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const options = Array.from(sortMenuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]') || [])
-    const current = options.indexOf(document.activeElement as HTMLButtonElement)
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      setSortMenuOpen(false)
-      sortTriggerRef.current?.focus()
-    } else if (event.key === 'Tab') {
-      setSortMenuOpen(false)
-    } else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
-      event.preventDefault()
-      const next = event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1 : (current + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length
-      options[next]?.focus()
-    }
-  }
-  useEffect(() => {
-    if (!sortMenuOpen) return
-    sortMenuRef.current?.querySelector<HTMLButtonElement>('[aria-checked="true"]')?.focus()
-    const closeOutside = (event: PointerEvent) => {
-      if (!sortRef.current?.contains(event.target as Node)) setSortMenuOpen(false)
-    }
-    document.addEventListener('pointerdown', closeOutside)
-    return () => document.removeEventListener('pointerdown', closeOutside)
-  }, [sortMenuOpen])
-  const statusSummary = selectedStatuses.length === 0 ? 'Alle' : selectedStatuses.length === 1
-    ? filters.find(item => item.key === selectedStatuses[0])?.label || 'Alle'
-    : `${selectedStatuses.length} ausgewählt`
-  const toggleFilter = (next: StatusFilter) => {
-    const updated = selectedStatuses.includes(next)
-      ? selectedStatuses.filter(item => item !== next)
-      : [...selectedStatuses, next]
-    updateView({ selectedStatuses: updated, visibleMonths: 6 })
-  }
-  const onStatusMenuKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const options = Array.from(statusMenuRef.current?.querySelectorAll<HTMLButtonElement>('[role^="menuitem"]') || [])
-    const current = options.indexOf(document.activeElement as HTMLButtonElement)
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      setStatusMenuOpen(false)
-      statusTriggerRef.current?.focus()
-    } else if (event.key === 'Tab') {
-      setStatusMenuOpen(false)
-    } else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
-      event.preventDefault()
-      const next = event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1 : (current + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length
-      options[next]?.focus()
-    }
-  }
-  useEffect(() => {
-    if (!statusMenuOpen) return
-    statusMenuRef.current?.querySelector<HTMLButtonElement>('[aria-checked="true"]')?.focus()
-    const closeOutside = (event: PointerEvent) => {
-      if (!statusFilterRef.current?.contains(event.target as Node)) setStatusMenuOpen(false)
-    }
-    document.addEventListener('pointerdown', closeOutside)
-    return () => document.removeEventListener('pointerdown', closeOutside)
-  }, [statusMenuOpen])
   const filteredTerms = terms.filter(term => selectedStatuses.length === 0 || selectedStatuses.some(status => matchesSingleFilter(term, status)))
   const sortedTerms = [...filteredTerms].sort((a, b) => sortOrder === 'newest' ? b.iso.localeCompare(a.iso) : a.iso.localeCompare(b.iso))
   const groupedMonths = sortedTerms.reduce<{ key: string; label: string; year: string; terms: DashboardTerm[] }[]>((groups, term) => {
@@ -198,12 +133,18 @@ export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoad
   return <div className="overview-simple">
     <header className="overview-simple-heading">
       <div><h1>Stichtage</h1></div>
-      {terms.length > 0 ? <div className="overview-controls">
-        <div className="overview-sort" ref={sortRef}><span id="overview-sort-label">Nach Datum sortieren</span><button ref={sortTriggerRef} type="button" className="overview-sort-trigger" aria-labelledby="overview-sort-label overview-sort-value" aria-haspopup="menu" aria-expanded={sortMenuOpen} onClick={() => setSortMenuOpen(open => !open)} onKeyDown={event => { if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); setSortMenuOpen(true) } }}><span id="overview-sort-value">{sortOrder === 'newest' ? 'Neueste zuerst' : 'Älteste zuerst'}</span><Icon name="chevron" size={16}/></button>{sortMenuOpen ? <div ref={sortMenuRef} className="overview-sort-menu" role="menu" aria-label="Nach Datum sortieren" onKeyDown={onSortMenuKeyDown}>{(['newest', 'oldest'] as const).map(order => <button key={order} type="button" role="menuitemradio" aria-checked={sortOrder === order} onClick={() => { updateView({ sortOrder: order, visibleMonths: 6 }); setSortMenuOpen(false); sortTriggerRef.current?.focus() }}><span>{order === 'newest' ? 'Neueste zuerst' : 'Älteste zuerst'}</span>{sortOrder === order ? <Icon name="check" size={16}/> : null}</button>)}</div> : null}</div>
-      </div> : null}
     </header>
+    {terms.length > 0 ? <div className="overview-toolbar">
+      <div className="overview-status-tabs" role="group" aria-label="Meldungsstand filtern">
+        <button type="button" className="overview-status-tab overview-status-tab-all" aria-pressed={selectedStatuses.length === 0} onClick={() => updateView({ selectedStatuses: [], visibleMonths: 6 })}>Alle</button>
+        {filters.map(item => <button key={item.key} type="button" className={`overview-status-tab overview-status-tab-${item.key}`} aria-pressed={selectedStatuses.length === 1 && selectedStatuses[0] === item.key} onClick={() => updateView({ selectedStatuses: [item.key], visibleMonths: 6 })}>{item.label}</button>)}
+      </div>
+      <div className="overview-sort-switch" role="group" aria-label="Nach Datum sortieren">
+        {(['newest', 'oldest'] as const).map(order => <button key={order} type="button" aria-pressed={sortOrder === order} onClick={() => updateView({ sortOrder: order, visibleMonths: 6 })}>{order === 'newest' ? 'Neueste zuerst' : 'Älteste zuerst'}</button>)}
+      </div>
+    </div> : null}
     <section className="overview-simple-list" aria-label="Stichtage und Meldungsstand">
-      <div className="overview-simple-columns"><span>Zeitraum</span><span>Stichtag</span>{terms.length > 0 ? <div className="overview-status-filter" ref={statusFilterRef}><span id="overview-status-label">Stand</span><button ref={statusTriggerRef} type="button" className="overview-status-trigger" aria-labelledby="overview-status-label overview-status-value" aria-haspopup="menu" aria-expanded={statusMenuOpen} onClick={() => setStatusMenuOpen(open => !open)} onKeyDown={event => { if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); setStatusMenuOpen(true) } }}><span id="overview-status-value">{statusSummary}</span><Icon name="chevron" size={16}/></button>{statusMenuOpen ? <div ref={statusMenuRef} className="overview-status-menu" role="menu" aria-label="Meldungsstand filtern" onKeyDown={onStatusMenuKeyDown}><button type="button" role="menuitemcheckbox" aria-checked={selectedStatuses.length === 0} onClick={() => updateView({ selectedStatuses: [], visibleMonths: 6 })}><span>Alle</span>{selectedStatuses.length === 0 ? <Icon name="check" size={16}/> : null}</button><div className="overview-status-menu-divider"/>{filters.map(item => <button key={item.key} type="button" role="menuitemcheckbox" aria-checked={selectedStatuses.includes(item.key)} onClick={() => toggleFilter(item.key)}><span>{item.label}</span>{selectedStatuses.includes(item.key) ? <Icon name="check" size={16}/> : null}</button>)}</div> : null}</div> : <span>Stand</span>}</div>
+      <div className="overview-simple-columns"><span>Zeitraum</span><span>Stichtag</span><span>Stand</span></div>
       {shownTerms.length ? months.map(month => <div className="overview-month" key={month.key}>
         <div className="overview-month-label"><h2>{month.label}</h2><span>{month.year}</span></div>
         <div className="overview-month-rows">{month.terms.map(term => <button className={`overview-simple-row${term.status ? ` overview-simple-row-${term.status.toLowerCase()}` : ''}`} key={term.iso} disabled={term.disabled} onClick={() => navigate(term.target)} aria-label={`${term.date}, ${previewStatus(term.status) || (term.disabled ? 'nicht mehr offen' : 'Neu')}${term.disabled ? '' : ', öffnen'}`}>
