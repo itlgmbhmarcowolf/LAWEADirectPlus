@@ -59,6 +59,25 @@ export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoad
     onViewChange({ ...view, ...change })
   }
   const sentinelRef = useRef<HTMLDivElement>(null)
+  const statusFilterRef = useRef<HTMLDivElement>(null)
+  const statusTriggerRef = useRef<HTMLButtonElement>(null)
+  const firstStatusRef = useRef<HTMLButtonElement>(null)
+  const [statusFilterOpen, setStatusFilterOpen] = useState(false)
+  const toggleStatus = (status: StatusFilter) => updateView({
+    selectedStatuses: selectedStatuses.includes(status)
+      ? selectedStatuses.filter(selected => selected !== status)
+      : [...selectedStatuses, status],
+    visibleMonths: 6
+  })
+  useEffect(() => {
+    if (!statusFilterOpen) return
+    firstStatusRef.current?.focus()
+    const closeOutside = (event: PointerEvent) => {
+      if (!statusFilterRef.current?.contains(event.target as Node)) setStatusFilterOpen(false)
+    }
+    document.addEventListener('pointerdown', closeOutside)
+    return () => document.removeEventListener('pointerdown', closeOutside)
+  }, [statusFilterOpen])
   const filteredTerms = terms.filter(term => selectedStatuses.length === 0 || selectedStatuses.some(status => matchesSingleFilter(term, status)))
   const sortedTerms = [...filteredTerms].sort((a, b) => sortOrder === 'newest' ? b.iso.localeCompare(a.iso) : a.iso.localeCompare(b.iso))
   const groupedMonths = sortedTerms.reduce<{ key: string; label: string; year: string; terms: DashboardTerm[] }[]>((groups, term) => {
@@ -134,17 +153,44 @@ export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoad
     <header className="overview-simple-heading">
       <div><h1>Stichtage</h1></div>
     </header>
-    {terms.length > 0 ? <div className="overview-toolbar">
-      <div className="overview-status-tabs" role="group" aria-label="Meldungsstand filtern">
-        <button type="button" className="overview-status-tab overview-status-tab-all" aria-pressed={selectedStatuses.length === 0} onClick={() => updateView({ selectedStatuses: [], visibleMonths: 6 })}>Alle</button>
-        {filters.map(item => <button key={item.key} type="button" className={`overview-status-tab overview-status-tab-${item.key}`} aria-pressed={selectedStatuses.length === 1 && selectedStatuses[0] === item.key} onClick={() => updateView({ selectedStatuses: [item.key], visibleMonths: 6 })}>{item.label}</button>)}
-      </div>
-      <div className="overview-sort-switch" role="group" aria-label="Nach Datum sortieren">
-        {(['newest', 'oldest'] as const).map(order => <button key={order} type="button" aria-pressed={sortOrder === order} onClick={() => updateView({ sortOrder: order, visibleMonths: 6 })}>{order === 'newest' ? 'Neueste zuerst' : 'Älteste zuerst'}</button>)}
-      </div>
-    </div> : null}
     <section className="overview-simple-list" aria-label="Stichtage und Meldungsstand">
-      <div className="overview-simple-columns"><span>Zeitraum</span><span>Stichtag</span><span>Stand</span></div>
+      <div className="overview-simple-columns">
+        <div className="overview-period-heading">
+          <span>Zeitraum</span>
+          {terms.length > 0 ? <div className="overview-sort-icons" role="group" aria-label="Stichtage nach Datum sortieren">
+            <button type="button" aria-label="Aufsteigend sortieren, älteste zuerst" aria-pressed={sortOrder === 'oldest'} onClick={() => updateView({ sortOrder: 'oldest', visibleMonths: 6 })}>
+              <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 16V4m-4 4 4-4 4 4"/></svg>
+            </button>
+            <button type="button" aria-label="Absteigend sortieren, neueste zuerst" aria-pressed={sortOrder === 'newest'} onClick={() => updateView({ sortOrder: 'newest', visibleMonths: 6 })}>
+              <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 4v12m-4-4 4 4 4-4"/></svg>
+            </button>
+          </div> : null}
+        </div>
+        <span>Stichtag</span>
+        <div className="overview-status-heading" ref={statusFilterRef} onKeyDown={event => {
+          if (event.key === 'Escape' && statusFilterOpen) {
+            event.preventDefault()
+            setStatusFilterOpen(false)
+            statusTriggerRef.current?.focus()
+          }
+        }} onBlur={event => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setStatusFilterOpen(false)
+        }}>
+          <span>Stand</span>
+          {terms.length > 0 ? <button ref={statusTriggerRef} type="button" className="overview-filter-trigger" aria-label={selectedStatuses.length ? `Stand filtern, ${selectedStatuses.length} ausgewählt` : 'Stand filtern, alle anzeigen'} aria-expanded={statusFilterOpen} aria-controls="overview-status-panel" onClick={() => setStatusFilterOpen(open => !open)}>
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 6h16l-6.5 7.2v4.8l-3 1.7v-6.5L4 6Z"/></svg>
+            {selectedStatuses.length ? <span className="overview-filter-count" aria-hidden="true">{selectedStatuses.length}</span> : null}
+          </button> : null}
+          {statusFilterOpen ? <div id="overview-status-panel" className="overview-status-panel" role="group" aria-label="Meldungsstand auswählen">
+            <div className="overview-status-panel-top"><strong>Meldungsstand</strong><button type="button" disabled={selectedStatuses.length === 0} onClick={() => updateView({ selectedStatuses: [], visibleMonths: 6 })}>Alle anzeigen</button></div>
+            <div className="overview-status-options">{filters.map((item, index) => <button ref={index === 0 ? firstStatusRef : undefined} className="overview-status-option" type="button" key={item.key} aria-pressed={selectedStatuses.includes(item.key)} onClick={() => toggleStatus(item.key)}>
+              <span className={`overview-status-dot overview-status-dot-${item.key}`} aria-hidden="true"/>
+              <span>{item.label}</span>
+              <span className="overview-status-choice" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="m3.5 8 3 3 6-6"/></svg></span>
+            </button>)}</div>
+          </div> : null}
+        </div>
+      </div>
       {shownTerms.length ? months.map(month => <div className="overview-month" key={month.key}>
         <div className="overview-month-label"><h2>{month.label}</h2><span>{month.year}</span></div>
         <div className="overview-month-rows">{month.terms.map(term => <button className={`overview-simple-row${term.status ? ` overview-simple-row-${term.status.toLowerCase()}` : ''}`} key={term.iso} disabled={term.disabled} onClick={() => navigate(term.target)} aria-label={`${term.date}, ${previewStatus(term.status) || (term.disabled ? 'nicht mehr offen' : 'Neu')}${term.disabled ? '' : ', öffnen'}`}>
