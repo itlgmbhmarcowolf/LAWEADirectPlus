@@ -178,7 +178,7 @@ export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoad
   return <div className={`overview-simple${shownTerms.length ? ' overview-simple-with-rows' : ''}`} style={listStyle}>
     <header className="overview-simple-heading">
       <div><h1>Stichtage</h1></div>
-      <ListAppearanceSettings label="Stichtagsliste einstellen" caption="Für Stichtagsliste gespeichert" settings={appearance} defaults={defaultTermAppearance} onChange={setAppearance} open={appearanceOpen} onOpenChange={setAppearanceOpen}/>
+      <ListAppearanceSettings label="Stichtagsliste einstellen" settings={appearance} defaults={defaultTermAppearance} onChange={setAppearance} open={appearanceOpen} onOpenChange={setAppearanceOpen}/>
     </header>
     <section ref={listRef} className="overview-simple-list" aria-label="Stichtage und Meldungsstand" tabIndex={-1}>
       <div className="overview-simple-columns">

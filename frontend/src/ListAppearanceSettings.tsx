@@ -23,9 +23,8 @@ export function useListAppearance(storageKey: string, defaults: ListAppearance) 
   return [settings, setSettings] as const
 }
 
-export function ListAppearanceSettings({ label, caption, settings, defaults, onChange, open, onOpenChange }: {
+export function ListAppearanceSettings({ label, settings, defaults, onChange, open, onOpenChange }: {
   label: string
-  caption: string
   settings: ListAppearance
   defaults: ListAppearance
   onChange: (settings: ListAppearance) => void
@@ -55,7 +54,7 @@ export function ListAppearanceSettings({ label, caption, settings, defaults, onC
       <label htmlFor={fontSizeId}>Schriftgröße <output htmlFor={fontSizeId}>{settings.fontSize} px</output></label>
       <input id={fontSizeId} type="range" min="14" max="20" step="1" value={settings.fontSize} onChange={event => onChange({ ...settings, fontSize: Number(event.target.value) })}/>
       <div className="list-appearance-scale"><span>Kleiner</span><span>Größer</span></div>
-      <div className="list-appearance-footer"><span>{caption}</span><button type="button" onClick={() => onChange(defaults)}>Zurücksetzen</button></div>
+      <div className="list-appearance-footer"><button type="button" onClick={() => onChange(defaults)}>Zurücksetzen</button></div>
     </div> : null}
   </div>
 }

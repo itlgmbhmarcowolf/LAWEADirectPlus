@@ -51,5 +51,5 @@ export function App() {
   } else {
     content = page === 'audit' ? <AuditPage/> : <FinancePage data={data} refresh={refresh}/>
   }
-  return <Shell user={data.user} page={page} demo={data.demo} onNavigate={navigate} onLogout={logout} account={{ onSettings: () => navigate('account'), onMembers: data.user.role === 'PHARMACY_ADMIN' ? () => navigate('members') : undefined }}>{error ? <div className="connection-error" role="alert">{error}</div> : null}{content}<footer className="content-footer"><Icon name="shield" size={15}/> Ihre Daten sind nur für berechtigte Benutzer sichtbar. <span>LAWEA direkt+ · Demo</span></footer></Shell>
+  return <Shell user={data.user} page={page} onNavigate={navigate} onLogout={logout} account={{ onSettings: () => navigate('account'), onMembers: data.user.role === 'PHARMACY_ADMIN' ? () => navigate('members') : undefined }}>{error ? <div className="connection-error" role="alert">{error}</div> : null}{content}<footer className="content-footer"><Icon name="shield" size={15}/> Ihre Daten sind nur für berechtigte Benutzer sichtbar. <span>LAWEA direkt+ · Demo</span></footer></Shell>
 }

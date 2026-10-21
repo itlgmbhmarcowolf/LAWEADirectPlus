@@ -13,7 +13,6 @@
 .list-appearance-panel input[type=range]::-webkit-slider-thumb{width:19px;height:19px;border:3px solid #fff;border-radius:50%;appearance:none;background:#087b8c;box-shadow:0 0 0 1px #087b8c,0 2px 7px #12495a30}
 .list-appearance-panel input[type=range]::-moz-range-thumb{width:13px;height:13px;border:3px solid #fff;border-radius:50%;background:#087b8c;box-shadow:0 0 0 1px #087b8c,0 2px 7px #12495a30}
 .list-appearance-scale{display:flex;justify-content:space-between;margin:8px 0 19px;color:#69808e;font-size:11px}
-.list-appearance-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:13px;border-top:1px solid #e4ecef}
-.list-appearance-footer span{color:#69808e;font-size:11px}
+.list-appearance-footer{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding-top:13px;border-top:1px solid #e4ecef}
 .list-appearance-footer button{padding:5px 0;border:0;background:transparent;color:#08738a;font:inherit;font-size:12px;font-weight:750;cursor:pointer}
 .list-appearance-footer button:hover{text-decoration:underline}

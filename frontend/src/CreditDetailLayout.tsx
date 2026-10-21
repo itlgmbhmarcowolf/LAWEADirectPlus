@@ -33,7 +33,7 @@ export function CreditDetailLayout({ reference, download, downloadError, fileTyp
     </header>
     <div className={`credit-content-frame${settingsOpen ? ' credit-settings-open' : ''}`}>
       {submission ? <section className="credit-submission" aria-label="Angaben der Meldung" style={listStyle}>
-        <div className="credit-list-settings"><ListAppearanceSettings label="Gutschriftliste einstellen" caption="Für Gutschriftlisten gespeichert" settings={listSettings} defaults={defaultListSettings} onChange={setListSettings} open={settingsOpen} onOpenChange={setSettingsOpen}/></div>
+        <div className="credit-list-settings"><ListAppearanceSettings label="Gutschriftliste einstellen" settings={listSettings} defaults={defaultListSettings} onChange={setListSettings} open={settingsOpen} onOpenChange={setSettingsOpen}/></div>
         {submission}
       </section> : null}
       <section className="credit-document-panel" aria-label={`Dokumentvorschau (${fileType})`}>

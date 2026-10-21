@@ -53,10 +53,9 @@ html:has(.auth-registration)::-webkit-scrollbar,body:has(.auth-registration)::-w
 .live-assistant{background:linear-gradient(125deg,#eaf8fa,#f6fbfd);border:1px solid #b9dfe7;border-radius:8px;padding:17px 20px;margin:0 0 25px}.live-assistant-top{display:flex;align-items:flex-start;justify-content:space-between;gap:15px}.live-assistant h2{font-size:17px;margin:3px 0 3px;color:#102b50}.live-assistant p{font-size:12px;margin:0 0 12px;color:#536680}.live-assistant-top>strong{white-space:nowrap;color:#08738a;font-size:15px}.live-progress{height:6px;background:#d3e8ed;border-radius:99px;overflow:hidden}.live-progress span{display:block;height:100%;background:#087a83;border-radius:99px;transition:width .2s}.live-checks{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}.live-checks>span{display:inline-flex;align-items:center;gap:4px;border:1px solid #d4e2e8;background:#fff;border-radius:99px;padding:4px 8px;color:#61758b;font-size:11px}.live-checks>span.done{border-color:#b4ddcc;color:#087a61;background:#f3fbf6}
 @media(max-width:620px){.tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible}.tabs button{padding:10px 7px;white-space:normal}}
 
-.demo-chip{display:inline-flex;align-items:center;border:1px solid #c8dfe4;border-radius:999px;background:#f1f8f9;color:#496b75;padding:3px 8px;font-size:10px;font-weight:700;letter-spacing:.04em;line-height:1}
 .shell-body{min-height:calc(100vh - 62px)}
 @media(max-width:850px){.sidebar{top:62px;min-height:calc(100vh - 62px)}}
-@media(max-width:620px){.shell-body{min-height:calc(100vh - 56px)}.sidebar{top:56px;min-height:calc(100vh - 56px)}.demo-chip{padding:3px 6px;font-size:9px}}
+@media(max-width:620px){.shell-body{min-height:calc(100vh - 56px)}.sidebar{top:56px;min-height:calc(100vh - 56px)}}
 
 /* The plus is a typographic accent within the wordmark. */
 .brand em,.auth-brand em{display:inline-block;margin-left:.035em;font-size:1.16em;font-weight:750;line-height:1;letter-spacing:-.06em;vertical-align:-.035em}
