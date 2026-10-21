@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { Status } from './types'
 import { Button, Empty, Icon, Notice, PageTitle, StatusPill } from './ui'
 import { createDemoEvidencePdf } from './demo-evidence-pdf'
 import { ClaimCreditEntry } from './ClaimCreditEntry'
 import { SampleCorrectionFlow, type SampleCorrection } from './SampleCorrectionFlow'
+import { TimelinePanel } from './TimelinePanel'
 import { sampleClaimDetail, sampleClaims, sampleDate } from './sample-claim-data'
 import type { SampleClaim, SampleEvent } from './sample-claim-data'
 import './sample-claim-detail.css'
@@ -57,6 +58,17 @@ export function PreviewSampleClaimDetail({ claim, navigate, contacts, correction
   const [evidenceUrl, setEvidenceUrl] = useState('')
   const [previousEvidenceUrl, setPreviousEvidenceUrl] = useState('')
   const [correctionEvidenceUrl, setCorrectionEvidenceUrl] = useState('')
+  const detailMainRef = useRef<HTMLDivElement>(null)
+  const [timelineHeight, setTimelineHeight] = useState(540)
+  useLayoutEffect(() => {
+    const main = detailMainRef.current
+    if (!main) return
+    const update = () => setTimelineHeight(Math.ceil(main.getBoundingClientRect().height))
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(main)
+    return () => observer.disconnect()
+  }, [claim.number])
   useEffect(() => {
     const url = URL.createObjectURL(createDemoEvidencePdf(claim, detail))
     setEvidenceUrl(url)
@@ -82,10 +94,10 @@ export function PreviewSampleClaimDetail({ claim, navigate, contacts, correction
     <section className="data-section claim-overview"><div className="section-header"><h2>Bearbeitungsstand</h2><StatusPill status={displayStatus} label={statusText}/></div><p>{correction?.phase === 'submitted' ? 'Revision 2 wurde erneut eingereicht und liegt zur Prüfung vor. Revision 1 bleibt unverändert.' : correction?.phase === 'draft' ? 'Die Angaben für Revision 2 können jetzt korrigiert und erneut eingereicht werden.' : claim.status === 'COMPLETED' ? `Revision ${detail.revision} ist freigegeben. Die fiktive Gutschrift wurde am ${detail.provided} bereitgestellt; es erfolgte keine Auszahlung.` : claim.status === 'REJECTED' ? 'Revision 1 wurde abgelehnt. Die eingereichte Fassung bleibt im Verlauf erhalten.' : 'Revision 1 liegt zur fachlichen Prüfung vor. Eine Gutschrift ist noch nicht verfügbar.'}</p>{claim.status === 'REJECTED' && rejectionReason ? <Notice tone="warning"><strong>Grund der Ablehnung:</strong> {rejectionReason}</Notice> : null}{claim.status === 'REJECTED' && correction?.phase !== 'submitted' ? <p className="sample-correction-deadline">{correctionOpen ? 'Korrektur erneut einreichen bis' : 'Korrekturfrist abgelaufen am'} <strong>{correctionDeadline || 'Kein Datum hinterlegt'}</strong></p> : null}{claim.status === 'REJECTED' && !correction ? <Button onClick={onStartCorrection} disabled={!correctionOpen}>Korrektur starten</Button> : null}{claim.creditReference ? <ClaimCreditEntry reference={claim.creditReference} provided={detail.provided} onOpen={() => navigate(`credits:${claim.number}`)}/> : null}</section>
     {correction?.phase === 'draft' ? <SampleCorrectionFlow value={correction} contacts={contacts} deadlineOpen={correctionOpen} onChange={onChangeCorrection} onSubmit={onSubmitCorrection}/> : null}
     {correction?.phase === 'submitted' ? <section className="data-section sample-correction-submitted"><h2>Erneut eingereichte Angaben · Revision 2</h2><div className="table-wrap"><table><thead><tr><th>PZN</th><th>Artikel</th><th>Charge</th><th>Bestand</th></tr></thead><tbody>{correction.positions.map((position, index) => <tr key={`${position.pzn}-${index}`}><td>{position.pzn}</td><td>{position.article}</td><td>{position.charge}</td><td>{position.quantity} Packungen</td></tr>)}</tbody></table></div><p><strong>Ansprechpartner:</strong> {contacts.find(contact => contact.email === correction.contactEmail)?.name || correction.contactEmail}</p><p><strong>Erläuterung:</strong> {correction.comment || 'Angaben korrigiert'}</p>{correctionEvidenceUrl && correction.evidenceFile ? <a className="sample-correction-pdf" href={correctionEvidenceUrl} download={correction.evidenceFile.name}><Icon name="download" size={17}/> {correction.evidenceFile.name} herunterladen</a> : null}</section> : null}
-    <div className="sample-detail-grid"><div className="sample-detail-main">
+    <div className="sample-detail-grid"><div className="sample-detail-main" ref={detailMainRef}>
       <section className="data-section"><h2>Gemeldete Positionen · Revision {detail.revision}</h2><div className="table-wrap"><table><thead><tr><th>PZN</th><th>Artikel</th><th>Charge</th><th>Bestand zum {label(claim.termDate)}</th></tr></thead><tbody>{detail.positions.map(position => <tr key={position.pzn}><td>{position.pzn}</td><td>{position.article}</td><td>{position.charge}</td><td>{position.quantity} Packungen</td></tr>)}</tbody></table></div></section>
       <section className="data-section"><h2>Einreichung</h2><div className="sample-submission-facts"><div><span>Eingereicht von</span><strong>Maria Keller · Beispielapotheke</strong></div><div><span>Eingereicht am</span><strong>{detail.submitted}</strong></div><div><span>Revision</span><strong>{detail.revision} von {correction?.phase === 'submitted' ? 2 : detail.revision}</strong></div></div><p>Richtigkeit der Angaben bestätigt. Kommentar: Bestand zum {label(claim.termDate)} gemäß beigefügtem fiktivem Bestandsnachweis.</p></section>
       <section className="data-section"><h2>Bestandsnachweis</h2><div className="sample-evidence"><span className="sample-evidence-icon"><Icon name="file" size={22}/></span><div><strong>{detail.evidenceName}</strong><span>Revision {detail.revision} · fiktive Positionen und Stichtagsbestand</span></div>{evidenceUrl ? <a className="sample-evidence-download" href={evidenceUrl} download={detail.evidenceName} aria-label={`${detail.evidenceName} herunterladen`}><Icon name="download" size={18}/></a> : null}</div>{detail.previousPositions ? <div className="sample-evidence previous"><span className="sample-evidence-icon"><Icon name="file" size={22}/></span><div><strong>{detail.evidenceNameRev1}</strong><span>Revision 1 · unverändert archiviert</span></div>{previousEvidenceUrl ? <a className="sample-evidence-download" href={previousEvidenceUrl} download={detail.evidenceNameRev1} aria-label={`${detail.evidenceNameRev1} herunterladen`}><Icon name="download" size={18}/></a> : null}</div> : null}</section>
-    </div><section className="data-section sample-timeline-panel"><div className="sample-timeline-heading"><div><h2>Verlauf</h2><p>Chronologie dieses fiktiven Vorgangs</p></div><span>{timelineEvents.length} Schritte</span></div><ol className="sample-timeline">{[...timelineEvents].reverse().map((event, index) => <li key={`${event.at}-${event.title}`} className={`sample-timeline-event ${event.tone}`}><span className="sample-timeline-marker" aria-hidden="true">{event.tone === 'issue' ? '×' : event.tone === 'current' ? '✓' : ''}</span><div className="sample-timeline-content"><div className="sample-timeline-meta"><time>{event.at}</time>{event.revision ? <span>{event.revision}</span> : null}</div><h3>{event.title}</h3><p>{event.description}</p></div>{index === 0 ? <span className="sample-timeline-latest">Aktuell</span> : null}</li>)}</ol></section></div>
+    </div><TimelinePanel subtitle="Chronologie dieses fiktiven Vorgangs" height={timelineHeight} events={[...timelineEvents].reverse().map(event => ({ key: `${event.at}-${event.title}`, timeLabel: event.at, title: event.title, description: event.description, revision: event.revision, tone: event.tone }))}/></div>
   </>
 }

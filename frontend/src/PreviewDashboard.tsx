@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import type { Status } from './types'
 import { Icon } from './ui'
+import { ListAppearanceSettings, useListAppearance, type ListAppearance } from './ListAppearanceSettings'
 import './preview-dashboard.css'
 
 export type DashboardTerm = {
@@ -44,9 +45,12 @@ const previewStatus = (status: Status | null) => {
 }
 
 const MONTHS_PER_LOAD = 12
+const defaultTermAppearance: ListAppearance = { rowHeight: 64, fontSize: 16 }
 
 export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoadDelayMs = 600 }: { terms: DashboardTerm[]; navigate: (page: string) => void; view: DashboardView; onViewChange: (view: DashboardView) => void; demoLoadDelayMs?: number }) {
   const { sortOrder, selectedStatuses, visibleMonths } = view
+  const [appearance, setAppearance] = useListAppearance('lawea-term-list-settings-v1', defaultTermAppearance)
+  const [appearanceOpen, setAppearanceOpen] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasScrollIntent, setHasScrollIntent] = useState(false)
   const loadingRef = useRef(false)
@@ -170,9 +174,11 @@ export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoad
     list.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
   }
 
-  return <div className={`overview-simple${shownTerms.length ? ' overview-simple-with-rows' : ''}`}>
+  const listStyle = { '--overview-row-height': `${appearance.rowHeight}px`, '--overview-font-size': `${appearance.fontSize}px` } as CSSProperties
+  return <div className={`overview-simple${shownTerms.length ? ' overview-simple-with-rows' : ''}`} style={listStyle}>
     <header className="overview-simple-heading">
       <div><h1>Stichtage</h1></div>
+      <ListAppearanceSettings label="Stichtagsliste einstellen" caption="Für Stichtagsliste gespeichert" settings={appearance} defaults={defaultTermAppearance} onChange={setAppearance} open={appearanceOpen} onOpenChange={setAppearanceOpen}/>
     </header>
     <section ref={listRef} className="overview-simple-list" aria-label="Stichtage und Meldungsstand" tabIndex={-1}>
       <div className="overview-simple-columns">

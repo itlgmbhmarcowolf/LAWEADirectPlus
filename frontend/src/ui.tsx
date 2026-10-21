@@ -3,7 +3,7 @@ import type { Status, User } from './types'
 import { statusLabel } from './types'
 import './account.css'
 
-type IconName = 'home' | 'file' | 'users' | 'credit' | 'help' | 'shield' | 'logout' | 'arrow' | 'chevron' | 'calendar' | 'check' | 'alert' | 'plus' | 'upload' | 'trash' | 'search' | 'menu' | 'clock' | 'download' | 'eye' | 'eyeOff' | 'settings' | 'mail' | 'more' | 'close' | 'userPlus' | 'refresh' | 'unlock'
+type IconName = 'home' | 'file' | 'users' | 'credit' | 'help' | 'shield' | 'logout' | 'arrow' | 'chevron' | 'calendar' | 'check' | 'alert' | 'plus' | 'upload' | 'trash' | 'search' | 'menu' | 'clock' | 'download' | 'eye' | 'eyeOff' | 'settings' | 'gear' | 'mail' | 'more' | 'close' | 'userPlus' | 'refresh' | 'unlock'
 export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
   const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true as const }
   const path: Record<IconName, ReactNode> = {
@@ -29,6 +29,7 @@ export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
     eye: <><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.5"/></>,
     eyeOff: <><path d="M4.1 8.4C3.1 9.4 2.5 10.4 2.5 12c0 0 3.5 6 9.5 6 1.2 0 2.3-.2 3.3-.6M9.2 6.4c.9-.3 1.8-.4 2.8-.4 6 0 9.5 6 9.5 6a15.4 15.4 0 0 1-2.8 3.2M3 3l18 18"/><path d="M10.2 10.2a2.5 2.5 0 0 0 3.6 3.6"/></>,
     settings: <><circle cx="12" cy="12" r="3"/><path d="M4 12h2m12 0h2M12 4v2m0 12v2M6.3 6.3l1.4 1.4m8.6 8.6 1.4 1.4m0-11.4-1.4 1.4M7.7 16.3l-1.4 1.4"/></>,
+    gear: <><path d="M10 2h4l.5 2.4 1.7.7 2-1.3L21 6.6l-1.3 2 .7 1.7L22 10v4l-2.4.5-.7 1.7 1.3 2-2.8 2.8-2-1.3-1.7.7L14 22h-4l-.5-2.4-1.7-.7-2 1.3L3 17.4l1.3-2-.7-1.7L2 14v-4l2.4-.5.7-1.7-1.3-2L6.6 3l2 1.3 1.7-.7L10 2Z"/><circle cx="12" cy="12" r="3"/></>,
     mail: <><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></>,
     more: <><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></>,
     close: <path d="M5 5 19 19M19 5 5 19"/>,
