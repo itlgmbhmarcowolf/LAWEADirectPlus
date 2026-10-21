@@ -59,10 +59,12 @@ export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoad
     onViewChange({ ...view, ...change })
   }
   const sentinelRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLElement>(null)
   const statusFilterRef = useRef<HTMLDivElement>(null)
   const statusTriggerRef = useRef<HTMLButtonElement>(null)
   const firstStatusRef = useRef<HTMLButtonElement>(null)
   const [statusFilterOpen, setStatusFilterOpen] = useState(false)
+  const [showBackToTop, setShowBackToTop] = useState(false)
   const toggleStatus = (status: StatusFilter) => updateView({
     selectedStatuses: selectedStatuses.includes(status)
       ? selectedStatuses.filter(selected => selected !== status)
@@ -148,12 +150,31 @@ export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoad
     observer.observe(node)
     return () => observer.disconnect()
   }, [hasMore, loadingMore, hasScrollIntent, visibleMonths, loadMore])
+  useEffect(() => {
+    const updateBackToTop = () => {
+      const bounds = listRef.current?.getBoundingClientRect()
+      setShowBackToTop(Boolean(bounds && bounds.top < -Math.max(320, window.innerHeight * .65) && bounds.bottom > 80))
+    }
+    window.addEventListener('scroll', updateBackToTop, { passive: true })
+    window.addEventListener('resize', updateBackToTop)
+    updateBackToTop()
+    return () => {
+      window.removeEventListener('scroll', updateBackToTop)
+      window.removeEventListener('resize', updateBackToTop)
+    }
+  }, [visibleMonths, selectedStatuses, terms.length, loadingMore])
+  const scrollToListStart = () => {
+    const list = listRef.current
+    if (!list) return
+    list.focus({ preventScroll: true })
+    list.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
+  }
 
-  return <div className="overview-simple">
+  return <div className={`overview-simple${shownTerms.length ? ' overview-simple-with-rows' : ''}`}>
     <header className="overview-simple-heading">
       <div><h1>Stichtage</h1></div>
     </header>
-    <section className="overview-simple-list" aria-label="Stichtage und Meldungsstand">
+    <section ref={listRef} className="overview-simple-list" aria-label="Stichtage und Meldungsstand" tabIndex={-1}>
       <div className="overview-simple-columns">
         <div className="overview-period-heading">
           <span>Zeitraum</span>
@@ -207,5 +228,8 @@ export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoad
         </div>)}</div>
       </div> : null}
     </section>
+    {showBackToTop && shownTerms.length > 0 ? <button type="button" className="overview-back-to-top" aria-label="Zum Anfang der Stichtagsliste" title="Zum Anfang der Stichtagsliste" onClick={scrollToListStart}>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg>
+    </button> : null}
   </div>
 }
