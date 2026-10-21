@@ -26,7 +26,7 @@ export function CreditDetailLayout({ reference, download, downloadError, fileTyp
   const previewId = useId()
   const listStyle = { '--credit-row-height': `${listSettings.rowHeight}px`, '--credit-font-size': `${listSettings.fontSize}px`, '--credit-card-padding': `${16 + Math.round((listSettings.rowHeight - 48) / 4)}px` } as CSSProperties
   return <article className="credit-page">
-    <button className="credit-back" type="button" onClick={onClaim}>Zur Meldung</button>
+    <button className="back-link credit-back" type="button" onClick={onClaim}>← Zur Meldung</button>
     <header className="credit-page-header">
       <div className="credit-page-identity"><h1>Gutschrift</h1><StatusPill status="COMPLETED" label="Bereitgestellt"/><span className="credit-reference">{reference}</span></div>
       {download ? <a className="credit-download" href={download.url} download={download.filename}><Icon name="download" size={17}/>{download.label}</a> : downloadError ? null : <span className="credit-download-pending" role="status">Dokument wird geladen …</span>}

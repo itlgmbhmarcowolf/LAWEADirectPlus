@@ -54,6 +54,8 @@ html:has(.auth-registration)::-webkit-scrollbar,body:has(.auth-registration)::-w
 @media(max-width:620px){.tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible}.tabs button{padding:10px 7px;white-space:normal}}
 
 .shell-body{min-height:calc(100vh - 62px)}
+.status-manual_review{color:#a65a0a}
+.status-manual_review .status-dot{background:#b8650a}
 @media(max-width:850px){.sidebar{top:62px;min-height:calc(100vh - 62px)}}
 @media(max-width:620px){.shell-body{min-height:calc(100vh - 56px)}.sidebar{top:56px;min-height:calc(100vh - 56px)}}
 
