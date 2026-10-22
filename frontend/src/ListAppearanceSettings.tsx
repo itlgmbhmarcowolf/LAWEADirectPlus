@@ -45,7 +45,7 @@ export function ListAppearanceSettings({ label, settings, defaults, onChange, op
     return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', escape) }
   }, [open, onOpenChange])
   return <div className="list-appearance" ref={rootRef}>
-    <button ref={triggerRef} className="list-appearance-trigger" type="button" aria-label={label} aria-expanded={open} aria-controls={panelId} onClick={() => onOpenChange(!open)}><Icon name="gear" size={20}/></button>
+    <button ref={triggerRef} className="list-appearance-trigger" type="button" aria-label={label} title={label} aria-expanded={open} aria-controls={panelId} onClick={() => onOpenChange(!open)}><Icon name="gear" size={20}/></button>
     {open ? <div className="list-appearance-panel" id={panelId} role="dialog" aria-label={label}>
       <div className="list-appearance-title"><h3>Listenansicht</h3><button type="button" aria-label="Einstellungen schließen" onClick={() => { onOpenChange(false); triggerRef.current?.focus() }}><Icon name="close" size={17}/></button></div>
       <label htmlFor={rowHeightId}>Zeilenhöhe <output htmlFor={rowHeightId}>{settings.rowHeight} px</output></label>

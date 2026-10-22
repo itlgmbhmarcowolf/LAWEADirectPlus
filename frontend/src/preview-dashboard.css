@@ -3,17 +3,28 @@
 .overview-simple-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 20px}
 .overview-simple-heading h1{margin:0;color:#102e51;font-size:37px;line-height:1.1;letter-spacing:-.04em}
 .overview-simple-heading p{margin:6px 0 0;color:#65768c;line-height:1.45}
-.overview-searchbar{display:flex;align-items:center;gap:14px;margin:0 0 18px;color:#36566c;font-size:13px;font-weight:700}
-.overview-searchbar>label{white-space:nowrap}
-.overview-search-field{display:flex;align-items:center;gap:9px;width:min(390px,100%);min-height:42px;padding:0 11px;border:1px solid #c8dce4;border-radius:9px;background:#fff;color:#55758a;transition:border-color .16s ease,box-shadow .16s ease}
-.overview-search-field:focus-within{border-color:#53aebf;box-shadow:0 0 0 3px #63bfd040}
-.overview-search-field input{width:100%;min-width:0;padding:9px 0;border:0;outline:0;background:transparent;color:#163a53;font:inherit;font-size:14px;font-weight:500}
+.overview-list-tools{display:flex;align-items:center;gap:14px;min-height:72px;padding:13px 20px;border-bottom:1px solid #d9e3e8;border-radius:14px 14px 0 0;background:#fbfcfd}
+.overview-search-label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.overview-search-field{display:flex;align-items:center;gap:10px;flex:0 1 390px;min-width:0;min-height:48px;padding:5px 9px 5px 6px;border:1px solid #bed9e2;border-radius:999px;background:linear-gradient(125deg,#fff 38%,#f4fafb 100%);box-shadow:0 2px 8px #164e6010;color:#55758a;transition:border-color .16s ease,box-shadow .16s ease,background .16s ease}
+.overview-search-field:hover{border-color:#8dbfcb;box-shadow:0 3px 12px #164e601a}
+.overview-search-field:focus-within{border-color:#258ba0;background:#fff;box-shadow:0 0 0 3px #bde7ef,0 4px 15px #164e601c}
+.overview-search-icon{display:grid;place-items:center;width:34px;height:34px;flex:none;border-radius:50%;background:#e7f3f6;color:#14758a;transition:background-color .16s ease,color .16s ease}
+.overview-search-field:focus-within .overview-search-icon{background:#0d788e;color:#fff}
+.overview-search-field input{width:100%;min-width:0;padding:8px 0;border:0;outline:0;background:transparent;color:#163a53;font:inherit;font-size:14px;font-weight:600}
+.overview-search-field input:focus,.overview-search-field input:focus-visible{outline:0}
 .overview-search-field input::placeholder{color:#71899a;opacity:1}
 .overview-search-field input::-webkit-search-cancel-button{display:none}
-.overview-search-field button{display:grid;place-items:center;width:30px;height:30px;flex:none;padding:0;border:0;border-radius:6px;background:transparent;color:#577588;cursor:pointer}
+.overview-search-field button{display:grid;place-items:center;width:32px;height:32px;flex:none;padding:0;border:0;border-radius:50%;background:#ecf5f7;color:#577588;cursor:pointer}
 .overview-search-field button:hover{background:#edf6f8;color:#0a6980}
 .overview-search-field button:focus-visible{outline:3px solid #63bfd0;outline-offset:2px}
 .overview-search-count{color:#60798a;font-size:12px;font-weight:650;white-space:nowrap}
+.overview-list-tools .list-appearance{margin-left:auto}
+/* UI-Annahme: Das Zahnrad erscheint als eigenständige, runde Listenaktion ohne sichtbaren Text. */
+.overview-list-tools .list-appearance-trigger{width:44px;height:44px;border:1px solid #b6d7df;border-radius:50%;background:radial-gradient(circle at 35% 25%,#fff 0,#e7f5f7 88%);color:#0c6d82;box-shadow:inset 0 0 0 3px #fff,0 3px 9px #164e601c;transition:background .18s ease,border-color .18s ease,box-shadow .18s ease}
+.overview-list-tools .list-appearance-trigger svg{transition:transform .2s ease}
+.overview-list-tools .list-appearance-trigger:hover{border-color:#69afbd;background:#dff2f5;box-shadow:inset 0 0 0 3px #fff,0 5px 13px #164e602b}
+.overview-list-tools .list-appearance-trigger:hover svg{transform:rotate(25deg)}
+.overview-list-tools .list-appearance-trigger[aria-expanded=true]{border-color:#0d788e;background:#0d788e;color:#fff;box-shadow:0 0 0 3px #c5e7ed,0 5px 13px #164e602b}
 .overview-clear-search{justify-self:center;margin-top:12px;padding:7px 11px;border:1px solid #bbd6df;border-radius:7px;background:#fff;color:#08738a;font:inherit;font-size:13px;font-weight:750;cursor:pointer}
 .overview-clear-search:hover{background:#eff8fa}
 .overview-clear-search:focus-visible{outline:3px solid #63bfd0;outline-offset:2px}
@@ -120,5 +131,5 @@
 @media(max-width:700px){.overview-simple-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.overview-period-heading{padding:7px 10px 7px 14px;border-right:1px solid #d7e5eb}.overview-status-heading{padding:7px 14px 7px 12px}.overview-status-panel{right:0;width:min(236px,calc(100vw - 36px))}}
 @media(max-width:700px){.overview-simple-row,.overview-month-placeholder .overview-simple-row{grid-template-columns:minmax(0,1fr) 138px}.overview-feed-loading-label{top:10px}}
 @media(max-width:700px){.overview-simple-status{white-space:normal;line-height:1.3;overflow-wrap:anywhere}}
-@media(max-width:700px){.overview-searchbar{align-items:stretch;flex-wrap:wrap;gap:7px}.overview-searchbar>label{width:100%}.overview-search-field{width:100%}.overview-search-count{width:100%}}
-@media(prefers-reduced-motion:reduce){.overview-simple-row,.overview-back-to-top{transition:none}.overview-loading-spinner,.overview-skeleton{animation:none}}
+@media(max-width:700px){.overview-list-tools{flex-wrap:wrap;gap:8px;min-height:68px;padding:11px 12px}.overview-search-field{flex:1 1 0}.overview-search-count{order:3;width:100%}.overview-list-tools .list-appearance{order:2}}
+@media(prefers-reduced-motion:reduce){.overview-simple-row,.overview-back-to-top,.overview-list-tools .list-appearance-trigger,.overview-list-tools .list-appearance-trigger svg,.overview-search-field,.overview-search-icon{transition:none}.overview-loading-spinner,.overview-skeleton{animation:none}}

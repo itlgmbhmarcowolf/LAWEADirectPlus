@@ -195,14 +195,14 @@ export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoad
   return <div className={`overview-simple${shownTerms.length ? ' overview-simple-with-rows' : ''}`} style={listStyle}>
     <header className="overview-simple-heading">
       <div><h1>Stichtage</h1></div>
-      <ListAppearanceSettings label="Stichtagsliste einstellen" settings={appearance} defaults={defaultTermAppearance} onChange={setAppearance} open={appearanceOpen} onOpenChange={setAppearanceOpen}/>
     </header>
-    {terms.length > 0 ? <div className="overview-searchbar">
-      <label htmlFor="overview-date-search">Stichtag suchen</label>
-      <div className="overview-search-field"><Icon name="search" size={18}/><input ref={searchInputRef} id="overview-date-search" type="search" value={dateQuery} onChange={event => { loadingRef.current = false; setLoadingMore(false); setDateQuery(event.target.value) }} onKeyDown={event => { if (event.key === 'Escape') clearSearch() }} placeholder="Datum, Monat oder Jahr" autoComplete="off"/>{dateQuery ? <button type="button" aria-label="Suche löschen" onClick={clearSearch}><Icon name="close" size={17}/></button> : null}</div>
-      {searchQuery ? <span className="overview-search-count" role="status">{filteredTerms.length} Treffer</span> : null}
-    </div> : null}
     <section ref={listRef} className="overview-simple-list" aria-label="Stichtage und Meldungsstand" tabIndex={-1}>
+      {terms.length > 0 ? <div className="overview-list-tools">
+        <label className="overview-search-label" htmlFor="overview-date-search">Stichtag suchen</label>
+        <div className="overview-search-field"><span className="overview-search-icon"><Icon name="search" size={17}/></span><input ref={searchInputRef} id="overview-date-search" type="search" value={dateQuery} onChange={event => { loadingRef.current = false; setLoadingMore(false); setDateQuery(event.target.value) }} onKeyDown={event => { if (event.key === 'Escape') clearSearch() }} placeholder="Datum, Monat oder Jahr" autoComplete="off"/>{dateQuery ? <button type="button" aria-label="Suche löschen" onClick={clearSearch}><Icon name="close" size={17}/></button> : null}</div>
+        {searchQuery ? <span className="overview-search-count" role="status">{filteredTerms.length} Treffer</span> : null}
+        <ListAppearanceSettings label="Stichtagsliste einstellen" settings={appearance} defaults={defaultTermAppearance} onChange={setAppearance} open={appearanceOpen} onOpenChange={setAppearanceOpen}/>
+      </div> : null}
       <div className="overview-simple-columns">
         <div className="overview-period-heading">
           <span>Zeitraum</span>
