@@ -1,5 +1,13 @@
-.overview-simple{width:100%;padding:5px 0 24px}
+.overview-simple{position:relative;width:100%;padding:5px 0 24px}
 .overview-simple-with-rows{padding-bottom:96px}
+/* UI-Annahme: Nur die Stichtagsansicht nutzt einen eigenen Scrollbereich; Kopf und Navigation bleiben stehen. */
+.app-shell:has(.overview-simple){height:100dvh;min-height:0;overflow:hidden}
+.app-shell:has(.overview-simple) .shell-body{min-height:0;overflow:hidden}
+.app-shell:has(.overview-simple) .sidebar{min-height:0;overflow-y:auto}
+.app-shell:has(.overview-simple) .main-content{min-height:0;overflow:hidden}
+.app-shell:has(.overview-simple) .content-inner{display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden}
+.app-shell:has(.overview-simple) .overview-simple{display:flex;flex:1;flex-direction:column;min-height:0;padding-bottom:0}
+.app-shell:has(.overview-simple) .overview-simple-list{display:flex;flex:1;flex-direction:column;min-height:0;overflow:hidden}
 .overview-simple-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 20px}
 .overview-simple-heading h1{margin:0;color:#102e51;font-size:37px;line-height:1.1;letter-spacing:-.04em}
 .overview-simple-heading p{margin:6px 0 0;color:#65768c;line-height:1.45}
@@ -34,10 +42,11 @@
 .overview-sort-icons button:focus-visible,.overview-filter-trigger:focus-visible,.overview-status-panel button:focus-visible{z-index:1;outline:3px solid #63bfd0;outline-offset:2px}
 .overview-simple-list{width:100%;border:1px solid #d9e3e8;border-radius:15px;background:#fff;box-shadow:0 10px 30px rgba(23,61,82,.055)}
 .overview-simple-list:focus-visible{outline:3px solid #63bfd0;outline-offset:3px}
-.overview-back-to-top{position:fixed;z-index:25;right:calc(20px + env(safe-area-inset-right));bottom:calc(22px + env(safe-area-inset-bottom));display:grid;place-items:center;width:52px;height:52px;padding:0;border:1px solid #0a6076;border-radius:50%;background:#0d5870;color:#fff;box-shadow:0 9px 24px #123d5540;cursor:pointer;transition:background-color .18s ease,box-shadow .18s ease,transform .18s ease}
+.overview-back-to-top{position:absolute;z-index:25;right:20px;bottom:78px;display:grid;place-items:center;width:52px;height:52px;padding:0;border:1px solid #0a6076;border-radius:50%;background:#0d5870;color:#fff;box-shadow:0 9px 24px #123d5540;cursor:pointer;transition:background-color .18s ease,box-shadow .18s ease,transform .18s ease}
 .overview-back-to-top:hover{background:#08738b;box-shadow:0 11px 28px #123d5550;transform:translateY(-2px)}
 .overview-back-to-top:focus-visible{outline:3px solid #63bfd0;outline-offset:3px}
 .overview-back-to-top:active{transform:translateY(0)}
+.app-shell:has(.sidebar-open) .overview-back-to-top{display:none}
 .overview-empty{display:grid;gap:5px;padding:55px 24px;text-align:center;color:#70869a}
 .overview-empty strong{color:#24465e;font-size:16px}
 .overview-empty-first{min-height:350px;align-content:center;justify-items:center;gap:0;padding:42px 24px;background:radial-gradient(circle at 50% 36%,#f3fafb 0,#fff 58%)}
@@ -47,6 +56,9 @@
 .overview-simple-columns{display:grid;grid-template-columns:220px minmax(0,1fr) 264px;gap:0;border-radius:14px 14px 0 0;background:#f5f8fa;color:#526d80;font-size:12px;font-weight:750;letter-spacing:.08em;text-transform:uppercase}
 /* UI-Annahme: Unter der Suchleiste schließt der Tabellenkopf ohne eigene obere Rundung an. */
 .overview-list-tools + .overview-simple-columns{border-top-left-radius:0;border-top-right-radius:0}
+.overview-scroll-region{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;scrollbar-color:#bfd4dd transparent;scrollbar-width:thin}
+.overview-scroll-region:focus-visible{outline:3px solid #63bfd0;outline-offset:-3px}
+.overview-list-head{position:sticky;z-index:4;top:0;background:#fbfcfd;box-shadow:0 1px 0 #dce7ec}
 .overview-simple-columns > span{padding:15px 26px}
 .overview-period-heading{display:flex;align-items:center;justify-content:space-between;gap:4px;min-width:0;padding:8px 14px 8px 26px;border-right:1px solid #d7e5eb}
 .overview-sort-icons{display:flex;align-items:center;gap:0;flex:none;letter-spacing:normal}
@@ -122,7 +134,22 @@
 .overview-pagination button:focus-visible{outline:3px solid #63bfd0;outline-offset:2px}
 .overview-load-trigger{height:1px}
 .overview-feed-loading{position:relative;border-top:1px solid #dce7ec}
-.overview-feed-loading-label{position:sticky;z-index:2;top:18px;display:flex;align-items:center;justify-content:center;gap:11px;width:max-content;max-width:calc(100% - 24px);min-height:42px;margin:15px auto -57px;padding:9px 17px;border:1px solid #c8e0e7;border-radius:999px;background:#fff;color:#17465c;font-size:13px;font-weight:750;box-shadow:0 10px 27px #123d5521}
+.overview-feed-loading-label{display:flex;align-items:center;justify-content:center;gap:11px;width:max-content;max-width:calc(100% - 24px);min-height:42px;margin:17px auto;padding:9px 17px;border:1px solid #c8e0e7;border-radius:999px;background:#fff;color:#17465c;font-size:13px;font-weight:750;box-shadow:0 10px 27px #123d5521}
+.overview-scroll-cue{display:flex;align-items:center;gap:14px;min-height:64px;padding:10px 22px;border-top:1px solid #d9e7eb;background:linear-gradient(105deg,#f6fafb 0%,#fff 56%,#f2f8fa 100%);color:#365b6d}
+.overview-scroll-cue-rail{position:relative;display:flex;align-items:center;gap:5px;width:43px;flex:none}
+.overview-scroll-cue-rail::before{position:absolute;top:50%;right:0;left:0;height:1px;background:#b5d3db;content:""}
+.overview-scroll-cue-rail i{position:relative;width:6px;height:6px;border:1px solid #8bbdc9;border-radius:50%;background:#fff}
+.overview-scroll-cue-rail i:first-child{width:8px;height:8px;border:0;background:#12849a;box-shadow:0 0 0 3px #dceff2}
+.overview-scroll-cue-copy{display:grid;gap:1px;min-width:0;line-height:1.3}
+.overview-scroll-cue-copy strong{color:#16435a;font-size:13px;font-weight:800}
+.overview-scroll-cue-copy>span{font-size:12px;color:#607c8c}
+.overview-scroll-cue-arrow{display:grid;place-items:center;width:30px;height:30px;flex:none;margin-left:auto;border:1px solid #c8e1e7;border-radius:50%;background:#fff;color:#0b7890;animation:overview-cue-nudge 2.4s ease-in-out infinite}
+.overview-scroll-cue-loading .overview-scroll-cue-rail i:first-child{animation:overview-cue-glow 1.2s ease-in-out infinite}
+.overview-scroll-cue-loading .overview-scroll-cue-arrow{animation:none}
+.overview-scroll-cue-complete .overview-scroll-cue-arrow{border-color:#cde5d9;background:#f4fbf7;color:#247559;animation:none}
+.overview-scroll-cue-complete .overview-scroll-cue-rail i:last-child{border-color:#247559;background:#247559}
+@keyframes overview-cue-nudge{0%,65%,100%{transform:translateY(0)}78%{transform:translateY(3px)}}
+@keyframes overview-cue-glow{50%{box-shadow:0 0 0 7px #dceff2}}
 .overview-loading-spinner{width:19px;height:19px;flex:none;border:2px solid #b9d6de;border-top-color:#087f96;border-radius:50%;animation:overview-loading-spin .75s linear infinite}
 .overview-month-placeholder .overview-month-label,.overview-month-placeholder .overview-simple-row{pointer-events:none}
 .overview-month-placeholder .overview-month-label{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:8px;padding:16px 26px}
@@ -137,8 +164,8 @@
 @media(max-width:1000px){.overview-simple-columns{grid-template-columns:165px minmax(0,1fr) 230px}.overview-month{grid-template-columns:165px minmax(0,1fr)}.overview-month-label{padding-left:26px;padding-right:14px}.overview-simple-row,.overview-month-placeholder .overview-simple-row{grid-template-columns:minmax(0,1fr) 204px}}
 @media(max-width:700px){.overview-simple{padding-top:0}.overview-simple-heading{margin-bottom:12px}.overview-simple-heading h1{font-size:31px}.overview-simple-heading p{margin-top:6px;font-size:14px}.overview-toolbar{margin-bottom:15px}.overview-status-tabs{gap:0 10px}.overview-page-size select{width:100%}.overview-simple-columns{display:block}.overview-simple-columns>span{display:none}.overview-period-heading{padding:7px 15px;border-right:0}.overview-month{display:block}.overview-month:first-child{border-top:0}.overview-month-label{flex-direction:row;justify-content:flex-start;align-items:baseline;gap:5px;padding:9px 15px;border-right:0;border-bottom:1px solid #e5eef1}.overview-month-label h2{font-size:16px}.overview-month-label span{font-size:12px}.overview-simple-row{grid-template-columns:minmax(0,1fr) 138px;min-height:var(--overview-row-height,64px);padding:7px 8px 7px 16px}.overview-simple-date strong{font-size:calc(var(--overview-font-size,16px) + 6px)}.overview-simple-date span{font-size:var(--overview-font-size,16px)}.overview-simple-status{gap:6px;font-size:calc(var(--overview-font-size,16px) - 4px)}.overview-pagination{align-items:flex-start;flex-direction:column;gap:10px}.overview-pagination-actions{width:100%;flex-wrap:wrap;justify-content:stretch;gap:10px}.overview-page-size{flex:1 1 140px}.overview-pagination nav{width:100%}.overview-pagination button{flex:1}}
 @media(max-width:700px){.overview-simple-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.overview-period-heading{padding:7px 10px 7px 14px;border-right:1px solid #d7e5eb}.overview-status-heading{padding:7px 12px}.overview-status-panel{right:0;width:min(236px,calc(100vw - 36px))}}
-@media(max-width:700px){.overview-simple-row,.overview-month-placeholder .overview-simple-row{grid-template-columns:minmax(0,1fr) 138px}.overview-feed-loading-label{top:10px}}
+@media(max-width:700px){.overview-simple-row,.overview-month-placeholder .overview-simple-row{grid-template-columns:minmax(0,1fr) 138px}.overview-scroll-cue{gap:10px;padding:10px 13px}.overview-scroll-cue-rail{width:28px}.overview-scroll-cue-copy>span{font-size:11px}}
 @media(max-width:700px){.overview-simple-status{white-space:normal;line-height:1.3;overflow-wrap:anywhere}}
 @media(max-width:700px){.overview-list-tools{flex-wrap:wrap;gap:8px;min-height:68px;padding:11px 12px}.overview-search-field{flex:1 1 0}.overview-search-count{order:3;width:100%}.overview-list-tools .list-appearance{order:2}}
 @media(max-width:700px){.overview-month-label{display:flex}.overview-month-label h2,.overview-month-label span{margin:0}.overview-month-placeholder .overview-month-label{padding:9px 15px}}
-@media(prefers-reduced-motion:reduce){.overview-simple-row,.overview-back-to-top,.overview-list-tools .list-appearance-trigger,.overview-list-tools .list-appearance-trigger svg,.overview-search-field,.overview-search-icon{transition:none}.overview-loading-spinner,.overview-skeleton{animation:none}}
+@media(prefers-reduced-motion:reduce){.overview-simple-row,.overview-back-to-top,.overview-list-tools .list-appearance-trigger,.overview-list-tools .list-appearance-trigger svg,.overview-search-field,.overview-search-icon{transition:none}.overview-loading-spinner,.overview-skeleton,.overview-scroll-cue-arrow,.overview-scroll-cue-loading .overview-scroll-cue-rail i:first-child{animation:none}}

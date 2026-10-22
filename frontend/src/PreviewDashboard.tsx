@@ -65,18 +65,20 @@ export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoad
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasScrollIntent, setHasScrollIntent] = useState(false)
   const loadingRef = useRef(false)
+  const scrollRegionRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
-  const clearSearch = () => { setDateQuery(''); searchInputRef.current?.focus() }
+  const resetListScroll = () => scrollRegionRef.current?.scrollTo({ top: 0 })
+  const clearSearch = () => { resetListScroll(); setDateQuery(''); searchInputRef.current?.focus() }
   const updateView = (change: Partial<DashboardView>) => {
     if (change.sortOrder !== undefined || change.selectedStatuses !== undefined) {
       loadingRef.current = false
       setLoadingMore(false)
       setHasScrollIntent(false)
+      resetListScroll()
     }
     onViewChange({ ...view, ...change })
   }
   const sentinelRef = useRef<HTMLDivElement>(null)
-  const listRef = useRef<HTMLElement>(null)
   const statusFilterRef = useRef<HTMLDivElement>(null)
   const statusTriggerRef = useRef<HTMLButtonElement>(null)
   const firstStatusRef = useRef<HTMLButtonElement>(null)
@@ -118,6 +120,7 @@ export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoad
   const months = searchQuery ? groupedMonths : groupedMonths.slice(0, visibleMonths)
   const shownTerms = months.flatMap(month => month.terms)
   const hasMore = !searchQuery && visibleMonths < groupedMonths.length
+  const showChronicleCue = !searchQuery && groupedMonths.length > 6
   const placeholderMonths = Math.min(MONTHS_PER_LOAD, groupedMonths.length - visibleMonths)
   const loadMore = useCallback(() => {
     if (!hasMore || loadingRef.current) return
@@ -133,62 +136,51 @@ export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoad
   useEffect(() => {
     if (!loadingMore) return
     const finishBeforeEdge = () => {
-      const remaining = document.documentElement.scrollHeight - window.scrollY - window.innerHeight
-      if (remaining < window.innerHeight * 1.25) finishLoading()
+      const region = scrollRegionRef.current
+      if (!region) return
+      const remaining = region.scrollHeight - region.scrollTop - region.clientHeight
+      if (remaining < Math.max(100, region.clientHeight * .15)) finishLoading()
     }
     const timer = window.setTimeout(finishLoading, demoLoadDelayMs)
-    window.addEventListener('scroll', finishBeforeEdge, { passive: true })
+    const region = scrollRegionRef.current
+    region?.addEventListener('scroll', finishBeforeEdge, { passive: true })
     window.addEventListener('resize', finishBeforeEdge)
-    finishBeforeEdge()
     return () => {
       window.clearTimeout(timer)
-      window.removeEventListener('scroll', finishBeforeEdge)
+      region?.removeEventListener('scroll', finishBeforeEdge)
       window.removeEventListener('resize', finishBeforeEdge)
     }
   }, [loadingMore, demoLoadDelayMs, finishLoading])
   useEffect(() => {
-    const markScrollIntent = () => setHasScrollIntent(true)
-    const onKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (['ArrowDown', 'PageDown', 'End', ' '].includes(event.key)) markScrollIntent()
-    }
-    window.addEventListener('wheel', markScrollIntent, { passive: true })
-    window.addEventListener('touchmove', markScrollIntent, { passive: true })
-    window.addEventListener('scroll', markScrollIntent, { passive: true })
-    window.addEventListener('keydown', onKeyDown)
-    return () => {
-      window.removeEventListener('wheel', markScrollIntent)
-      window.removeEventListener('touchmove', markScrollIntent)
-      window.removeEventListener('scroll', markScrollIntent)
-      window.removeEventListener('keydown', onKeyDown)
-    }
-  }, [])
-  useEffect(() => {
     const node = sentinelRef.current
-    if (!node || !hasMore || loadingMore || !hasScrollIntent) return
+    const region = scrollRegionRef.current
+    if (!node || !region || !hasMore || loadingMore || !hasScrollIntent) return
     const observer = new IntersectionObserver(entries => {
       if (entries.some(entry => entry.isIntersecting)) loadMore()
-    }, { rootMargin: '0px 0px 120% 0px' })
+    }, { root: region, rootMargin: '0px 0px 70% 0px' })
     observer.observe(node)
     return () => observer.disconnect()
   }, [hasMore, loadingMore, hasScrollIntent, visibleMonths, loadMore])
   useEffect(() => {
     const updateBackToTop = () => {
-      const bounds = listRef.current?.getBoundingClientRect()
-      setShowBackToTop(Boolean(bounds && bounds.top < -Math.max(320, window.innerHeight * .65) && bounds.bottom > 80))
+      const region = scrollRegionRef.current
+      setShowBackToTop(Boolean(region && region.scrollTop > Math.max(320, region.clientHeight * .65)))
     }
-    window.addEventListener('scroll', updateBackToTop, { passive: true })
     window.addEventListener('resize', updateBackToTop)
     updateBackToTop()
-    return () => {
-      window.removeEventListener('scroll', updateBackToTop)
-      window.removeEventListener('resize', updateBackToTop)
-    }
+    return () => window.removeEventListener('resize', updateBackToTop)
   }, [visibleMonths, selectedStatuses, terms.length, loadingMore, dateQuery])
+  const onListScroll = () => {
+    const region = scrollRegionRef.current
+    if (!region) return
+    if (region.scrollTop > 0 && !hasScrollIntent) setHasScrollIntent(true)
+    setShowBackToTop(region.scrollTop > Math.max(320, region.clientHeight * .65))
+  }
   const scrollToListStart = () => {
-    const list = listRef.current
-    if (!list) return
-    list.focus({ preventScroll: true })
-    list.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
+    const region = scrollRegionRef.current
+    if (!region) return
+    region.focus({ preventScroll: true })
+    region.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
   }
 
   const listStyle = { '--overview-row-height': `${appearance.rowHeight}px`, '--overview-font-size': `${appearance.fontSize}px` } as CSSProperties
@@ -196,10 +188,12 @@ export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoad
     <header className="overview-simple-heading">
       <div><h1>Stichtage</h1></div>
     </header>
-    <section ref={listRef} className="overview-simple-list" aria-label="Stichtage und Meldungsstand" tabIndex={-1}>
+    <section className="overview-simple-list" aria-label="Stichtage und Meldungsstand">
+      <div className="overview-scroll-region" ref={scrollRegionRef} role="region" aria-label="Stichtagsliste" aria-busy={loadingMore} tabIndex={0} onScroll={onListScroll}>
+      <div className="overview-list-head">
       {terms.length > 0 ? <div className="overview-list-tools">
         <label className="overview-search-label" htmlFor="overview-date-search">Stichtag suchen</label>
-        <div className="overview-search-field"><span className="overview-search-icon"><Icon name="search" size={17}/></span><input ref={searchInputRef} id="overview-date-search" type="search" value={dateQuery} onChange={event => { loadingRef.current = false; setLoadingMore(false); setDateQuery(event.target.value) }} onKeyDown={event => { if (event.key === 'Escape') clearSearch() }} placeholder="Datum, Monat oder Jahr" autoComplete="off"/>{dateQuery ? <button type="button" aria-label="Suche löschen" onClick={clearSearch}><Icon name="close" size={17}/></button> : null}</div>
+        <div className="overview-search-field"><span className="overview-search-icon"><Icon name="search" size={17}/></span><input ref={searchInputRef} id="overview-date-search" type="search" value={dateQuery} onChange={event => { loadingRef.current = false; setLoadingMore(false); resetListScroll(); setDateQuery(event.target.value) }} onKeyDown={event => { if (event.key === 'Escape') clearSearch() }} placeholder="Datum, Monat oder Jahr" autoComplete="off"/>{dateQuery ? <button type="button" aria-label="Suche löschen" onClick={clearSearch}><Icon name="close" size={17}/></button> : null}</div>
         {searchQuery ? <span className="overview-search-count" role="status">{filteredTerms.length} Treffer</span> : null}
         <ListAppearanceSettings label="Stichtagsliste einstellen" settings={appearance} defaults={defaultTermAppearance} onChange={setAppearance} open={appearanceOpen} onOpenChange={setAppearanceOpen}/>
       </div> : null}
@@ -240,6 +234,7 @@ export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoad
           </div> : null}
         </div>
       </div>
+      </div>
       {shownTerms.length ? months.map(month => <div className="overview-month" key={month.key}>
         <div className="overview-month-label"><h2>{month.label}</h2><span>{month.year}</span></div>
         <div className="overview-month-rows">{month.terms.map(term => <button className={`overview-simple-row${term.status ? ` overview-simple-row-${term.status.toLowerCase()}` : ''}`} key={term.iso} disabled={term.disabled} onClick={() => navigate(term.target)} aria-label={`${term.date}, ${previewStatus(term.status) || (term.disabled ? 'nicht mehr offen' : 'Neu')}${term.disabled ? '' : ', öffnen'}`}>
@@ -255,8 +250,14 @@ export function PreviewDashboard({ terms, navigate, view, onViewChange, demoLoad
           <div className="overview-month-rows">{[0, 1].map(row => <div className="overview-simple-row" key={row}><span className="overview-skeleton overview-skeleton-date"/><span className="overview-skeleton overview-skeleton-status"/></div>)}</div>
         </div>)}</div>
       </div> : null}
+      </div>
+      {showChronicleCue ? <div className={`overview-scroll-cue${loadingMore ? ' overview-scroll-cue-loading' : ''}${!hasMore ? ' overview-scroll-cue-complete' : ''}`} aria-live="polite">
+        <span className="overview-scroll-cue-rail" aria-hidden="true"><i/><i/><i/></span>
+        <span className="overview-scroll-cue-copy"><strong>{loadingMore ? 'Die Chronik wächst' : hasMore ? 'Die Chronik geht weiter' : 'Chronik vollständig'}</strong><span>{loadingMore ? 'Ältere Stichtage erscheinen gleich.' : hasMore ? 'Weiter scrollen · ältere Monate erscheinen automatisch.' : 'Alle verfügbaren Stichtage sind geladen.'}</span></span>
+        <span className="overview-scroll-cue-arrow" aria-hidden="true">{hasMore ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v15m-5-5 5 5 5-5"/></svg> : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 4 4L19 6"/></svg>}</span>
+      </div> : null}
     </section>
-    {showBackToTop && shownTerms.length > 0 ? <button type="button" className="overview-back-to-top" aria-label="Zum Anfang der Stichtagsliste" title="Zum Anfang der Stichtagsliste" onClick={scrollToListStart}>
+    {showBackToTop && shownTerms.length > 0 && !statusFilterOpen && !appearanceOpen ? <button type="button" className="overview-back-to-top" aria-label="Zum Anfang der Stichtagsliste" title="Zum Anfang der Stichtagsliste" onClick={scrollToListStart}>
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg>
     </button> : null}
   </div>
