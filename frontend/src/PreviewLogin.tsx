@@ -51,7 +51,7 @@ export function PreviewLogin({ onAuthenticated }: { onAuthenticated: (role: Role
     return () => { document.removeEventListener('pointerdown', closeOutside); document.removeEventListener('keydown', closeOnEscape) }
   }, [testAccessOpen])
 
-  // Nur Browser-Simulation; die lokale Demo erzwingt dieselbe Regel serverseitig.
+  // Nur Browser-Simulation der vorläufigen Demo-Regel E-103; die lokale Demo prüft serverseitig.
   const lockMessage = (until: number) => `Demo-Anmeldung gesperrt. Erneut möglich ab ${new Intl.DateTimeFormat('de-DE', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Berlin' }).format(until)} Uhr.`
   const isLocked = (address: string) => {
     const until = lockedUntil[address]
@@ -62,8 +62,8 @@ export function PreviewLogin({ onAuthenticated }: { onAuthenticated: (role: Role
   const failedAuth = (address: string) => {
     const count = lockedUntil[address] && lockedUntil[address] <= Date.now() ? 1 : (authFailures[address] || 0) + 1
     setAuthFailures(current => ({ ...current, [address]: count }))
-    if (count >= 3) { const until = Date.now() + 4 * 3600000; setLockedUntil(current => ({ ...current, [address]: until })); setError(lockMessage(until)); return }
-    setError(`Demo-Anmeldung fehlgeschlagen. Noch ${3 - count} ${count === 2 ? 'Versuch' : 'Versuche'} bis zur vierstündigen Sperre.`)
+    if (count >= 2) { const until = Date.now() + 4 * 3600000; setLockedUntil(current => ({ ...current, [address]: until })); setError(lockMessage(until)); return }
+    setError('Demo-Anmeldung fehlgeschlagen. Bitte Zugangsdaten prüfen.')
   }
 
   const open = (next: Mode) => { setMode(next); setTestAccessOpen(false); setError(''); setNotice(''); setCode('') }
@@ -147,14 +147,17 @@ export function PreviewLogin({ onAuthenticated }: { onAuthenticated: (role: Role
     open('invite-otp')
   }
 
+  const activeLock = lockedUntil[mode === 'login-otp' ? selected.email : email.trim().toLowerCase()]
+  const securityLocked = (mode === 'login' || mode === 'login-otp') && activeLock > Date.now()
+
   return <div className={`auth-layout preview-login-layout ${mode === 'register' ? 'auth-registration' : ''} ${mode === 'login' ? 'preview-login-with-access' : ''}`}>
     <section className="auth-intro"><div className="auth-brand"><span>LAWEA</span> direkt<em>+</em></div><div className="auth-intro-copy"><h1>Lagerwertverluste. Klar geregelt.</h1><p>Ein Ort für Senkungstermine, Meldungen, Prüfung und Gutschriften.</p><div className="auth-steps"><span><Icon name="shield"/> Apotheke verifizieren</span><span><Icon name="file"/> Meldung erfassen</span><span><Icon name="check"/> Bearbeitung verfolgen</span></div></div><div className="auth-footer">LAWEA direkt+</div></section>
     <section className="auth-panel"><div className="auth-card">
-      {error ? <Notice tone="warning">{error}</Notice> : null}
+      {securityLocked ? <div className="auth-security-state" role="alert"><span className="auth-security-icon"><Icon name="shield" size={22}/></span><div><strong>Sicherheitssperre aktiv</strong><p>{lockMessage(activeLock)}</p></div></div> : error ? <Notice tone="warning">{error}</Notice> : null}
       {notice ? <Notice tone="info">{notice}</Notice> : null}
 
       {mode === 'login' ? <>
-        <h2>Willkommen zurück</h2><p className="auth-lead">Melden Sie sich an, um die Beispielvorgänge anzusehen.</p><p className="auth-lock-hint"><Icon name="shield" size={16}/><span>Nach drei falschen Passwort- oder Anmeldecodeeingaben wird der Zugang für vier Stunden gesperrt.</span></p>
+        <h2>Willkommen zurück</h2><p className="auth-lead">Melden Sie sich an, um die Beispielvorgänge anzusehen.</p>
         <form className="form-stack" onSubmit={submitLogin} autoComplete="off"><label className="field"><span>E-Mail-Adresse</span><input name="preview-email" type="email" required value={email} onChange={event => setEmail(event.target.value)} autoComplete="off"/></label><label className="field"><span>Passwort</span><input name="preview-password" type="password" required value={password} onChange={event => setPassword(event.target.value)} autoComplete="off"/></label><Button type="submit" icon="arrow">Demo-Anmeldung starten</Button></form>
         <button className="text-button" onClick={() => open('reset-request')}>Passwort vergessen?</button>
         <div className="auth-divider">Noch kein Konto?</div>
@@ -174,7 +177,7 @@ export function PreviewLogin({ onAuthenticated }: { onAuthenticated: (role: Role
 
       {['login-otp','register-otp','invite-otp'].includes(mode) ? <>
         <button className="back-link" onClick={() => open(mode === 'register-otp' ? 'register' : mode === 'invite-otp' ? 'invite' : 'login')}>← Zurück</button>
-        <h2>E-Mail-Adresse bestätigen</h2><p className="auth-lead">Für diese Vorschau wird kein Code versendet. Nutzen Sie den eingeblendeten Beispielcode.</p>{mode === 'login-otp' ? <p className="auth-lock-hint"><Icon name="shield" size={16}/><span>Passwort- und Anmeldecodefehler zählen gemeinsam: Nach drei Fehlversuchen wird der Zugang für vier Stunden gesperrt.</span></p> : null}<Notice><strong>Beispielcode:</strong> {previewCode}</Notice>
+        <h2>E-Mail-Adresse bestätigen</h2><p className="auth-lead">Für diese Vorschau wird kein Code versendet. Nutzen Sie den eingeblendeten Beispielcode.</p><Notice><strong>Beispielcode:</strong> {previewCode}</Notice>
         <form className="form-stack" onSubmit={submitCode}><label className="field"><span>Einmalcode</span><input inputMode="numeric" pattern="[0-9]{6}" maxLength={6} required value={code} onChange={event => setCode(event.target.value)} autoComplete="off"/></label><Button type="submit" icon="arrow">Bestätigen</Button></form>
       </> : null}
 

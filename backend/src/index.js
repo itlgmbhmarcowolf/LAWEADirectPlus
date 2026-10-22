@@ -97,7 +97,8 @@ function checkAuthLock(userId) {
 function failedAuth(userId) {
   const previous = db.prepare('SELECT failures FROM auth_locks WHERE user_id=?').get(userId)
   const failures = (previous?.failures || 0) + 1
-  const lockedUntil = failures >= 3 ? new Date(Date.now() + 4 * 3600000).toISOString() : null
+  // Vorläufige Demo-Regel aus E-103: zwei gemeinsame Passwort-/Codefehler, vier Stunden Sperre.
+  const lockedUntil = failures >= 2 ? new Date(Date.now() + 4 * 3600000).toISOString() : null
   db.transaction(() => {
     db.prepare('INSERT INTO auth_locks (user_id,failures,locked_until,updated_at) VALUES (?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET failures=excluded.failures,locked_until=excluded.locked_until,updated_at=excluded.updated_at').run(userId, failures, lockedUntil, now())
     if (lockedUntil) {

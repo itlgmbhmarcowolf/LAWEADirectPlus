@@ -7,7 +7,7 @@
 | Risiko | Umsetzung | Nachweis |
 | --- | --- | --- |
 | Fremder Mandant / falsche Rolle | Serverseitige Rollenprüfung und `organization_id` bei Apotheke, Meldung und Dokument; Finance sieht keine Betriebserlaubnisse oder Meldungsdetails | `backend/src/index.js`, isolierter API-Test |
-| Kontoübernahme | Argon2id-Passworthashes, E-Mail-OTP, 10-Minuten-Code, maximal drei fehlgeschlagene Passwort- oder Login-Codeversuche mit vierstündiger Sperre je Benutzer und sichtbarem Wiederanmeldezeitpunkt, kurzlebige Einladungen/Reset-Links, Session-Widerruf nach Reset/Sperre | Authentisierungsendpunkte und Test |
+| Kontoübernahme | Argon2id-Passworthashes, E-Mail-OTP, 10-Minuten-Code, maximal zwei fehlgeschlagene Passwort- oder Login-Codeversuche mit vierstündiger Sperre je Benutzer und sichtbarem Wiederanmeldezeitpunkt, kurzlebige Einladungen/Reset-Links, Session-Widerruf nach Reset/Sperre; Dauer und gemeinsame Zählung sind vorläufige Demo-Annahmen | Authentisierungsendpunkte und Test |
 | CSRF / Sessiondiebstahl | `HttpOnly`, `SameSite=Lax`, acht Stunden Session, eigener CSRF-Token für authentifizierte Änderungen, Origin-Prüfung, keine Sitzung im Local Storage. Die lokale Demo akzeptiert Frontends auf Loopback-Adressen mit wechselnden Ports; fremde Domains bleiben gesperrt. | Middleware und Test |
 | XSS / unsichere Browserinhalte | React-Textescaping, kein `dangerouslySetInnerHTML`, restriktive Helmet-CSP, `nosniff`, keine fremden Skripte | Frontend und HTTP-Header |
 | SQL-Injection / fehlerhafte Eingaben | Parametrisierte SQLite-Abfragen, Zod-Schemas, Größenlimits, serverseitige Fachvalidierung | API-Code und Negativtests |

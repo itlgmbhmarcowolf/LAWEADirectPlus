@@ -62,5 +62,6 @@ html:has(.auth-registration)::-webkit-scrollbar,body:has(.auth-registration)::-w
 /* The plus is a typographic accent within the wordmark. */
 .brand em,.auth-brand em{display:inline-block;margin-left:.035em;font-size:1.16em;font-weight:750;line-height:1;letter-spacing:-.06em;vertical-align:-.035em}
 .auth-lock-hint{display:flex;align-items:flex-start;gap:8px;margin:-10px 0 19px;color:#4d667a;font-size:12px;line-height:1.5}.auth-lock-hint svg{flex:none;margin-top:1px;color:#0b7890}
+.auth-security-state{display:flex;align-items:flex-start;gap:14px;margin:0 0 22px;padding:17px 18px;border:1px solid #ebbd8d;border-left:4px solid #d47722;border-radius:14px;background:linear-gradient(135deg,#fff8ed,#fff);box-shadow:0 12px 32px #9d580d12;color:#6c3a13}.auth-security-icon{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:12px;background:#ffead0;color:#a85b17}.auth-security-state strong{display:block;margin:1px 0 5px;font-size:15px;color:#7b4011}.auth-security-state p{margin:0;font-size:13px;line-height:1.5}.auth-security-state:focus-within{outline:2px solid #a85b17;outline-offset:2px}
 .brand em{color:#087b92}
 .auth-brand em{color:#83deeb}

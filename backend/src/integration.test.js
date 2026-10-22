@@ -220,7 +220,7 @@ test('vollständiger Demo-Prozess mit Rollen, Mandantentrennung und unveränderl
     for (let n = 0; n < 10; n++) await call(admin, '/auth/login', 'POST', {
       email: 'admin@rosen-apotheke.test', password: 'Demo!Passwort2026'
     })
-    for (let n = 0; n < 2; n++) await call(staff, '/auth/login', 'POST', {
+    await call(staff, '/auth/login', 'POST', {
       email: 'neu@rosen-apotheke.test', password: 'Falsches!Passwort2026'
     }, 401)
     const lockedPassword = await call(staff, '/auth/login', 'POST', { email: 'neu@rosen-apotheke.test', password: 'Falsches!Passwort2026' }, 429)
@@ -233,7 +233,7 @@ test('vollständiger Demo-Prozess mit Rollen, Mandantentrennung und unveränderl
     await call(staff, '/auth/login', 'POST', { email: 'neu@rosen-apotheke.test', password: 'Demo!Passwort2026' }, 429)
     db.prepare('UPDATE auth_locks SET locked_until=? WHERE user_id=?').run('2000-01-01T00:00:00.000Z', staffId)
     const tokenChallenge = await call(staff, '/auth/login', 'POST', { email: 'neu@rosen-apotheke.test', password: 'Demo!Passwort2026' })
-    for (let n = 0; n < 2; n++) await call(staff, '/auth/verify', 'POST', { challengeId: tokenChallenge.challengeId, code: '000000' === tokenChallenge.demoCode ? '000001' : '000000' }, 400)
+    await call(staff, '/auth/verify', 'POST', { challengeId: tokenChallenge.challengeId, code: '000000' === tokenChallenge.demoCode ? '000001' : '000000' }, 400)
     await call(staff, '/auth/verify', 'POST', { challengeId: tokenChallenge.challengeId, code: '000000' === tokenChallenge.demoCode ? '000001' : '000000' }, 429)
     await call(staff, '/auth/verify', 'POST', { challengeId: tokenChallenge.challengeId, code: tokenChallenge.demoCode }, 429)
     db.prepare('UPDATE auth_locks SET locked_until=? WHERE user_id=?').run('2000-01-01T00:00:00.000Z', staffId)
