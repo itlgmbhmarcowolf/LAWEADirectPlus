@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import type { PreviewClaim, PreviewItem, PreviewMember } from './PreviewApp'
 import { Button, Icon, PageTitle, StatusPill } from './ui'
 import { ClaimCreditEntry } from './ClaimCreditEntry'
+import { DiscardDraftDialog } from './DiscardDraftDialog'
 import './preview-claim-editor.css'
 
 type Props = {
@@ -31,6 +32,7 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
   const editable = claim.status === 'DRAFT'
   const [showValidation, setShowValidation] = useState(false)
   const [fileError, setFileError] = useState('')
+  const [discardOpen, setDiscardOpen] = useState(false)
   const editorRef = useRef<HTMLDivElement>(null)
   const errorId = useId()
   const positionErrors = claim.items.map(item => ({
@@ -99,7 +101,8 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
         <div className="preview-claim-declaration"><label className="check-field"><input type="checkbox" checked={claim.declaration} aria-invalid={showValidation && !!declarationError} aria-describedby={showValidation && declarationError ? `${errorId}-declaration` : undefined} onChange={event => updateClaim({ declaration: event.target.checked })}/><span>Ich bestätige die Richtigkeit der Angaben zum Bestand am Stichtag.</span></label>{showValidation && declarationError ? <span className="preview-field-error" id={`${errorId}-declaration`} role="alert">{declarationError}</span> : null}</div>
       </section></div>
 
-      <div className="editor-actions"><Button variant="quiet" onClick={saveDraft}>Entwurf speichern</Button><Button icon="arrow" onClick={checkAndSubmit}>Angaben prüfen</Button><button className="text-button danger-text" onClick={discard}>Entwurf verwerfen</button></div>
+      <div className="editor-actions"><Button variant="quiet" onClick={saveDraft}>Entwurf speichern</Button><Button icon="arrow" onClick={checkAndSubmit}>Angaben prüfen</Button><button className="text-button danger-text" onClick={() => setDiscardOpen(true)}>Entwurf verwerfen</button></div>
+      {discardOpen ? <DiscardDraftDialog term={term} demo onCancel={() => setDiscardOpen(false)} onConfirm={discard}/> : null}
     </> : <>
       <PageTitle title="Meldung im Überblick" subtitle={`${claimNumber} · Senkungstermin ${term}`}/>
       <div className="term-summary"><div><span>Stichtag</span><strong>{term}</strong></div><div><span>Vorgang</span><strong>{claimNumber}</strong></div><div><span>Status</span><strong><StatusPill status={claim.status} label={claim.status === 'COMPLETED' ? 'Ausgezahlt · Demo' : claim.status === 'MANUAL_REVIEW' ? 'Eingereicht' : undefined}/></strong></div></div>

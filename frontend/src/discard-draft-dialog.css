@@ -1,0 +1,8 @@
+.discard-draft-dialog{width:min(440px,calc(100% - 32px));max-height:calc(100vh - 32px);margin:auto;padding:28px;border:1px solid #ead4d7;border-radius:16px;background:#fff;color:#173750;box-shadow:0 24px 70px #10234a4d}
+.discard-draft-dialog::backdrop{background:#10234a88}
+.discard-draft-icon{display:grid;place-items:center;width:48px;height:48px;margin-bottom:17px;border-radius:14px;background:#fcebed;color:#a42431}
+.discard-draft-dialog h2{margin:0 0 10px;font-size:24px;line-height:1.2}
+.discard-draft-dialog p{margin:0;color:#52677b;line-height:1.55}
+.discard-draft-dialog p strong{color:#173750}
+.discard-draft-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px;margin-top:26px}
+@media(max-width:480px){.discard-draft-dialog{padding:22px}.discard-draft-actions{display:grid;grid-template-columns:1fr 1fr}.discard-draft-actions .button{justify-content:center;min-width:0}}

@@ -42,6 +42,8 @@
 .overview-empty-first strong{color:#103a54;font-size:23px;letter-spacing:-.025em}
 .overview-empty-first p{max-width:370px;margin:9px 0 0;color:#627b8b;font-size:14px;line-height:1.5}
 .overview-simple-columns{display:grid;grid-template-columns:220px minmax(0,1fr) 264px;gap:0;border-radius:14px 14px 0 0;background:#f5f8fa;color:#526d80;font-size:12px;font-weight:750;letter-spacing:.08em;text-transform:uppercase}
+/* UI-Annahme: Unter der Suchleiste schließt der Tabellenkopf ohne eigene obere Rundung an. */
+.overview-list-tools + .overview-simple-columns{border-top-left-radius:0;border-top-right-radius:0}
 .overview-simple-columns > span{padding:15px 26px}
 .overview-period-heading{display:flex;align-items:center;justify-content:space-between;gap:4px;min-width:0;padding:8px 14px 8px 26px;border-right:1px solid #d7e5eb}
 .overview-sort-icons{display:flex;align-items:center;gap:0;flex:none;letter-spacing:normal}
