@@ -3,6 +3,7 @@ import type { PreviewClaim, PreviewItem, PreviewMember } from './PreviewApp'
 import { Button, Icon, PageTitle, StatusPill } from './ui'
 import { ClaimCreditEntry } from './ClaimCreditEntry'
 import { DiscardDraftDialog } from './DiscardDraftDialog'
+import { EvidenceFiles, useEvidenceUrls } from './EvidenceFiles'
 import './preview-claim-editor.css'
 
 type Props = {
@@ -44,7 +45,7 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
     quantity: !Number.isInteger(Number(item.quantity)) || Number(item.quantity) < 1 ? 'Bestand als ganze Packungszahl größer null eintragen.' : ''
   }))
   const contactError = members.some(member => member.email === (claim.contactEmail || currentEmail)) ? '' : 'Aktiven Ansprechpartner auswählen.'
-  const evidenceError = fileError || (!claim.evidenceFile ? 'Bestandsnachweis hochladen.' : '')
+  const evidenceError = fileError || (!claim.evidenceFiles.length ? 'Bestandsnachweis hochladen.' : '')
   const declarationError = claim.declaration ? '' : 'Richtigkeit der Angaben bestätigen.'
   const hasErrors = !claim.items.length || positionErrors.some(errors => Object.values(errors).some(Boolean)) || !!contactError || !!evidenceError || !!declarationError
   const changeItem = (item: PreviewItem, change: Partial<PreviewItem>) => {
@@ -59,24 +60,10 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
     }
     submit()
   }
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [evidenceUrl, setEvidenceUrl] = useState('')
+  const evidenceUrls = useEvidenceUrls(claim.evidenceFiles)
   useEffect(() => {
     if (claim.status === 'DRAFT' && !claim.items.length) firstPznRef.current?.focus({ preventScroll: true })
   }, [term])
-  useEffect(() => {
-    if (!claim.evidenceFile) { setEvidenceUrl(''); return }
-    const url = URL.createObjectURL(claim.evidenceFile)
-    setEvidenceUrl(url)
-    return () => URL.revokeObjectURL(url)
-  }, [claim.evidenceFile])
-  const chooseEvidence = (file?: File) => {
-    if (!file) return
-    if (!['application/pdf', 'image/jpeg', 'image/png'].includes(file.type) || file.size > 5 * 1024 * 1024) { setFileError('PDF-, JPG- oder PNG-Datei mit höchstens 5 MB auswählen.'); setShowValidation(true); return }
-    setFileError('')
-    updateClaim({ evidence: true, evidenceFile: file })
-    setMessage('Nachweis nur für diese Browsersitzung übernommen.')
-  }
 
   return <div ref={editorRef} className="preview-claim-editor">
     <button className="back-link" onClick={() => navigate('dashboard')}>← Zurück zur Übersicht</button>
@@ -93,17 +80,13 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
           <label><span className="mobile-label">Bestand in Packungen zum {term}</span><input type="number" min="1" step="1" value={item.quantity} onChange={event => changeItem(item, { quantity: event.target.value })} placeholder="0" aria-label={`Bestand in Packungen zum ${term}, Position ${index + 1}`} aria-invalid={showValidation && !!positionErrors[index].quantity} aria-describedby={showValidation && positionErrors[index].quantity ? `${errorId}-quantity-${item.id}` : undefined}/>{showValidation && positionErrors[index].quantity ? <span className="preview-field-error" id={`${errorId}-quantity-${item.id}`} role="alert">{positionErrors[index].quantity}</span> : null}</label>
           {claim.items.length ? <button className="icon-button remove-item" aria-label={`Position ${index + 1} entfernen`} onClick={() => removeItem(item.id)}><Icon name="trash" size={18}/></button> : <span aria-hidden="true"/>}
         </div>)}
-        <p className="preview-position-help">Zum Testen in dieser Vorschau: fiktive PZN <strong>01234567</strong> (Beispielpräparat A).</p>
         <button className="add-row" onClick={addItem}><Icon name="plus" size={18}/> Position hinzufügen</button>
         {showValidation && !claim.items.length ? <span className="preview-field-error" role="alert">Mindestens eine Position hinzufügen.</span> : null}
       </section>
 
       <div className="preview-claim-details"><section className="editor-section preview-claim-section" aria-labelledby="preview-evidence-title">
-        <h2 id="preview-evidence-title">Nachweis</h2>
-        <input ref={fileInputRef} className="preview-hidden-file" type="file" accept=".pdf,.jpg,.jpeg,.png" tabIndex={-1} aria-label="Nachweisdatei auswählen" onChange={event => { chooseEvidence(event.target.files?.[0]); event.target.value = '' }}/>
-        <button className="preview-evidence-zone" aria-invalid={showValidation && !!evidenceError} aria-describedby={showValidation && evidenceError ? `${errorId}-evidence` : undefined} onClick={() => fileInputRef.current?.click()}><Icon name={claim.evidenceFile ? 'check' : 'upload'} size={25}/><strong>{claim.evidenceFile ? claim.evidenceFile.name : 'Nachweis auswählen'}</strong><small>PDF, JPG, PNG · bis 5 MB · nur im Browser</small></button>
-        {showValidation && evidenceError ? <span className="preview-field-error" id={`${errorId}-evidence`} role="alert">{evidenceError}</span> : null}
-        {claim.evidenceFile ? <button className="text-button" onClick={() => { setFileError(''); updateClaim({ evidence: false, evidenceFile: null }) }}>Nachweis entfernen</button> : null}
+        <h2 id="preview-evidence-title">Nachweise</h2>
+        <EvidenceFiles files={claim.evidenceFiles} onChange={files => { updateClaim({ evidenceFiles: files }); if (files.length) setMessage(`${files.length} ${files.length === 1 ? 'Nachweis' : 'Nachweise'} für diese Browsersitzung übernommen.`) }} onError={error => { setFileError(error); if (error) setShowValidation(true) }} error={evidenceError} errorId={`${errorId}-evidence`} showError={showValidation} browserOnly/>
       </section>
 
       <section className="editor-section preview-claim-section" aria-labelledby="preview-comment-title">
@@ -120,7 +103,7 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
       <section className="data-section claim-overview"><div className="section-header"><h2>Aktueller Status</h2><StatusPill status={claim.status} label={claim.status === 'COMPLETED' ? 'Ausgezahlt · Demo' : claim.status === 'MANUAL_REVIEW' ? 'Eingereicht' : undefined}/></div><p>{claim.status === 'REJECTED' ? `Rückmeldung: ${claim.reason}` : claim.status === 'MANUAL_REVIEW' ? 'Die eingereichte Beispielversion ist gesperrt und liegt in der fachlichen Prüfung.' : claim.status === 'APPROVED' ? 'Freigegeben. Als nächstes folgt die Abwicklung.' : 'Auszahlung nur als fiktiver Beispielstand dargestellt. Es wurde keine Zahlung ausgeführt.'}</p>{claim.status === 'REJECTED' ? <Button onClick={() => { updateClaim({ status: 'DRAFT', declaration: false }); setMessage('Neue Beispielrevision begonnen. Die vorherige Einreichung bleibt im echten Prozess erhalten.') }}>Neue Revision erstellen</Button> : null}{claim.status === 'COMPLETED' ? <ClaimCreditEntry reference={`BEISPIEL-GS-${claimNumber.slice(-2)}`} onOpen={() => navigate(`credits:${claimNumber}`)}/> : null}</section>
       <section className="data-section"><h2>Eingereichte Positionen</h2><div className="table-wrap"><table><thead><tr><th>PZN</th><th>Artikel</th><th>Charge</th><th>Bestand</th></tr></thead><tbody>{claim.items.map(item => <tr key={item.id}><td>{item.pzn}</td><td>{previewProductNames[item.pzn]}</td><td>{item.charge}</td><td>{item.quantity} Packungen</td></tr>)}</tbody></table></div></section>
       {claim.comment.trim() ? <section className="data-section"><h2>Kommentar</h2><p>{claim.comment}</p></section> : null}
-      <section className="data-section"><h2>Nachweis</h2>{claim.evidenceFile ? <div className="document-list"><div><Icon name="file" size={18}/><span>{claim.evidenceFile.name}</span>{evidenceUrl ? <a className="text-button" href={evidenceUrl} download={claim.evidenceFile.name}>Herunterladen</a> : null}</div></div> : <p className="muted">Für diesen Beispielvorgang liegt keine echte Datei vor.</p>}</section>
+      <section className="data-section"><h2>Nachweise</h2>{claim.evidenceFiles.length ? <div className="document-list">{claim.evidenceFiles.map((file, index) => <div key={`${file.name}-${index}`}><Icon name="file" size={18}/><span>{file.name}</span>{evidenceUrls[index] ? <a className="text-button" href={evidenceUrls[index]} download={file.name}>Herunterladen</a> : null}</div>)}</div> : <p className="muted">Für diesen Beispielvorgang liegt keine echte Datei vor.</p>}</section>
     </>}
   </div>
 }

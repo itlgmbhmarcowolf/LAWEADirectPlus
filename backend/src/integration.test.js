@@ -151,6 +151,11 @@ test('vollständiger Demo-Prozess mit Rollen, Mandantentrennung und unveränderl
     await login(staff, 'neu@rosen-apotheke.test')
 
     const evidenceDoc = await call(admin, `/claims/${claimId}/documents`, 'POST', formWithFile('file'), 201)
+    const extraEvidence = await call(admin, `/claims/${claimId}/documents`, 'POST', formWithFile('file'), 201)
+    assert.equal((await call(admin, `/claims/${claimId}`)).documents.filter(doc => !doc.removed_at && doc.kind === 'EVIDENCE').length, 2)
+    await call(admin, `/claims/${claimId}/documents/${extraEvidence.id}/remove`, 'POST', {})
+    const remainingEvidence = (await call(admin, `/claims/${claimId}`)).documents.filter(doc => !doc.removed_at && doc.kind === 'EVIDENCE')
+    assert.deepEqual(remainingEvidence.map(doc => doc.id), [evidenceDoc.id], 'Einzelnes Entfernen erhält den anderen Nachweis.')
     await call(other, `/documents/${evidenceDoc.id}`, 'GET', undefined, 404)
     const draft = { version: original.claim.version, items: [{ pzn: '04812345', charge: 'FREITEXT-CHARGE-123', quantity: 12 }],
       contactName: 'Fremde Person', contactEmail: 'neu@rosen-apotheke.test', comment: 'Testmeldung', declaration: true }

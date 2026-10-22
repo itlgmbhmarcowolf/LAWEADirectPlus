@@ -7,10 +7,14 @@ import { CreditDetailLayout } from './CreditDetailLayout'
 import { PdfPreview } from './PdfPreviewLoader'
 import { sampleClaimDetail, sampleClaims } from './sample-claim-data'
 import { previewProductNames } from './PreviewClaimEditor'
+import { useEvidenceUrls } from './EvidenceFiles'
+
+const emptyEvidenceFiles: File[] = []
 
 export function PreviewCredits({ credits, selectedClaimNumber, currentClaims, navigate }: { credits: PreviewCredit[]; selectedClaimNumber?: string; currentClaims: { number: string; termDate: string; claim: PreviewClaim }[]; navigate: (page: string) => void }) {
   const selected = credits.find(credit => credit.claimNumber === selectedClaimNumber)
-  const currentEvidenceFile = currentClaims.find(claim => claim.number === selectedClaimNumber)?.claim.evidenceFile
+  const currentEvidenceFiles = currentClaims.find(claim => claim.number === selectedClaimNumber)?.claim.evidenceFiles || emptyEvidenceFiles
+  const currentEvidenceUrls = useEvidenceUrls(currentEvidenceFiles)
   const [pdfUrl, setPdfUrl] = useState('')
   const [evidenceUrl, setEvidenceUrl] = useState('')
   useEffect(() => {
@@ -20,10 +24,10 @@ export function PreviewCredits({ credits, selectedClaimNumber, currentClaims, na
     const detail = sample ? sampleClaimDetail(sample) : undefined
     const url = URL.createObjectURL(createDemoCreditPdf({ ...selected, positions: detail?.positions }))
     setPdfUrl(url)
-    const proof = sample && detail ? URL.createObjectURL(createDemoEvidencePdf(sample, detail)) : currentEvidenceFile ? URL.createObjectURL(currentEvidenceFile) : ''
+    const proof = sample && detail ? URL.createObjectURL(createDemoEvidencePdf(sample, detail)) : ''
     setEvidenceUrl(proof)
     return () => { URL.revokeObjectURL(url); if (proof) URL.revokeObjectURL(proof) }
-  }, [selected?.claimNumber, selected?.reference, selected?.provided, selected?.termDate, currentEvidenceFile])
+  }, [selected?.claimNumber, selected?.reference, selected?.provided, selected?.termDate])
   const claimTarget = (number: string) => { const current = currentClaims.find(claim => claim.number === number); return current ? `claim:${current.termDate}` : `sample:${number}` }
 
   if (selected) {
@@ -32,9 +36,9 @@ export function PreviewCredits({ credits, selectedClaimNumber, currentClaims, na
     const detail = sample ? sampleClaimDetail(sample) : undefined
     const current = currentClaims.find(claim => claim.number === selected.claimNumber)
     const positions = detail?.positions || current?.claim.items.map(item => ({ pzn: item.pzn, article: previewProductNames[item.pzn] || '–', charge: item.charge, quantity: Number(item.quantity) })) || []
-    const proofName = detail?.evidenceName || current?.claim.evidenceFile?.name
+    const proofName = detail?.evidenceName
     const proofUrl = evidenceUrl
-    return <CreditDetailLayout key={selected.reference} reference={selected.reference} claimNumber={selected.claimNumber} termDate={termDate} provided={selected.provided} fileType="Fiktives PDF · 1 Seite" onClaim={() => navigate(claimTarget(selected.claimNumber))} download={pdfUrl ? { url: pdfUrl, filename: `Muster-Gutschrift-${selected.claimNumber}.pdf`, label: 'Muster-PDF herunterladen' } : undefined} submission={<><h2>Gemeldete Positionen{detail ? ` · Revision ${detail.revision}` : ''}</h2><div className="table-wrap credit-positions"><table><thead><tr><th scope="col">PZN</th><th scope="col">Artikel</th><th scope="col">Charge</th><th scope="col">Bestand zum {termDate}</th></tr></thead><tbody>{positions.map((position, index) => <tr key={`${position.pzn}-${index}`}><td data-label="PZN">{position.pzn}</td><td data-label="Artikel">{position.article}</td><td data-label="Charge">{position.charge}</td><td data-label={`Bestand zum ${termDate}`}>{position.quantity} Packungen</td></tr>)}</tbody></table></div><div className="credit-evidence-row"><Icon name="file" size={18}/><span>{proofName || 'Kein Nachweis vorhanden'}</span>{proofUrl && proofName ? <a href={proofUrl} download={proofName} aria-label={`${proofName} herunterladen`}><Icon name="download" size={17}/> Nachweis</a> : null}</div></>}>
+    return <CreditDetailLayout key={selected.reference} reference={selected.reference} claimNumber={selected.claimNumber} termDate={termDate} provided={selected.provided} fileType="Fiktives PDF · 1 Seite" onClaim={() => navigate(claimTarget(selected.claimNumber))} download={pdfUrl ? { url: pdfUrl, filename: `Muster-Gutschrift-${selected.claimNumber}.pdf`, label: 'Muster-PDF herunterladen' } : undefined} submission={<><h2>Gemeldete Positionen{detail ? ` · Revision ${detail.revision}` : ''}</h2><div className="table-wrap credit-positions"><table><thead><tr><th scope="col">PZN</th><th scope="col">Artikel</th><th scope="col">Charge</th><th scope="col">Bestand zum {termDate}</th></tr></thead><tbody>{positions.map((position, index) => <tr key={`${position.pzn}-${index}`}><td data-label="PZN">{position.pzn}</td><td data-label="Artikel">{position.article}</td><td data-label="Charge">{position.charge}</td><td data-label={`Bestand zum ${termDate}`}>{position.quantity} Packungen</td></tr>)}</tbody></table></div>{detail ? <div className="credit-evidence-row"><Icon name="file" size={18}/><span>{proofName}</span>{proofUrl && proofName ? <a href={proofUrl} download={proofName} aria-label={`${proofName} herunterladen`}><Icon name="download" size={17}/> Nachweis</a> : null}</div> : current?.claim.evidenceFiles.map((file, index) => <div className="credit-evidence-row" key={`${file.name}-${index}`}><Icon name="file" size={18}/><span>{file.name}</span>{currentEvidenceUrls[index] ? <a href={currentEvidenceUrls[index]} download={file.name} aria-label={`${file.name} herunterladen`}><Icon name="download" size={17}/> Nachweis</a> : null}</div>)}</>}>
       {pdfUrl ? <PdfPreview url={pdfUrl} title={`PDF-Vorschau der Beispielgutschrift ${selected.reference}`}/> : <p role="status">PDF-Vorschau wird geladen …</p>}
     </CreditDetailLayout>
   }

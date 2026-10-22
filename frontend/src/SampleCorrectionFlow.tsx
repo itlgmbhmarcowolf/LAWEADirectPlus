@@ -1,7 +1,8 @@
 import { useId, useRef, useState } from 'react'
 import type { SamplePosition } from './sample-claim-data'
 import { previewProductNames } from './PreviewClaimEditor'
-import { Button, Icon } from './ui'
+import { Button } from './ui'
+import { EvidenceFiles } from './EvidenceFiles'
 import './sample-correction-flow.css'
 
 export type SampleCorrection = {
@@ -10,7 +11,7 @@ export type SampleCorrection = {
   comment: string
   contactEmail: string
   declaration: boolean
-  evidenceFile: File | null
+  evidenceFiles: File[]
   submittedAt?: string
 }
 
@@ -27,7 +28,6 @@ export function SampleCorrectionFlow({
   const [reviewAttempted, setReviewAttempted] = useState(false)
   const [fileError, setFileError] = useState('')
   const sectionRef = useRef<HTMLElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const errorId = useId()
   const change = (next: SampleCorrection) => { onChange(next); setReviewing(false) }
   const changePosition = (index: number, update: Partial<SamplePosition>) => {
@@ -39,7 +39,7 @@ export function SampleCorrectionFlow({
     quantity: !Number.isInteger(position.quantity) || position.quantity < 1 ? 'Bestand als ganze Packungszahl größer null eintragen.' : ''
   }))
   const contactError = contacts.some(contact => contact.email === value.contactEmail) ? '' : 'Aktiven Ansprechpartner der Apotheke auswählen.'
-  const evidenceError = fileError || (!value.evidenceFile ? 'Nachweis für Revision 2 hochladen.' : '')
+  const evidenceError = fileError || (!value.evidenceFiles.length ? 'Nachweis für Revision 2 hochladen.' : '')
   const declarationError = value.declaration ? '' : 'Richtigkeit der korrigierten Angaben bestätigen.'
   const review = () => {
     setReviewAttempted(true)
@@ -70,26 +70,11 @@ export function SampleCorrectionFlow({
       </label>
       <div className="sample-correction-upload">
         <strong>Nachweis für Revision 2</strong>
-        <input ref={fileInputRef} className="preview-hidden-file" type="file" accept=".pdf,.jpg,.jpeg,.png" tabIndex={-1} aria-label="Nachweis für Revision 2 auswählen" onChange={event => {
-          const file = event.target.files?.[0]
-          if (!file) return
-          if (!['application/pdf', 'image/jpeg', 'image/png'].includes(file.type) || file.size > 5 * 1024 * 1024) {
-            setFileError('PDF-, JPG- oder PNG-Datei mit höchstens 5 MB auswählen.')
-            setReviewAttempted(true)
-            event.target.value = ''
-            return
-          }
-          setFileError('')
-          change({ ...value, evidenceFile: file })
-          event.target.value = ''
-        }}/>
-        <button type="button" className="preview-evidence-zone" aria-invalid={reviewAttempted && !!evidenceError} aria-describedby={reviewAttempted && evidenceError ? `${errorId}-evidence` : undefined} onClick={() => fileInputRef.current?.click()}><Icon name={value.evidenceFile ? 'check' : 'upload'} size={25}/><strong>{value.evidenceFile ? value.evidenceFile.name : 'Nachweis hochladen'}</strong><small>PDF, JPG, PNG · maximal 5 MB</small></button>
-        {reviewAttempted && evidenceError ? <span className="sample-correction-field-error" id={`${errorId}-evidence`} role="alert">{evidenceError}</span> : null}
-        {value.evidenceFile ? <button type="button" className="text-button sample-correction-remove-file" onClick={() => { setFileError(''); change({ ...value, evidenceFile: null }) }}>Nachweis entfernen</button> : null}
+        <EvidenceFiles files={value.evidenceFiles} onChange={files => change({ ...value, evidenceFiles: files })} onError={error => { setFileError(error); if (error) setReviewAttempted(true) }} error={evidenceError} errorId={`${errorId}-evidence`} showError={reviewAttempted} label="Nachweise zur Korrektur hinzufügen" browserOnly/>
       </div>
       <div className="sample-correction-declaration"><label className="check-field"><input type="checkbox" checked={value.declaration} aria-invalid={reviewAttempted && !!declarationError} aria-describedby={reviewAttempted && declarationError ? `${errorId}-declaration` : undefined} onChange={event => change({ ...value, declaration: event.target.checked })}/><span>Ich bestätige die Richtigkeit der korrigierten Angaben.</span></label>{reviewAttempted && declarationError ? <span className="sample-correction-field-error" id={`${errorId}-declaration`} role="alert">{declarationError}</span> : null}</div>
     </div>
     {reviewAttempted && !deadlineOpen ? <p className="sample-correction-field-error sample-correction-expired" role="alert">Die Korrekturfrist ist abgelaufen. Diese Revision kann nicht mehr eingereicht werden.</p> : null}
-    {reviewing ? <div className="sample-correction-review" role="status"><strong>Korrektur bereit zur Einreichung</strong><p>{value.positions.length} Positionen · Ansprechpartner: {contacts.find(contact => contact.email === value.contactEmail)?.name} · Erläuterung: {value.comment.trim() || 'Angaben korrigiert'} · Nachweis: {value.evidenceFile?.name}</p><div className="sample-correction-actions"><Button variant="secondary" onClick={() => setReviewing(false)}>Weiter bearbeiten</Button><Button disabled={!deadlineOpen} onClick={onSubmit}>Revision 2 erneut einreichen</Button></div></div> : <div className="sample-correction-actions"><Button onClick={review}>Angaben prüfen</Button></div>}
+    {reviewing ? <div className="sample-correction-review" role="status"><strong>Korrektur bereit zur Einreichung</strong><p>{value.positions.length} Positionen · Ansprechpartner: {contacts.find(contact => contact.email === value.contactEmail)?.name} · Erläuterung: {value.comment.trim() || 'Angaben korrigiert'} · {value.evidenceFiles.length} Nachweise</p><div className="sample-correction-actions"><Button variant="secondary" onClick={() => setReviewing(false)}>Weiter bearbeiten</Button><Button disabled={!deadlineOpen} onClick={onSubmit}>Revision 2 erneut einreichen</Button></div></div> : <div className="sample-correction-actions"><Button onClick={review}>Angaben prüfen</Button></div>}
   </section>
 }

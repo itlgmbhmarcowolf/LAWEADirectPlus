@@ -12,6 +12,7 @@ import { HelpContent } from './HelpContent'
 import { ClaimHistory } from './ClaimHistory'
 import { DiscardDraftDialog } from './DiscardDraftDialog'
 import { CorrectionFeedback } from './CorrectionFeedback'
+import { fileSizeLabel } from './EvidenceFiles'
 import './claim-editor.css'
 import './credit-preview.css'
 
@@ -137,7 +138,27 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
     const items = (draft.items.length ? draft.items : [emptyItem()]).map((item, i) => i === index ? { ...item, [key]: value, ...(key === 'pzn' ? { charge: '' } : {}) } : item)
     change({ ...draft, items })
   }
-  const uploadFile = async (file: File | null) => { if (!file) return; setBusy(true); setError(''); try { await save(); const form = new FormData(); form.set('file', file); await upload(`/claims/${id}/documents`, form); await load(); setNotice('Nachweis hochgeladen.') } catch (e) { setError(e instanceof Error ? e.message : 'Upload fehlgeschlagen.') } finally { setBusy(false) } }
+  const uploadFiles = async (files: File[]) => {
+    if (!files.length) return
+    setBusy(true); setError(''); setNotice('')
+    let uploaded = 0
+    const failures: string[] = []
+    try {
+      await save()
+      for (const file of files) {
+        try {
+          const form = new FormData()
+          form.set('file', file)
+          await upload(`/claims/${id}/documents`, form)
+          uploaded += 1
+        } catch (reason) { failures.push(`${file.name}: ${reason instanceof Error ? reason.message : 'Upload fehlgeschlagen.'}`) }
+      }
+      await load()
+      if (uploaded) setNotice(`${uploaded} ${uploaded === 1 ? 'Nachweis' : 'Nachweise'} hochgeladen.`)
+      if (failures.length) setError(failures.join(' '))
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Upload fehlgeschlagen.') }
+    finally { setBusy(false) }
+  }
   const removeDocument = async (docId: string) => { setBusy(true); setError(''); try { await save(); await post(`/claims/${id}/documents/${docId}/remove`, {}); await load() } catch (e) { setError(e instanceof Error ? e.message : 'Entfernen fehlgeschlagen.') } finally { setBusy(false) } }
   const submit = async () => { if (!detail) return; setBusy(true); setError(''); try { await save(); await post(`/claims/${id}/submit`, { key: crypto.randomUUID() }); await refresh(); setConfirm(false); onSubmitted(detail.claim.number) } catch (e) { setServerIssue(e instanceof Error ? e.message : 'Einreichen fehlgeschlagen.'); setShowValidation(true); setConfirm(false); requestAnimationFrame(() => validationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })) } finally { setBusy(false) } }
   const revise = async () => { setBusy(true); setError(''); try { await post(`/claims/${id}/revise`, {}); await load(); await refresh(); setNotice('Neue Revision angelegt. Bitte prüfen Sie alle Angaben erneut.') } catch (e) { setError(e instanceof Error ? e.message : 'Korrektur nicht möglich.') } finally { setBusy(false) } }
@@ -182,17 +203,16 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
           {draft.items.length ? <button className="icon-button remove-item" aria-label={`Position ${index + 1} entfernen`} onClick={() => change({ ...draft, items: draft.items.filter((_, i) => i !== index) })}><Icon name="trash" size={18}/></button> : <span aria-hidden="true"/>}
         </div>)}
         <datalist id="pzn-options">{data.products.map(p => <option key={p.pzn} value={p.pzn} label={p.name}/>)}</datalist>
-        {data.products.some(product => product.pzn === '04812345') ? <p className="claim-position-help">Zum Testen in der lokalen Demo: fiktive PZN <strong>04812345</strong> (Beispielpräparat A).</p> : null}
         <button className="add-row" onClick={() => change({ ...draft, items: [...draft.items, emptyItem()] })}><Icon name="plus" size={18}/> Position hinzufügen</button>
         {showValidation && !draft.items.length ? <span className="claim-field-error" data-validation-error role="alert">Mindestens eine Position hinzufügen.</span> : null}
       </section>
       <div className="claim-editor-details">
         <section className="editor-section claim-editor-section" aria-labelledby="claim-evidence-title">
-          <h2 id="claim-evidence-title">Nachweis</h2>
-          {claim.revision_no > 1 ? <p className="field-hint">Für diese Korrektur können Sie einen neuen Nachweis hochladen.</p> : null}
-          <label className="upload-zone" aria-invalid={showValidation && !!evidenceError}><Icon name="upload" size={27}/><span>{claim.revision_no > 1 ? 'Nachweis erneut hochladen' : 'Datei auswählen'}</span><small>PDF, JPG, PNG · maximal 5 MB</small><input type="file" accept=".pdf,.jpg,.jpeg,.png" disabled={busy} onChange={e => { uploadFile(e.target.files?.[0] || null); e.target.value = '' }}/></label>
+          <h2 id="claim-evidence-title">Nachweise</h2>
+          {claim.revision_no > 1 ? <p className="field-hint">Für diese Korrektur können Sie neue Nachweise hochladen.</p> : null}
+          <label className="upload-zone evidence-server-zone" aria-invalid={showValidation && !!evidenceError}><span className="evidence-dropzone-icon"><Icon name="upload" size={22}/></span><span className="evidence-dropzone-copy"><strong>{busy ? 'Nachweise werden hochgeladen …' : claim.revision_no > 1 ? 'Nachweise zur Korrektur hinzufügen' : 'Nachweise hinzufügen'}</strong><small>Mehrere Dateien auswählen · PDF, JPG, PNG · je höchstens 5 MB (Demo)</small></span><span className="evidence-dropzone-plus" aria-hidden="true"><Icon name="plus" size={19}/></span><input type="file" accept=".pdf,.jpg,.jpeg,.png" multiple aria-label="Mehrere Nachweise auswählen" disabled={busy} onChange={e => { uploadFiles(Array.from(e.target.files || [])); e.target.value = '' }}/></label>
           {showValidation && evidenceError ? <span className="claim-field-error" data-validation-error role="alert">{evidenceError}</span> : null}
-          {documents.length ? <div className="document-list">{documents.map(doc => <div key={doc.id}><Icon name="file" size={18}/><span>{doc.original_name}</span><small>{Math.ceil(doc.size / 1024)} KB</small><button className="icon-button" onClick={() => removeDocument(doc.id)} aria-label={`${doc.original_name} entfernen`}><Icon name="trash" size={16}/></button></div>)}</div> : null}
+          {documents.length ? <div className="evidence-selected"><div className="evidence-selected-heading"><strong>Hochgeladene Nachweise</strong><span>{documents.length}</span></div><ul>{documents.map(doc => <li key={doc.id}><span className="evidence-file-icon"><Icon name="file" size={19}/></span><span className="evidence-file-info"><strong title={doc.original_name}>{doc.original_name}</strong><small>{fileSizeLabel(doc.size)}</small></span><button type="button" className="evidence-file-remove" disabled={busy} onClick={() => removeDocument(doc.id)} aria-label={`${doc.original_name} entfernen`}><Icon name="trash" size={17}/></button></li>)}</ul></div> : null}
         </section>
         <section className="editor-section claim-editor-section">
           <label className="field claim-contact-field"><span>Ansprechpartner der Apotheke</span><select value={draft.contactEmail || data.user.email} aria-invalid={showValidation && !!contactError} onChange={e => { const member = activeMembers.find(item => item.email === e.target.value); if (member) change({ ...draft, contactName: member.name, contactEmail: member.email }) }}>{activeMembers.map(member => <option key={member.id} value={member.email}>{member.name}</option>)}</select>{showValidation && contactError ? <span className="claim-field-error" data-validation-error role="alert">{contactError}</span> : null}</label>

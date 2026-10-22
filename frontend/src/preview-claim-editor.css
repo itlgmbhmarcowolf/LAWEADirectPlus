@@ -8,8 +8,6 @@
 .preview-claim-section .position-row:last-of-type{border-radius:0 0 7px 7px}
 .preview-claim-section .add-row{width:auto;min-height:43px;margin-top:13px;padding:9px 15px;border:1px solid #b9d8e0;border-radius:7px;background:#eef8fa}
 .preview-claim-section .add-row:hover{background:#e1f2f6}
-.preview-position-help{margin:12px 0 0;padding:10px 13px;border-left:3px solid #58b5c6;border-radius:0 6px 6px 0;background:#f1f9fb;color:#385d72;font-size:12px;line-height:1.5}
-.preview-claim-section .preview-evidence-zone{max-width:420px;min-height:84px}
 .preview-hidden-file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 .preview-claim-section .check-field{margin:16px 0 0;padding-top:15px;border-top:1px solid #e6eef1}
 .claim-contact-field{margin:0 0 15px}
