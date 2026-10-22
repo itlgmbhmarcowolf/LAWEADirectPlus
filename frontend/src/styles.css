@@ -54,6 +54,14 @@ html:has(.auth-registration)::-webkit-scrollbar,body:has(.auth-registration)::-w
 @media(max-width:620px){.tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible}.tabs button{padding:10px 7px;white-space:normal}}
 
 .shell-body{min-height:calc(100vh - 62px)}
+/* Align the tagline divider with the sidebar's right edge in the expanded desktop layout. */
+@media(min-width:851px){
+  .topbar .brand{flex:0 0 190px}
+}
+@media(min-width:851px) and (max-width:1250px){
+  .topbar .brand{flex-basis:198px}
+  .app-shell:has(.assistant-rail) .topbar .brand{flex-basis:173px}
+}
 .status-manual_review{color:#a65a0a}
 .status-manual_review .status-dot{background:#b8650a}
 @media(max-width:850px){.sidebar{top:62px;min-height:calc(100vh - 62px)}}
