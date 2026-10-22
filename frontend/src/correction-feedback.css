@@ -1,0 +1,15 @@
+/* UI-Annahme: Rückmeldung, Frist und nächste Aktion bilden eine gemeinsame Korrekturkarte. */
+.correction-feedback{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(230px,.85fr);gap:16px;margin:16px 0 18px;padding:13px;border:1px solid #edcda7;border-radius:14px;background:linear-gradient(115deg,#fffaf3 0,#fffdf9 64%,#f9fcfd 100%);box-shadow:0 8px 22px #9e673b0d}
+.correction-feedback-reason{min-width:0;padding:6px 10px 7px 10px}
+.correction-feedback-heading{display:flex;align-items:center;gap:9px;margin-bottom:17px;color:#9c5e19;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.correction-feedback-icon{display:grid;place-items:center;width:34px;height:34px;flex:none;border-radius:10px;background:#fff0d9;color:#a9681c}
+.correction-feedback-label{display:block;margin-bottom:5px;color:#8a591f;font-size:12px;font-weight:750}
+.correction-feedback-reason p{margin:0;color:#253f52;font-size:16px;font-weight:650;line-height:1.5;overflow-wrap:anywhere}
+.correction-feedback-next{display:flex;flex-direction:column;justify-content:center;gap:13px;min-width:0;padding:16px 18px;border:1px solid #d6e9eb;border-radius:11px;background:#f1f9fa}
+.correction-feedback-deadline{display:grid;gap:7px}
+.correction-feedback-deadline span{display:flex;align-items:center;gap:7px;color:#436b78;font-size:12px;font-weight:700}
+.correction-feedback-deadline strong{color:#0c5064;font-size:17px;line-height:1.3;overflow-wrap:anywhere}
+.correction-feedback-action .button{width:100%;justify-content:center}
+.correction-feedback-expired .correction-feedback-next{border-color:#eadfdc;background:#faf5f3}
+.correction-feedback-expired .correction-feedback-deadline span,.correction-feedback-expired .correction-feedback-deadline strong{color:#805e58}
+@media(max-width:720px){.correction-feedback{grid-template-columns:1fr}.correction-feedback-heading{margin-bottom:13px}.correction-feedback-next{padding:14px 16px}}
