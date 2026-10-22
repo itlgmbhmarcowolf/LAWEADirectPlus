@@ -155,6 +155,12 @@ test('vollständiger Demo-Prozess mit Rollen, Mandantentrennung und unveränderl
     const draft = { version: original.claim.version, items: [{ pzn: '04812345', charge: 'FREITEXT-CHARGE-123', quantity: 12 }],
       contactName: 'Fremde Person', contactEmail: 'neu@rosen-apotheke.test', comment: 'Testmeldung', declaration: true }
     await call(admin, `/claims/${claimId}/draft`, 'PUT', { ...draft, contactEmail: 'fremd@beispiel.test' }, 422)
+    await call(admin, `/claims/${claimId}/draft`, 'PUT', { ...draft, items: [{ pzn: '048', charge: '', quantity: 0 }] })
+    const partialClaim = await call(admin, `/claims/${claimId}`)
+    assert.equal(partialClaim.claim.draft.items[0].pzn, '048', 'Begonnene PZN bleibt im Entwurf erhalten.')
+    const partialSubmit = await call(admin, `/claims/${claimId}/submit`, 'POST', { key: crypto.randomUUID() }, 422)
+    assert.match(partialSubmit.message, /PZN unbekannt/)
+    draft.version = partialClaim.claim.version
     await call(admin, `/claims/${claimId}/draft`, 'PUT', { ...draft, items: [{ ...draft.items[0], charge: '   ' }] })
     const blankResult = await call(admin, `/claims/${claimId}/submit`, 'POST', { key: crypto.randomUUID() }, 422)
     assert.match(blankResult.message, /Chargennummer eingeben/)

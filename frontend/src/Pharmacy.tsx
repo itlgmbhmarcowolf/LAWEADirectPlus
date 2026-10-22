@@ -47,15 +47,23 @@ export function PharmacyDashboard({ data, navigate, view, onViewChange }: { data
 export function PharmacyTermPage({ iso, data, navigate, refresh, onSubmitted }: { iso: string; data: Bootstrap; navigate: (page: string) => void; refresh: () => Promise<Bootstrap>; onSubmitted: (claimNumber: string) => void }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const startedRef = useRef(false)
   const term = data.terms.find(item => item.date === iso)
+  const existing = term ? claimForTerm(data, term) : undefined
+  useEffect(() => {
+    if (!term || existing || !termOpen(term) || startedRef.current) return
+    startedRef.current = true
+    setBusy(true)
+    startClaim(term.id, navigate, refresh).catch(e => setError(e instanceof Error ? e.message : 'Meldung konnte nicht geöffnet werden.')).finally(() => setBusy(false))
+  }, [term?.id, existing?.id])
   if (!term) return <Notice tone="warning">Dieser Stichtag ist nicht verfügbar.</Notice>
-  const existing = claimForTerm(data, term)
   if (existing) return <ClaimEditor key={existing.id} id={existing.id} data={data} navigate={navigate} refresh={refresh} onSubmitted={onSubmitted}/>
+  if (termOpen(term) && !error) return <div className="loading-region" role="status">Meldung wird geöffnet …</div>
   return <>
     <button className="back-link" onClick={() => navigate('dashboard')}>← Zurück zur Übersicht</button>
     <PageTitle title={`Stichtag ${shortDate(term.date)}`} subtitle="Für diesen Stichtag liegt noch keine Meldung vor."/>
     {error ? <Notice tone="error">{error}</Notice> : null}
-    <section className="data-section"><h2>Meldung erfassen</h2><p>Beginnen Sie eine Meldung für diesen Stichtag. Sie können den Entwurf speichern und später über das Datum wieder öffnen.</p><Button disabled={busy || !termOpen(term)} onClick={async () => { setBusy(true); setError(''); try { await post('/claims', { termId: term.id }); await refresh() } catch (e) { setError(e instanceof Error ? e.message : 'Meldung konnte nicht begonnen werden.') } finally { setBusy(false) } }}>Meldung erfassen</Button></section>
+    <section className="data-section"><h2>Meldung erfassen</h2><p>Beginnen Sie eine Meldung für diesen Stichtag. Sie können den Entwurf speichern und später über das Datum wieder öffnen.</p><Button disabled={busy || !termOpen(term)} onClick={() => { setBusy(true); setError(''); startClaim(term.id, navigate, refresh).catch(e => setError(e instanceof Error ? e.message : 'Meldung konnte nicht begonnen werden.')).finally(() => setBusy(false)) }}>Meldung erfassen</Button></section>
   </>
 }
 
@@ -98,6 +106,7 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
   const [showValidation, setShowValidation] = useState(false)
   const [serverIssue, setServerIssue] = useState('')
   const validationRef = useRef<HTMLDivElement>(null)
+  const firstPznRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const versionRef = useRef(1)
   const latestRef = useRef<Draft | null>(null)
@@ -105,6 +114,7 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
   const savePromiseRef = useRef<Promise<void> | null>(null)
   const load = async () => { const result = await api<ClaimDetail>(`/claims/${id}`); setDetail(result); setDraft(result.claim.draft); latestRef.current = result.claim.draft; savedRef.current = JSON.stringify(result.claim.draft); versionRef.current = result.claim.version; setSaveState('Gespeichert') }
   useEffect(() => { load().catch(e => setError(e.message)) }, [id])
+  useEffect(() => { if (detail?.claim.id === id && detail.claim.status === 'DRAFT' && draft && !draft.items.length) firstPznRef.current?.focus({ preventScroll: true }) }, [id, detail?.claim.id, detail?.claim.status])
   const change = (next: Draft) => { setDraft(next); setServerIssue(''); latestRef.current = next; setDirtyKey(v => v + 1); setSaveState('Ungespeicherte Änderungen') }
   const save = async () => {
     if (savePromiseRef.current) return savePromiseRef.current
@@ -124,7 +134,7 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
   useEffect(() => { if (!detail || detail.claim.status !== 'DRAFT' || !dirtyKey || discardOpen) return; const timer = setTimeout(() => { save().catch(() => {}) }, 1300); return () => clearTimeout(timer) }, [dirtyKey, detail?.claim.status, discardOpen])
   const setItem = (index: number, key: keyof Item, value: string | number) => {
     if (!draft) return
-    const items = draft.items.map((item, i) => i === index ? { ...item, [key]: value, ...(key === 'pzn' ? { charge: '' } : {}) } : item)
+    const items = (draft.items.length ? draft.items : [emptyItem()]).map((item, i) => i === index ? { ...item, [key]: value, ...(key === 'pzn' ? { charge: '' } : {}) } : item)
     change({ ...draft, items })
   }
   const uploadFile = async (file: File | null) => { if (!file) return; setBusy(true); setError(''); try { await save(); const form = new FormData(); form.set('file', file); await upload(`/claims/${id}/documents`, form); await load(); setNotice('Nachweis hochgeladen.') } catch (e) { setError(e instanceof Error ? e.message : 'Upload fehlgeschlagen.') } finally { setBusy(false) } }
@@ -134,10 +144,11 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
   const cancel = async () => { setBusy(true); setError(''); try { await savePromiseRef.current?.catch(() => {}); await post(`/claims/${id}/cancel`, {}); await refresh(); navigate('dashboard') } catch (e) { setError(e instanceof Error ? e.message : 'Verwerfen fehlgeschlagen.'); setDiscardOpen(false) } finally { setBusy(false) } }
   if (!detail || !draft) return <div className="loading-region">{error ? <Notice tone="error">{error}</Notice> : 'Meldung wird geladen …'}</div>
   const claim = detail.claim, editable = claim.status === 'DRAFT'
+  const visibleItems = draft.items.length ? draft.items : [emptyItem()]
   const credit = data.credits?.find(item => item.claim_id === claim.id)
   const documents = detail.documents.filter(d => !d.removed_at && d.kind === 'EVIDENCE')
   const activeMembers = (data.members || []).filter(member => member.status === 'ACTIVE')
-  const positionErrors = draft.items.map(item => ({
+  const positionErrors = visibleItems.map(item => ({
     pzn: !item.pzn ? 'PZN eintragen.' : !data.products.some(product => product.pzn === item.pzn) ? 'PZN ist nicht im Sortiment vorhanden.' : '',
     charge: !item.charge.trim() ? 'Charge eintragen.' : '',
     quantity: !Number.isInteger(item.quantity) || item.quantity < 1 ? 'Bestand als ganze Packungszahl größer null eintragen.' : ''
@@ -162,15 +173,16 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
     {editable ? <>
       <section className="editor-section claim-editor-section" aria-labelledby="claim-positions-title">
         <h2 id="claim-positions-title">Positionen</h2>
-        {draft.items.length ? <div className="position-grid position-header"><span>PZN</span><span>Artikelbezeichnung</span><span>Charge</span><span>Bestand in Packungen zum {shortDate(detail.term.date)}</span><span></span></div> : null}
-        {draft.items.map((item, index) => <div className="position-grid position-row" key={index}>
-          <label><span className="mobile-label">PZN</span><input list="pzn-options" inputMode="numeric" maxLength={8} value={item.pzn} onChange={e => setItem(index, 'pzn', e.target.value)} placeholder="PZN suchen" aria-label={`PZN Position ${index + 1}`} aria-invalid={showValidation && !!positionErrors[index].pzn}/>{showValidation && positionErrors[index].pzn ? <span className="claim-field-error" data-validation-error role="alert">{positionErrors[index].pzn}</span> : null}</label>
+        <div className="position-grid position-header"><span>PZN</span><span>Artikelbezeichnung</span><span>Charge</span><span>Bestand in Packungen zum {shortDate(detail.term.date)}</span><span></span></div>
+        {visibleItems.map((item, index) => <div className="position-grid position-row" key={index}>
+          <label><span className="mobile-label">PZN</span><input ref={index === 0 ? firstPznRef : undefined} list="pzn-options" inputMode="numeric" maxLength={8} value={item.pzn} onChange={e => setItem(index, 'pzn', e.target.value.replace(/\D/g, '').slice(0, 8))} placeholder="PZN suchen" aria-label={`PZN Position ${index + 1}`} aria-invalid={showValidation && !!positionErrors[index]?.pzn}/>{showValidation && positionErrors[index]?.pzn ? <span className="claim-field-error" data-validation-error role="alert">{positionErrors[index].pzn}</span> : null}</label>
           <div className="product-name">{data.products.find(p => p.pzn === item.pzn)?.name || 'Artikel erscheint nach PZN-Eingabe'}</div>
-          <label><span className="mobile-label">Charge</span><input value={item.charge} onChange={e => setItem(index, 'charge', e.target.value)} placeholder="Chargennummer" aria-label={`Charge Position ${index + 1}`} aria-invalid={showValidation && !!positionErrors[index].charge}/>{showValidation && positionErrors[index].charge ? <span className="claim-field-error" data-validation-error role="alert">{positionErrors[index].charge}</span> : null}</label>
-          <label><span className="mobile-label">Bestand in Packungen zum {shortDate(detail.term.date)}</span><input type="number" min="1" step="1" value={item.quantity || ''} onChange={e => setItem(index, 'quantity', Number(e.target.value))} placeholder="0" aria-label={`Bestand in Packungen zum ${shortDate(detail.term.date)}, Position ${index + 1}`} aria-invalid={showValidation && !!positionErrors[index].quantity}/>{showValidation && positionErrors[index].quantity ? <span className="claim-field-error" data-validation-error role="alert">{positionErrors[index].quantity}</span> : null}</label>
-          <button className="icon-button remove-item" aria-label={`Position ${index + 1} entfernen`} onClick={() => change({ ...draft, items: draft.items.filter((_, i) => i !== index) })}><Icon name="trash" size={18}/></button>
+          <label><span className="mobile-label">Charge</span><input value={item.charge} onChange={e => setItem(index, 'charge', e.target.value)} placeholder="Chargennummer" aria-label={`Charge Position ${index + 1}`} aria-invalid={showValidation && !!positionErrors[index]?.charge}/>{showValidation && positionErrors[index]?.charge ? <span className="claim-field-error" data-validation-error role="alert">{positionErrors[index].charge}</span> : null}</label>
+          <label><span className="mobile-label">Bestand in Packungen zum {shortDate(detail.term.date)}</span><input type="number" min="1" step="1" value={item.quantity || ''} onChange={e => setItem(index, 'quantity', Number(e.target.value))} placeholder="0" aria-label={`Bestand in Packungen zum ${shortDate(detail.term.date)}, Position ${index + 1}`} aria-invalid={showValidation && !!positionErrors[index]?.quantity}/>{showValidation && positionErrors[index]?.quantity ? <span className="claim-field-error" data-validation-error role="alert">{positionErrors[index].quantity}</span> : null}</label>
+          {draft.items.length ? <button className="icon-button remove-item" aria-label={`Position ${index + 1} entfernen`} onClick={() => change({ ...draft, items: draft.items.filter((_, i) => i !== index) })}><Icon name="trash" size={18}/></button> : <span aria-hidden="true"/>}
         </div>)}
         <datalist id="pzn-options">{data.products.map(p => <option key={p.pzn} value={p.pzn} label={p.name}/>)}</datalist>
+        {data.products.some(product => product.pzn === '04812345') ? <p className="claim-position-help">Zum Testen in der lokalen Demo: fiktive PZN <strong>04812345</strong> (Beispielpräparat A).</p> : null}
         <button className="add-row" onClick={() => change({ ...draft, items: [...draft.items, emptyItem()] })}><Icon name="plus" size={18}/> Position hinzufügen</button>
         {showValidation && !draft.items.length ? <span className="claim-field-error" data-validation-error role="alert">Mindestens eine Position hinzufügen.</span> : null}
       </section>

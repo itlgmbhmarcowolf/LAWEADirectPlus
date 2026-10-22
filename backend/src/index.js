@@ -69,7 +69,8 @@ const registration = z.object({
 }).strict()
 const draftSchema = z.object({
   version: z.number().int().positive(),
-  items: z.array(z.object({ pzn: z.string().regex(/^\d{8}$/), charge: z.string().trim().max(80), quantity: z.number().int().min(0).max(1000000) }).strict()).max(100),
+  // Entwürfe dürfen eine begonnene PZN enthalten; die vollständige PZN wird beim Einreichen geprüft.
+  items: z.array(z.object({ pzn: z.string().regex(/^\d{0,8}$/), charge: z.string().trim().max(80), quantity: z.number().int().min(0).max(1000000) }).strict()).max(100),
   contactName: z.string().trim().max(160),
   contactEmail: z.union([email, z.literal('')]),
   comment: z.string().max(2000),

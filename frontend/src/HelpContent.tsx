@@ -12,7 +12,7 @@ const topics: Topic[] = [
     { title: 'Entwurf speichern', text: 'Wählen Sie „Entwurf speichern“. In der Liste erscheint „Entwurf“. Über dasselbe Datum kehren Sie zu Ihren Angaben zurück.' }
   ], note: 'Stichtag und Einreichungsfrist sind unterschiedlich. Ob eine Einreichung noch möglich ist, richtet sich nach dem hinterlegten Einreichungsfenster.' },
   { id: 'artikel', title: 'PZN und Charge', summary: 'Artikel und Packungen richtig eintragen', keywords: 'position chargennummer', intro: 'Eine Meldung kann mehrere Positionen enthalten. Jede Position beschreibt einen Artikel, seine Charge und den Bestand zum Stichtag.', steps: [
-    { title: 'Position hinzufügen', text: 'Wählen Sie für jeden Artikel „Position hinzufügen“ und tragen Sie seine PZN ein. Der angezeigte Artikelname hilft bei der Zuordnung.' },
+    { title: 'PZN eintragen', text: 'Tragen Sie die PZN in die erste Position ein. Für weitere Artikel wählen Sie „Position hinzufügen“. Der angezeigte Artikelname hilft bei der Zuordnung.' },
     { title: 'Charge ablesen', text: 'Lesen Sie die Chargennummer von der Packung ab und geben Sie sie frei ein. Eine fachliche Chargenprüfung findet nicht statt.' },
     { title: 'Packungen zählen', text: 'Geben Sie den Bestand als ganze Packungszahl größer null an. Vor dem Einreichen prüft das Portal, ob die PZN vom Stichtag betroffen ist.' }
   ] },
