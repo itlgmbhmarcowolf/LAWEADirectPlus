@@ -1,6 +1,6 @@
 .draft-detail-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start}
 .draft-detail-main{min-width:0}
 .draft-detail-grid>.sample-timeline-panel{margin:0}
-@media(min-width:1501px){.draft-detail-grid{grid-template-columns:minmax(0,1.7fr) minmax(300px,.8fr)}.draft-detail-main .preview-claim-details,.draft-detail-main .claim-editor-details{display:grid;grid-template-columns:minmax(0,1fr);gap:0}}
+@media(min-width:1501px){.draft-detail-grid{grid-template-columns:minmax(0,1.7fr) minmax(300px,.8fr)}}
 @media(max-width:1500px){.draft-detail-grid>.sample-timeline-panel{width:100%;max-width:520px;justify-self:end}}
 @media(max-width:700px){.draft-detail-grid>.sample-timeline-panel{max-width:none}}
