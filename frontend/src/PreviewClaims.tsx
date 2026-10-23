@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Status } from './types'
 import { Button, Empty, Icon, PageTitle, StatusPill } from './ui'
 import { createDemoEvidencePdf } from './demo-evidence-pdf'
@@ -63,17 +63,6 @@ export function PreviewSampleClaimDetail({ claim, navigate, contacts, correction
   const [evidenceUrl, setEvidenceUrl] = useState('')
   const [previousEvidenceUrl, setPreviousEvidenceUrl] = useState('')
   const correctionEvidenceUrls = useEvidenceUrls(correction?.evidenceFiles || emptyEvidenceFiles)
-  const detailMainRef = useRef<HTMLDivElement>(null)
-  const [timelineHeight, setTimelineHeight] = useState(540)
-  useLayoutEffect(() => {
-    const main = detailMainRef.current
-    if (!main) return
-    const update = () => setTimelineHeight(Math.ceil(main.getBoundingClientRect().height))
-    update()
-    const observer = new ResizeObserver(update)
-    observer.observe(main)
-    return () => observer.disconnect()
-  }, [claim.number])
   useEffect(() => {
     const url = URL.createObjectURL(createDemoEvidencePdf(claim, detail))
     setEvidenceUrl(url)
@@ -93,12 +82,12 @@ export function PreviewSampleClaimDetail({ claim, navigate, contacts, correction
     {claim.creditReference ? <ClaimCreditEntry reference={claim.creditReference} provided={detail.provided} onOpen={() => navigate(`credits:${claim.number}`)}/> : null}
     {correction?.phase === 'draft' ? <SampleCorrectionFlow value={correction} contacts={contacts} deadlineOpen={correctionOpen} onChange={onChangeCorrection} onSubmit={onSubmitCorrection}/> : null}
     {correction?.phase === 'submitted' ? <section className="data-section sample-correction-submitted"><h2>Erneut eingereichte Angaben · Revision 2</h2><div className="table-wrap"><table><thead><tr><th>PZN</th><th>Artikel</th><th>Charge</th><th>Bestand</th></tr></thead><tbody>{correction.positions.map((position, index) => <tr key={`${position.pzn}-${index}`}><td>{position.pzn}</td><td>{position.article}</td><td>{position.charge}</td><td>{position.quantity} Packungen</td></tr>)}</tbody></table></div><p><strong>Ansprechpartner:</strong> {contacts.find(contact => contact.email === correction.contactEmail)?.name || correction.contactEmail}</p><p><strong>Erläuterung:</strong> {correction.comment || 'Angaben korrigiert'}</p><div className="document-list">{correction.evidenceFiles.map((file, index) => <div key={`${file.name}-${index}`}><Icon name="file" size={17}/><span>{file.name}</span>{correctionEvidenceUrls[index] ? <a className="text-button" href={correctionEvidenceUrls[index]} download={file.name}>Herunterladen</a> : null}</div>)}</div></section> : null}
-    <div className="sample-detail-grid"><div className="sample-detail-main" ref={detailMainRef}>
+    <div className="sample-detail-grid"><div className="sample-detail-main">
       <section className="data-section"><h2>Gemeldete Positionen · Revision {detail.revision}</h2><div className="table-wrap"><table><thead><tr><th>PZN</th><th>Artikel</th><th>Charge</th><th>Bestand zum {label(claim.termDate)}</th></tr></thead><tbody>{detail.positions.map(position => <tr key={position.pzn}><td>{position.pzn}</td><td>{position.article}</td><td>{position.charge}</td><td>{position.quantity} Packungen</td></tr>)}</tbody></table></div></section>
       <div className="submitted-info-grid">
         <section className="data-section"><h2>Nachweise</h2><div className="sample-evidence"><span className="sample-evidence-icon"><Icon name="file" size={22}/></span><div><strong>{detail.evidenceName}</strong><span>Revision {detail.revision} · fiktiver Bestandsnachweis</span></div>{evidenceUrl ? <a className="sample-evidence-download" href={evidenceUrl} download={detail.evidenceName} aria-label={`${detail.evidenceName} herunterladen`}><Icon name="download" size={18}/></a> : null}</div>{detail.previousPositions ? <div className="sample-evidence previous"><span className="sample-evidence-icon"><Icon name="file" size={22}/></span><div><strong>{detail.evidenceNameRev1}</strong><span>Revision 1 · unverändert archiviert</span></div>{previousEvidenceUrl ? <a className="sample-evidence-download" href={previousEvidenceUrl} download={detail.evidenceNameRev1} aria-label={`${detail.evidenceNameRev1} herunterladen`}><Icon name="download" size={18}/></a> : null}</div> : null}</section>
         <section className="data-section"><h2>Einreichung</h2><dl className="submitted-facts"><div><dt>Ansprechpartner der Apotheke</dt><dd>Maria Keller</dd></div><div><dt>Eingereicht am</dt><dd>{detail.submitted}</dd></div><div><dt>Revision</dt><dd>{detail.revision} von {correction?.phase === 'submitted' ? 2 : detail.revision}</dd></div></dl><p className="submitted-confirmation"><Icon name="check" size={17}/> Richtigkeit der Angaben bestätigt</p><p className="submitted-comment">Bestand zum {label(claim.termDate)} gemäß beigefügtem fiktivem Bestandsnachweis.</p></section>
       </div>
-    </div><TimelinePanel subtitle="Chronologie dieses fiktiven Vorgangs" height={timelineHeight} events={[...timelineEvents].reverse().map(event => ({ key: `${event.at}-${event.title}`, timeLabel: event.at, title: event.title, description: event.description, revision: event.revision, tone: event.tone }))}/></div>
+    </div><TimelinePanel subtitle="Chronologie dieses fiktiven Vorgangs" events={[...timelineEvents].reverse().map(event => ({ key: `${event.at}-${event.title}`, timeLabel: event.at, title: event.title, description: event.description, revision: event.revision, tone: event.tone }))}/></div>
   </>
 }
