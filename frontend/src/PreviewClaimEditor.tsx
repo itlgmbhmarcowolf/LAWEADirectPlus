@@ -86,7 +86,7 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
 
       <div className="preview-claim-details"><section className="editor-section preview-claim-section" aria-labelledby="preview-evidence-title">
         <h2 id="preview-evidence-title">Nachweise</h2>
-        <EvidenceFiles files={claim.evidenceFiles} onChange={files => { updateClaim({ evidenceFiles: files }); if (files.length) setMessage(`${files.length} ${files.length === 1 ? 'Nachweis' : 'Nachweise'} für diese Browsersitzung übernommen.`) }} onError={error => { setFileError(error); if (error) setShowValidation(true) }} error={evidenceError} errorId={`${errorId}-evidence`} showError={showValidation} browserOnly/>
+        <EvidenceFiles files={claim.evidenceFiles} onChange={files => { updateClaim({ evidenceFiles: files }); setMessage('') }} onError={error => { setFileError(error); if (error) setShowValidation(true) }} error={evidenceError} errorId={`${errorId}-evidence`} showError={showValidation}/>
       </section>
 
       <section className="editor-section preview-claim-section" aria-labelledby="preview-comment-title">

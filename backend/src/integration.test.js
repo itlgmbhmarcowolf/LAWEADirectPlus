@@ -11,6 +11,7 @@ process.env.DEMO_MODE = '1'
 const { app } = await import('./index.js')
 const { db } = await import('./db.js')
 const evidence = fs.readFileSync(new URL('../test-fixtures/demo-evidence.png', import.meta.url))
+const workbookEvidence = fs.readFileSync(new URL('../test-fixtures/demo-evidence.xlsx', import.meta.url))
 
 test('vollständiger Demo-Prozess mit Rollen, Mandantentrennung und unveränderlichen Revisionen', async () => {
   const server = app.listen(0, '127.0.0.1')
@@ -40,6 +41,11 @@ test('vollständiger Demo-Prozess mit Rollen, Mandantentrennung und unveränderl
     const form = new FormData()
     for (const [key, value] of Object.entries(fields)) form.set(key, value)
     form.set(field, new Blob([evidence], { type: 'image/png' }), 'nachweis.png')
+    return form
+  }
+  const formWithEvidence = (bytes, type, name) => {
+    const form = new FormData()
+    form.set('file', new Blob([bytes], { type }), name)
     return form
   }
   try {
@@ -156,6 +162,20 @@ test('vollständiger Demo-Prozess mit Rollen, Mandantentrennung und unveränderl
     await call(admin, `/claims/${claimId}/documents/${extraEvidence.id}/remove`, 'POST', {})
     const remainingEvidence = (await call(admin, `/claims/${claimId}`)).documents.filter(doc => !doc.removed_at && doc.kind === 'EVIDENCE')
     assert.deepEqual(remainingEvidence.map(doc => doc.id), [evidenceDoc.id], 'Einzelnes Entfernen erhält den anderen Nachweis.')
+    const csvEvidence = Buffer.from('PZN;Bestand\n04812345;12\n', 'utf8')
+    const csvDoc = await call(admin, `/claims/${claimId}/documents`, 'POST', formWithEvidence(csvEvidence, 'text/csv', 'bestand.csv'), 201)
+    const legacyCsvDoc = await call(admin, `/claims/${claimId}/documents`, 'POST', formWithEvidence(Buffer.from('Prüfung;Bestand\nJa;12\n', 'latin1'), 'text/csv', 'pruefung.csv'), 201)
+    const workbookDoc = await call(admin, `/claims/${claimId}/documents`, 'POST', formWithEvidence(workbookEvidence, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'bestand.xlsx'), 201)
+    await call(admin, `/claims/${claimId}/documents`, 'POST', formWithEvidence(Buffer.from([0, 1, 2]), 'text/csv', 'ungueltig.csv'), 400)
+    await call(admin, `/claims/${claimId}/documents`, 'POST', formWithEvidence(Buffer.from('kein Excel'), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'ungueltig.xlsx'), 400)
+    const spreadsheet = await fetch(`${base}/documents/${workbookDoc.id}`, { headers: { cookie: admin.cookie } })
+    assert.equal(spreadsheet.status, 200)
+    assert.deepEqual(Buffer.from(await spreadsheet.arrayBuffer()), workbookEvidence)
+    await call(other, `/documents/${workbookDoc.id}`, 'GET', undefined, 404)
+    await call(admin, `/claims/${claimId}/documents/${csvDoc.id}/remove`, 'POST', {})
+    await call(admin, `/claims/${claimId}/documents/${legacyCsvDoc.id}/remove`, 'POST', {})
+    await call(admin, `/claims/${claimId}/documents/${workbookDoc.id}/remove`, 'POST', {})
+    assert.deepEqual((await call(admin, `/claims/${claimId}`)).documents.filter(doc => !doc.removed_at && doc.kind === 'EVIDENCE').map(doc => doc.id), [evidenceDoc.id])
     await call(other, `/documents/${evidenceDoc.id}`, 'GET', undefined, 404)
     const draft = { version: original.claim.version, items: [{ pzn: '04812345', charge: 'FREITEXT-CHARGE-123', quantity: 12 }],
       contactName: 'Fremde Person', contactEmail: 'neu@rosen-apotheke.test', comment: 'Testmeldung', declaration: true }

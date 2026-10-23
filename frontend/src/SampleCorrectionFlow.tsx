@@ -70,7 +70,7 @@ export function SampleCorrectionFlow({
       </label>
       <div className="sample-correction-upload">
         <strong>Nachweis für Revision 2</strong>
-        <EvidenceFiles files={value.evidenceFiles} onChange={files => change({ ...value, evidenceFiles: files })} onError={error => { setFileError(error); if (error) setReviewAttempted(true) }} error={evidenceError} errorId={`${errorId}-evidence`} showError={reviewAttempted} label="Nachweise zur Korrektur hinzufügen" browserOnly/>
+        <EvidenceFiles files={value.evidenceFiles} onChange={files => change({ ...value, evidenceFiles: files })} onError={error => { setFileError(error); if (error) setReviewAttempted(true) }} error={evidenceError} errorId={`${errorId}-evidence`} showError={reviewAttempted} label="Nachweise zur Korrektur hinzufügen"/>
       </div>
       <div className="sample-correction-declaration"><label className="check-field"><input type="checkbox" checked={value.declaration} aria-invalid={reviewAttempted && !!declarationError} aria-describedby={reviewAttempted && declarationError ? `${errorId}-declaration` : undefined} onChange={event => change({ ...value, declaration: event.target.checked })}/><span>Ich bestätige die Richtigkeit der korrigierten Angaben.</span></label>{reviewAttempted && declarationError ? <span className="sample-correction-field-error" id={`${errorId}-declaration`} role="alert">{declarationError}</span> : null}</div>
     </div>

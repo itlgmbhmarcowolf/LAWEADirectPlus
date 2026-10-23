@@ -191,10 +191,30 @@ function fileType(buffer) {
   if (buffer.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]))) return 'image/png'
   return null
 }
+function evidenceSpreadsheetType(file) {
+  const extension = path.extname(file.originalname || '').toLowerCase()
+  const buffer = file.buffer
+  // Demo-Prüfung: Kennung und Dateiendung; produktiv ist eine vollständige Inhalts-/Malwareprüfung erforderlich.
+  if (extension === '.xlsx' && buffer.subarray(0, 4).equals(Buffer.from([0x50, 0x4b, 0x03, 0x04]))
+    && buffer.includes(Buffer.from('[Content_Types].xml')) && buffer.includes(Buffer.from('xl/workbook.xml')))
+    return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  if (extension === '.xls' && buffer.length >= 512 && buffer.subarray(0, 8).equals(Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]))
+    && buffer[28] === 0xfe && buffer[29] === 0xff && [9, 12].includes(buffer.readUInt16LE(30)))
+    return 'application/vnd.ms-excel'
+  if (extension === '.csv' && !buffer.includes(0)) {
+    for (const encoding of ['utf-8', 'windows-1252']) {
+      try {
+        const content = new TextDecoder(encoding, { fatal: true }).decode(buffer)
+        if (!/[\x01-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(content)) return `text/csv; charset=${encoding}`
+      } catch { /* Nächste übliche CSV-Zeichenkodierung prüfen. */ }
+    }
+  }
+  return null
+}
 function saveDocument(file, { organizationId, claimId = null, kind, userId = null }) {
   if (!file || !file.buffer?.length) throw problem(400, 'Bitte eine Datei auswählen.')
-  const mime = fileType(file.buffer)
-  if (!mime) throw problem(400, 'Nur PDF, JPEG und PNG sind erlaubt.')
+  const mime = fileType(file.buffer) || (kind === 'EVIDENCE' ? evidenceSpreadsheetType(file) : null)
+  if (!mime) throw problem(400, kind === 'EVIDENCE' ? 'Nur PDF, JPEG, PNG, XLS, XLSX und CSV sind als Nachweis erlaubt.' : 'Nur PDF, JPEG und PNG sind erlaubt.')
   const documentId = id(), storageName = `${documentId}.bin`
   fs.writeFileSync(path.join(fileDir, storageName), file.buffer, { flag: 'wx', mode: 0o600 })
   const safeName = path.basename(file.originalname || 'Dokument').replace(/[\r\n"\\]/g, '_').slice(0, 160)
