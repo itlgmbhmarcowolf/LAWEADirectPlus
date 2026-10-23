@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, download, fetchDocument, post, put, upload } from './api'
 import type { Bootstrap, ClaimDetail, Credit, Draft, Item, Term } from './types'
-import { dateLabel, dateTime, shortDate, statusLabel } from './types'
+import { dateLabel, dateTime, shortDate } from './types'
 import { Button, Empty, Icon, Notice, PageTitle, StatusPill } from './ui'
 import { PreviewDashboard } from './PreviewDashboard'
 import type { DashboardView } from './PreviewDashboard'
@@ -11,6 +11,7 @@ import { ClaimCreditEntry } from './ClaimCreditEntry'
 import { HelpContent } from './HelpContent'
 import { ClaimHistory } from './ClaimHistory'
 import { TimelinePanel } from './TimelinePanel'
+import { ClaimDetailHeading } from './ClaimDetailHeading'
 import { DiscardDraftDialog } from './DiscardDraftDialog'
 import { DeclarationRequiredDialog } from './DeclarationRequiredDialog'
 import { CorrectionFeedback } from './CorrectionFeedback'
@@ -209,7 +210,7 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
     ...(!draft.declaration ? ['Richtigkeit der Angaben bestätigen.'] : [])
   ]
   return <><button className="back-link" onClick={() => navigate('dashboard')}>← Zurück zur Übersicht</button>
-    {editable ? <header className="claim-editor-heading"><h1>Meldung für den {shortDate(detail.term.date)} erfassen</h1><span>{claim.revision_no > 1 ? 'Korrektur erneut einreichen bis' : 'Einreichbar bis'} {dateTime(detail.term.closes_at)} Uhr</span></header> : <><PageTitle title={`Meldung für den ${shortDate(detail.term.date)}`} subtitle={claim.number}/><div className="term-summary"><div><span>Stichtag</span><strong>{shortDate(detail.term.date)}</strong></div><div><span>Meldezeitraum</span><strong>bis {shortDate(detail.term.closes_at)}</strong></div><div><span>Vorgang</span><strong>{claim.number}</strong></div></div></>}
+    {editable ? <header className="claim-editor-heading"><h1>Meldung für den {shortDate(detail.term.date)} erfassen</h1><span>{claim.revision_no > 1 ? 'Korrektur erneut einreichen bis' : 'Einreichbar bis'} {dateTime(detail.term.closes_at)} Uhr</span></header> : <ClaimDetailHeading title={`Meldung für den ${shortDate(detail.term.date)}`} reference={claim.number} status={claim.status}/>}
     {error ? <Notice tone="error">{error}</Notice> : null}{notice ? <Notice tone="success">{notice}</Notice> : null}
     {editable ? <>
       <div className="draft-detail-grid"><div className="draft-detail-main">
@@ -247,12 +248,8 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
       {declarationDialogOpen ? <DeclarationRequiredDialog onClose={() => { setDeclarationDialogOpen(false); requestAnimationFrame(() => { declarationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); declarationRef.current?.focus({ preventScroll: true }) }) }}/>: null}
       {discardOpen ? <DiscardDraftDialog term={dateLabel(detail.term.date)} busy={busy} onCancel={() => setDiscardOpen(false)} onConfirm={cancel}/> : null}
     </> : <>
-      <section className="data-section claim-overview submitted-claim-section">
-        <div className="section-header"><h2>Aktueller Status</h2><StatusPill status={claim.status}/></div>
-        <p className="muted">Die eingereichte Version ist schreibgeschützt.</p>
-        {claim.status === 'REJECTED' ? <CorrectionFeedback reason={claim.rejection_reason} deadline={`${dateTime(detail.term.closes_at)} Uhr`} expired={!termOpen(detail.term)} action={<Button onClick={revise} disabled={busy || !termOpen(detail.term)} icon="arrow">Neue Revision erstellen</Button>}/> : <p>{claim.status === 'MANUAL_REVIEW' ? 'Ihre Meldung wird geprüft. Die eingereichte Version kann nicht verändert werden.' : claim.status === 'APPROVED' ? 'Die Meldung wurde freigegeben. Eine Gutschrift wird nach der Abwicklung bereitgestellt.' : statusLabel[claim.status]}</p>}
-        {credit ? <ClaimCreditEntry reference={credit.reference} provided={dateTime(credit.published_at)} onOpen={() => navigate('credits:' + claim.id)}/> : null}
-      </section>
+      {claim.status === 'REJECTED' ? <CorrectionFeedback reason={claim.rejection_reason} deadline={`${dateTime(detail.term.closes_at)} Uhr`} expired={!termOpen(detail.term)} action={<Button onClick={revise} disabled={busy || !termOpen(detail.term)} icon="arrow">Neue Revision erstellen</Button>}/> : null}
+      {credit ? <ClaimCreditEntry reference={credit.reference} provided={dateTime(credit.published_at)} onOpen={() => navigate('credits:' + claim.id)}/> : null}
       <section className="data-section submitted-claim-section"><h2>Eingereichte Positionen</h2><div className="table-wrap"><table><thead><tr><th>PZN</th><th>Artikel</th><th>Charge</th><th>Bestand</th></tr></thead><tbody>{draft.items.map((item, index) => <tr key={index}><td>{item.pzn}</td><td>{data.products.find(p => p.pzn === item.pzn)?.name || '–'}</td><td>{item.charge}</td><td>{item.quantity} Packungen</td></tr>)}</tbody></table></div></section>
       <section className="data-section submitted-claim-section"><h2>Einreichung</h2><p>{draft.contactName || '–'} · {dateTime(claim.submitted_at)}</p></section>
       {draft.comment.trim() ? <section className="data-section submitted-claim-section"><h2>Kommentar</h2><p>{draft.comment}</p></section> : null}

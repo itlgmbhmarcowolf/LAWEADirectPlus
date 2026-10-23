@@ -1,0 +1,9 @@
+.claim-detail-heading{margin:0 0 26px}
+.claim-detail-heading-line{display:flex;align-items:center;flex-wrap:wrap;gap:10px 16px}
+.claim-detail-heading h1{margin:0}
+.claim-detail-heading p{font-size:clamp(16px,1.35vw,20px);line-height:1.4;margin:3px 0 0}
+.claim-detail-heading .status{font-weight:700;padding:6px 11px;border:1px solid #d8e7ec;border-radius:999px;background:#f5fafb}
+.claim-detail-heading .status-manual_review{border-color:#f1dfc2;background:#fff9ef}
+.claim-detail-heading .status-rejected{border-color:#f0d2d5;background:#fff5f5}
+.claim-detail-heading .status-approved,.claim-detail-heading .status-completed{border-color:#cfe9dd;background:#f1faf5}
+@media(max-width:620px){.claim-detail-heading h1{font-size:28px}.claim-detail-heading{margin-bottom:20px}}

@@ -7,6 +7,7 @@ import { CorrectionFeedback } from './CorrectionFeedback'
 import { SampleCorrectionFlow, type SampleCorrection } from './SampleCorrectionFlow'
 import { useEvidenceUrls } from './EvidenceFiles'
 import { TimelinePanel } from './TimelinePanel'
+import { ClaimDetailHeading } from './ClaimDetailHeading'
 import { sampleClaimDetail, sampleClaims, sampleDate } from './sample-claim-data'
 import type { SampleClaim, SampleEvent } from './sample-claim-data'
 import './sample-claim-detail.css'
@@ -87,14 +88,9 @@ export function PreviewSampleClaimDetail({ claim, navigate, contacts, correction
     : detail.events
   return <>
     <button className="back-link" onClick={() => navigate('dashboard')}>← Zurück zur Übersicht</button>
-    <PageTitle title={`Meldung für den ${label(claim.termDate)}`} subtitle={claim.number}/>
-    <div className="term-summary"><div><span>Stichtag</span><strong>{label(claim.termDate)}</strong></div><div><span>Vorgang</span><strong>{claim.number}</strong></div><div><span>Status</span><strong><StatusPill status={displayStatus} label={statusText}/></strong></div></div>
-    <section className="data-section claim-overview sample-status-card">
-      <div className="section-header"><h2>Bearbeitungsstand</h2><StatusPill status={displayStatus} label={statusText}/></div>
-      <p>{correction?.phase === 'submitted' ? 'Revision 2 wurde erneut eingereicht und liegt zur Prüfung vor. Revision 1 bleibt unverändert.' : correction?.phase === 'draft' ? 'Die Angaben für Revision 2 können jetzt korrigiert und erneut eingereicht werden.' : claim.status === 'COMPLETED' ? `Revision ${detail.revision} ist freigegeben. Die fiktive Gutschrift wurde am ${detail.provided} bereitgestellt; es erfolgte keine Auszahlung.` : claim.status === 'REJECTED' ? 'Revision 1 wurde abgelehnt. Die eingereichte Fassung bleibt im Verlauf erhalten.' : 'Revision 1 liegt zur fachlichen Prüfung vor. Eine Gutschrift ist noch nicht verfügbar.'}</p>
-      {claim.status === 'REJECTED' ? <CorrectionFeedback reason={rejectionReason} deadline={correction?.phase !== 'submitted' ? correctionDeadline || 'Kein Datum hinterlegt' : undefined} expired={!correctionOpen} action={!correction ? <Button onClick={onStartCorrection} disabled={!correctionOpen} icon="arrow">Korrektur starten</Button> : undefined}/> : null}
-      {claim.creditReference ? <ClaimCreditEntry reference={claim.creditReference} provided={detail.provided} onOpen={() => navigate(`credits:${claim.number}`)}/> : null}
-    </section>
+    <ClaimDetailHeading title={`Meldung für den ${label(claim.termDate)}`} reference={claim.number} status={displayStatus} statusLabel={statusText}/>
+    {claim.status === 'REJECTED' ? <CorrectionFeedback reason={rejectionReason} deadline={correction?.phase !== 'submitted' ? correctionDeadline || 'Kein Datum hinterlegt' : undefined} expired={!correctionOpen} action={!correction ? <Button onClick={onStartCorrection} disabled={!correctionOpen} icon="arrow">Korrektur starten</Button> : undefined}/> : null}
+    {claim.creditReference ? <ClaimCreditEntry reference={claim.creditReference} provided={detail.provided} onOpen={() => navigate(`credits:${claim.number}`)}/> : null}
     {correction?.phase === 'draft' ? <SampleCorrectionFlow value={correction} contacts={contacts} deadlineOpen={correctionOpen} onChange={onChangeCorrection} onSubmit={onSubmitCorrection}/> : null}
     {correction?.phase === 'submitted' ? <section className="data-section sample-correction-submitted"><h2>Erneut eingereichte Angaben · Revision 2</h2><div className="table-wrap"><table><thead><tr><th>PZN</th><th>Artikel</th><th>Charge</th><th>Bestand</th></tr></thead><tbody>{correction.positions.map((position, index) => <tr key={`${position.pzn}-${index}`}><td>{position.pzn}</td><td>{position.article}</td><td>{position.charge}</td><td>{position.quantity} Packungen</td></tr>)}</tbody></table></div><p><strong>Ansprechpartner:</strong> {contacts.find(contact => contact.email === correction.contactEmail)?.name || correction.contactEmail}</p><p><strong>Erläuterung:</strong> {correction.comment || 'Angaben korrigiert'}</p><div className="document-list">{correction.evidenceFiles.map((file, index) => <div key={`${file.name}-${index}`}><Icon name="file" size={17}/><span>{file.name}</span>{correctionEvidenceUrls[index] ? <a className="text-button" href={correctionEvidenceUrls[index]} download={file.name}>Herunterladen</a> : null}</div>)}</div></section> : null}
     <div className="sample-detail-grid"><div className="sample-detail-main" ref={detailMainRef}>
