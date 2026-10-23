@@ -3,8 +3,10 @@ import type { PreviewClaim, PreviewItem, PreviewMember } from './PreviewApp'
 import { Button, Icon, PageTitle, StatusPill } from './ui'
 import { ClaimCreditEntry } from './ClaimCreditEntry'
 import { DiscardDraftDialog } from './DiscardDraftDialog'
+import { DeclarationRequiredDialog } from './DeclarationRequiredDialog'
 import { EvidenceFiles, useEvidenceUrls } from './EvidenceFiles'
 import './preview-claim-editor.css'
+import './claim-review.css'
 
 type Props = {
   claim: PreviewClaim
@@ -35,8 +37,10 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
   const [showValidation, setShowValidation] = useState(false)
   const [fileError, setFileError] = useState('')
   const [discardOpen, setDiscardOpen] = useState(false)
+  const [declarationDialogOpen, setDeclarationDialogOpen] = useState(false)
   const editorRef = useRef<HTMLDivElement>(null)
   const firstPznRef = useRef<HTMLInputElement>(null)
+  const declarationRef = useRef<HTMLInputElement>(null)
   const errorId = useId()
   const visibleItems = claim.items.length ? claim.items : [emptyPreviewItem]
   const positionErrors = visibleItems.map(item => ({
@@ -54,6 +58,7 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
   }
   const checkAndSubmit = () => {
     setShowValidation(true)
+    if (!claim.declaration) { setDeclarationDialogOpen(true); return }
     if (hasErrors) {
       requestAnimationFrame(() => editorRef.current?.querySelector<HTMLElement>('.preview-field-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
       return
@@ -92,10 +97,11 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
       <section className="editor-section preview-claim-section" aria-labelledby="preview-comment-title">
         <label className="field claim-contact-field"><span>Ansprechpartner der Apotheke</span><select value={claim.contactEmail || currentEmail} aria-invalid={showValidation && !!contactError} aria-describedby={showValidation && contactError ? `${errorId}-contact` : undefined} onChange={event => updateClaim({ contactEmail: event.target.value })}>{members.map(member => <option key={member.email} value={member.email}>{member.name}</option>)}</select>{showValidation && contactError ? <span className="preview-field-error" id={`${errorId}-contact`} role="alert">{contactError}</span> : null}</label>
         <label className="field"><span id="preview-comment-title">Kommentar (optional)</span><textarea rows={3} value={claim.comment} onChange={event => updateClaim({ comment: event.target.value })} placeholder="Falls Sie etwas ergänzen möchten"/></label>
-        <div className="preview-claim-declaration"><label className="check-field"><input type="checkbox" checked={claim.declaration} aria-invalid={showValidation && !!declarationError} aria-describedby={showValidation && declarationError ? `${errorId}-declaration` : undefined} onChange={event => updateClaim({ declaration: event.target.checked })}/><span>Ich bestätige die Richtigkeit der Angaben zum Bestand am Stichtag.</span></label>{showValidation && declarationError ? <span className="preview-field-error" id={`${errorId}-declaration`} role="alert">{declarationError}</span> : null}</div>
+        <div className="preview-claim-declaration"><label className="check-field"><input ref={declarationRef} type="checkbox" checked={claim.declaration} aria-invalid={showValidation && !!declarationError} aria-describedby={showValidation && declarationError ? `${errorId}-declaration` : undefined} onChange={event => updateClaim({ declaration: event.target.checked })}/><span>Ich bestätige die Richtigkeit der Angaben zum Bestand am Stichtag.</span></label>{showValidation && declarationError ? <span className="preview-field-error" id={`${errorId}-declaration`} role="alert">{declarationError}</span> : null}</div>
       </section></div>
 
-      <div className="editor-actions"><Button variant="quiet" onClick={saveDraft}>Entwurf speichern</Button><Button icon="arrow" onClick={checkAndSubmit}>Angaben prüfen</Button><button className="text-button danger-text" onClick={() => setDiscardOpen(true)}>Entwurf verwerfen</button></div>
+      <div className="editor-actions"><Button variant="quiet" onClick={saveDraft}>Entwurf speichern</Button><Button icon="arrow" onClick={checkAndSubmit}>Angaben prüfen</Button><Button variant="secondary" className="discard-draft-trigger" onClick={() => setDiscardOpen(true)}>Entwurf verwerfen</Button></div>
+      {declarationDialogOpen ? <DeclarationRequiredDialog onClose={() => { setDeclarationDialogOpen(false); requestAnimationFrame(() => { declarationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); declarationRef.current?.focus({ preventScroll: true }) }) }}/>: null}
       {discardOpen ? <DiscardDraftDialog term={term} demo onCancel={() => setDiscardOpen(false)} onConfirm={discard}/> : null}
     </> : <>
       <PageTitle title="Meldung im Überblick" subtitle={`${claimNumber} · Senkungstermin ${term}`}/>

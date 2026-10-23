@@ -11,9 +11,11 @@ import { ClaimCreditEntry } from './ClaimCreditEntry'
 import { HelpContent } from './HelpContent'
 import { ClaimHistory } from './ClaimHistory'
 import { DiscardDraftDialog } from './DiscardDraftDialog'
+import { DeclarationRequiredDialog } from './DeclarationRequiredDialog'
 import { CorrectionFeedback } from './CorrectionFeedback'
 import { fileSizeLabel } from './EvidenceFiles'
 import './claim-editor.css'
+import './claim-review.css'
 import './credit-preview.css'
 
 const termOpen = (term: Term) => new Date(term.opens_at).getTime() <= Date.now() && new Date(term.closes_at).getTime() >= Date.now()
@@ -104,10 +106,12 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
   const [dirtyKey, setDirtyKey] = useState(0)
   const [confirm, setConfirm] = useState(false)
   const [discardOpen, setDiscardOpen] = useState(false)
+  const [declarationDialogOpen, setDeclarationDialogOpen] = useState(false)
   const [showValidation, setShowValidation] = useState(false)
   const [serverIssue, setServerIssue] = useState('')
   const validationRef = useRef<HTMLDivElement>(null)
   const firstPznRef = useRef<HTMLInputElement>(null)
+  const declarationRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const versionRef = useRef(1)
   const latestRef = useRef<Draft | null>(null)
@@ -168,6 +172,18 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
   const visibleItems = draft.items.length ? draft.items : [emptyItem()]
   const credit = data.credits?.find(item => item.claim_id === claim.id)
   const documents = detail.documents.filter(d => !d.removed_at && d.kind === 'EVIDENCE')
+  const submittedEvidence = new Set(detail.revisions.flatMap(revision => revision.snapshot.documentIds || []))
+  const removableDocuments = documents.filter(doc => !submittedEvidence.has(doc.id))
+  const removeAllDocuments = async () => {
+    setBusy(true); setError(''); setNotice('')
+    try {
+      await save()
+      const result = await post<{ removed: number }>(`/claims/${id}/documents/remove-all`, {})
+      await load()
+      setNotice(`${result.removed} ${result.removed === 1 ? 'Nachweis' : 'Nachweise'} entfernt.`)
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Nachweise konnten nicht entfernt werden.'); await load().catch(() => {}) }
+    finally { setBusy(false) }
+  }
   const activeMembers = (data.members || []).filter(member => member.status === 'ACTIVE')
   const positionErrors = visibleItems.map(item => ({
     pzn: !item.pzn ? 'PZN eintragen.' : !data.products.some(product => product.pzn === item.pzn) ? 'PZN ist nicht im Sortiment vorhanden.' : '',
@@ -212,16 +228,17 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
           {claim.revision_no > 1 ? <p className="field-hint">Für diese Korrektur können Sie neue Nachweise hochladen.</p> : null}
           <label className="upload-zone evidence-server-zone" aria-invalid={showValidation && !!evidenceError}><span className="evidence-dropzone-icon"><Icon name="upload" size={22}/></span><span className="evidence-dropzone-copy"><strong>{busy ? 'Nachweise werden hochgeladen …' : claim.revision_no > 1 ? 'Nachweise zur Korrektur hinzufügen' : 'Nachweise hinzufügen'}</strong><small>Mehrere Dateien auswählen · PDF, JPG, PNG, XLS, XLSX, CSV · je höchstens 5 MB (Demo)</small></span><span className="evidence-dropzone-plus" aria-hidden="true"><Icon name="plus" size={19}/></span><input type="file" accept=".pdf,.jpg,.jpeg,.png,.xls,.xlsx,.csv" multiple aria-label="Mehrere Nachweise auswählen" disabled={busy} onChange={e => { uploadFiles(Array.from(e.target.files || [])); e.target.value = '' }}/></label>
           {showValidation && evidenceError ? <span className="claim-field-error" data-validation-error role="alert">{evidenceError}</span> : null}
-          {documents.length ? <div className="evidence-selected"><div className="evidence-selected-heading"><strong>Hochgeladene Nachweise</strong><span>{documents.length}</span></div><ul>{documents.map(doc => <li key={doc.id}><span className="evidence-file-icon"><Icon name="file" size={19}/></span><span className="evidence-file-info"><strong title={doc.original_name}>{doc.original_name}</strong><small>{fileSizeLabel(doc.size)}</small></span><button type="button" className="evidence-file-remove" disabled={busy} onClick={() => removeDocument(doc.id)} aria-label={`${doc.original_name} entfernen`}><Icon name="trash" size={17}/></button></li>)}</ul></div> : null}
+          {documents.length ? <div className="evidence-selected"><div className="evidence-selected-heading"><strong>Hochgeladene Nachweise</strong><span>{documents.length}</span>{removableDocuments.length ? <button type="button" className="evidence-remove-all" disabled={busy} onClick={removeAllDocuments}><Icon name="trash" size={14}/> {submittedEvidence.size ? 'Neue entfernen' : 'Alle entfernen'}</button> : null}</div><ul>{documents.map(doc => <li key={doc.id}><span className="evidence-file-icon"><Icon name="file" size={19}/></span><span className="evidence-file-info"><strong title={doc.original_name}>{doc.original_name}</strong><small>{fileSizeLabel(doc.size)}{submittedEvidence.has(doc.id) ? ' · bereits eingereicht' : ''}</small></span>{!submittedEvidence.has(doc.id) ? <button type="button" className="evidence-file-remove" disabled={busy} onClick={() => removeDocument(doc.id)} aria-label={`${doc.original_name} entfernen`}><Icon name="trash" size={17}/></button> : null}</li>)}</ul></div> : null}
         </section>
         <section className="editor-section claim-editor-section">
           <label className="field claim-contact-field"><span>Ansprechpartner der Apotheke</span><select value={draft.contactEmail || data.user.email} aria-invalid={showValidation && !!contactError} onChange={e => { const member = activeMembers.find(item => item.email === e.target.value); if (member) change({ ...draft, contactName: member.name, contactEmail: member.email }) }}>{activeMembers.map(member => <option key={member.id} value={member.email}>{member.name}</option>)}</select>{showValidation && contactError ? <span className="claim-field-error" data-validation-error role="alert">{contactError}</span> : null}</label>
           <label className="field"><span>Kommentar (optional)</span><textarea rows={3} value={draft.comment} onChange={e => change({ ...draft, comment: e.target.value })} placeholder="Falls Sie etwas ergänzen möchten"/></label>
-          <div className="claim-declaration"><label className="check-field"><input type="checkbox" checked={draft.declaration} aria-invalid={showValidation && !!declarationError} onChange={e => change({ ...draft, declaration: e.target.checked })}/><span>Ich bestätige die Richtigkeit der Angaben zum Bestand am Stichtag.</span></label>{showValidation && declarationError ? <span className="claim-field-error" data-validation-error role="alert">{declarationError}</span> : null}</div>
+          <div className="claim-declaration"><label className="check-field"><input ref={declarationRef} type="checkbox" checked={draft.declaration} aria-invalid={showValidation && !!declarationError} onChange={e => change({ ...draft, declaration: e.target.checked })}/><span>Ich bestätige die Richtigkeit der Angaben zum Bestand am Stichtag.</span></label>{showValidation && declarationError ? <span className="claim-field-error" data-validation-error role="alert">{declarationError}</span> : null}</div>
         </section>
       </div>
       {serverIssue ? <div className="claim-validation" ref={validationRef} role="alert">{serverIssue}</div> : null}
-      <div className="editor-actions"><span><Icon name="clock" size={16}/> {saveState}</span><Button variant="quiet" disabled={busy} onClick={() => save().catch(() => {})}>Entwurf speichern</Button><Button disabled={busy} icon="arrow" onClick={async () => { setShowValidation(true); if (issues.length) { requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-validation-error]')?.scrollIntoView({ behavior: 'smooth', block: 'center' })); return } try { await save(); setConfirm(true) } catch { /* Fehlermeldung wird angezeigt */ } }}>Angaben prüfen</Button><button className="text-button danger-text" disabled={busy} onClick={() => setDiscardOpen(true)}>Entwurf verwerfen</button></div>
+      <div className="editor-actions"><span><Icon name="clock" size={16}/> {saveState}</span><Button variant="quiet" disabled={busy} onClick={() => save().catch(() => {})}>Entwurf speichern</Button><Button disabled={busy} icon="arrow" onClick={async () => { setShowValidation(true); if (!draft.declaration) { setDeclarationDialogOpen(true); return } if (issues.length) { requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-validation-error]')?.scrollIntoView({ behavior: 'smooth', block: 'center' })); return } try { await save(); setConfirm(true) } catch { /* Fehlermeldung wird angezeigt */ } }}>Angaben prüfen</Button><Button variant="secondary" className="discard-draft-trigger" disabled={busy} onClick={() => setDiscardOpen(true)}>Entwurf verwerfen</Button></div>
+      {declarationDialogOpen ? <DeclarationRequiredDialog onClose={() => { setDeclarationDialogOpen(false); requestAnimationFrame(() => { declarationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); declarationRef.current?.focus({ preventScroll: true }) }) }}/>: null}
       {discardOpen ? <DiscardDraftDialog term={dateLabel(detail.term.date)} busy={busy} onCancel={() => setDiscardOpen(false)} onConfirm={cancel}/> : null}
     </> : <>
       <section className="data-section claim-overview">
@@ -236,7 +253,7 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
       <section className="data-section"><h2>Nachweise</h2>{documents.length ? <div className="document-list">{documents.map(doc => <div key={doc.id}><Icon name="file" size={18}/><span>{doc.original_name}</span><button className="text-button" onClick={() => download(`/documents/${doc.id}`, doc.original_name).catch(e => setError(e.message))}>Herunterladen</button></div>)}</div> : <p className="muted">Keine Nachweise vorhanden.</p>}</section>
       <ClaimHistory detail={detail} credit={credit} exportRun={data.exports?.find(run => run.id === claim.export_run_id)}/>
     </>}
-    {confirm ? <div className="modal-backdrop" role="presentation"><div className="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title"><h2 id="confirm-title">Meldung verbindlich einreichen?</h2><p>Bitte prüfen Sie alle Positionen. Diese Revision kann nach dem Einreichen nicht mehr bearbeitet werden.</p><div className="confirm-summary"><div><span>Senkungstermin</span><strong>{dateLabel(detail.term.date)}</strong></div><div><span>Positionen</span><strong>{draft.items.length}</strong></div><div><span>Nachweise</span><strong>{documents.length}</strong></div><div><span>Einreichende Person</span><strong>{data.user.name}</strong></div></div><label className="field claim-contact-field"><span>Ansprechpartner der Apotheke</span><select value={draft.contactEmail || data.user.email} onChange={e => { const member = activeMembers.find(item => item.email === e.target.value); if (member) change({ ...draft, contactName: member.name, contactEmail: member.email }) }}>{activeMembers.map(member => <option key={member.id} value={member.email}>{member.name}</option>)}</select></label><ul>{draft.items.map((item, i) => <li key={i}>{item.pzn} · {item.charge || 'Charge fehlt'} · {item.quantity} Packungen</li>)}</ul><div className="modal-actions"><Button variant="secondary" onClick={() => setConfirm(false)}>Zurück</Button><Button disabled={busy || !draft.declaration} onClick={submit}>Jetzt einreichen</Button></div>{!draft.declaration ? <p className="field-hint">Bitte bestätigen Sie zuerst die Richtigkeit der Angaben.</p> : null}</div></div> : null}
+    {confirm ? <div className="modal-backdrop" role="presentation"><div className="modal submission-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title"><h2 id="confirm-title">Haben Sie die Angaben überprüft?</h2><p>Wenn Sie die Meldung einreichen, können Sie die Angaben danach nicht mehr verändern.</p><div className="modal-actions"><Button variant="secondary" onClick={() => setConfirm(false)}>Zurück</Button><Button disabled={busy || !draft.declaration} onClick={submit}>Jetzt einreichen</Button></div></div></div> : null}
   </>
 }
 

@@ -1,0 +1,4 @@
+.editor-actions .discard-draft-trigger{border-color:#dfb2b9;background:#fff;color:#a42431}
+.editor-actions .discard-draft-trigger:hover:not(:disabled){border-color:#bd6a77;background:#fff5f6}
+.submission-confirm-modal{width:min(480px,100%)}
+.submission-confirm-modal p{line-height:1.55}

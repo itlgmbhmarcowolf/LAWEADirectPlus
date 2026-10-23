@@ -591,13 +591,35 @@ app.post('/api/claims/:id/documents', requireUser, requireRole('PHARMACY_ADMIN',
   audit(req.session.uid, claim.organization_id, 'document', documentId, 'UPLOADED')
   res.status(201).json({ id: documentId, name: req.file.originalname, size: req.file.size })
 })
+function submittedEvidenceIds(claimId) {
+  const ids = new Set()
+  for (const row of db.prepare('SELECT snapshot_json FROM claim_revisions WHERE claim_id=?').all(claimId)) {
+    for (const documentId of JSON.parse(row.snapshot_json).documentIds || []) ids.add(documentId)
+  }
+  return ids
+}
 app.post('/api/claims/:id/documents/:documentId/remove', requireUser, requireRole('PHARMACY_ADMIN', 'PHARMACY_STAFF'), requireCsrf, (req, res) => {
   const claim = pharmacyClaim(req, req.params.id, true)
   const doc = db.prepare("SELECT * FROM documents WHERE id=? AND claim_id=? AND organization_id=? AND kind='EVIDENCE' AND removed_at IS NULL").get(req.params.documentId, claim.id, claim.organization_id)
   if (!doc) throw problem(404, 'Dokument nicht gefunden.')
+  if (submittedEvidenceIds(claim.id).has(doc.id)) throw problem(409, 'Ein bereits eingereichter Nachweis kann nicht entfernt werden.')
   db.prepare('UPDATE documents SET removed_at=? WHERE id=?').run(now(), doc.id)
   audit(req.session.uid, claim.organization_id, 'document', doc.id, 'REMOVED_FROM_DRAFT')
   res.json({ ok: true })
+})
+app.post('/api/claims/:id/documents/remove-all', requireUser, requireRole('PHARMACY_ADMIN', 'PHARMACY_STAFF'), requireCsrf, (req, res) => {
+  const claim = pharmacyClaim(req, req.params.id, true)
+  const removed = db.transaction(() => {
+    const submitted = submittedEvidenceIds(claim.id)
+    const removable = db.prepare("SELECT id FROM documents WHERE claim_id=? AND organization_id=? AND kind='EVIDENCE' AND removed_at IS NULL").all(claim.id, claim.organization_id).filter(doc => !submitted.has(doc.id))
+    const removedAt = now()
+    for (const doc of removable) {
+      db.prepare('UPDATE documents SET removed_at=? WHERE id=?').run(removedAt, doc.id)
+      audit(req.session.uid, claim.organization_id, 'document', doc.id, 'REMOVED_FROM_DRAFT')
+    }
+    return removable.length
+  })()
+  res.json({ removed })
 })
 app.post('/api/claims/:id/cancel', requireUser, requireRole('PHARMACY_ADMIN', 'PHARMACY_STAFF'), requireCsrf, (req, res) => {
   const claim = pharmacyClaim(req, req.params.id, true)

@@ -1,0 +1,7 @@
+.declaration-required-dialog{width:min(440px,calc(100% - 32px));max-height:calc(100dvh - 32px);padding:29px;border:1px solid #d9e6eb;border-radius:14px;background:#fff;color:#102e51;box-shadow:0 24px 70px #10234a40}
+.declaration-required-dialog::backdrop{background:#12284d88}
+.declaration-required-icon{display:grid;place-items:center;width:48px;height:48px;margin-bottom:15px;border:1px solid #efd5a6;border-radius:13px;background:#fff8e9;color:#a0640d}
+.declaration-required-dialog h2{margin:0 0 8px;font-size:23px;line-height:1.2;letter-spacing:-.025em}
+.declaration-required-dialog p{margin:0;color:#526683;line-height:1.55}
+.declaration-required-actions{display:flex;justify-content:flex-end;margin-top:23px}
+@media(max-width:480px){.declaration-required-dialog{padding:23px}.declaration-required-actions .button{width:100%}}
