@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import type { PreviewClaim, PreviewItem, PreviewMember } from './PreviewApp'
 import { Button, Icon } from './ui'
 import { ClaimCreditEntry } from './ClaimCreditEntry'
@@ -47,6 +47,8 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
   const editorRef = useRef<HTMLDivElement>(null)
   const firstPznRef = useRef<HTMLInputElement>(null)
   const declarationRef = useRef<HTMLInputElement>(null)
+  const submittedMainRef = useRef<HTMLDivElement>(null)
+  const [timelineHeight, setTimelineHeight] = useState(540)
   const errorId = useId()
   const visibleItems = claim.items.length ? claim.items : [emptyPreviewItem]
   const positionErrors = visibleItems.map(item => ({
@@ -72,6 +74,15 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
     submit()
   }
   const evidenceUrls = useEvidenceUrls(claim.evidenceFiles)
+  useLayoutEffect(() => {
+    const main = submittedMainRef.current
+    if (!main) return
+    const update = () => setTimelineHeight(Math.ceil(main.getBoundingClientRect().height))
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(main)
+    return () => observer.disconnect()
+  }, [editable])
   useEffect(() => {
     if (claim.status === 'DRAFT' && !claim.items.length) firstPznRef.current?.focus({ preventScroll: true })
   }, [term])
@@ -115,9 +126,17 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
       <ClaimDetailHeading title={`Meldung für den ${term}`} reference={claimNumber} status={claim.status} statusLabel={claim.status === 'COMPLETED' ? 'Ausgezahlt · Demo' : claim.status === 'MANUAL_REVIEW' ? 'Eingereicht' : undefined}/>
       {claim.status === 'REJECTED' ? <CorrectionFeedback reason={claim.reason} action={<Button onClick={() => { updateClaim({ status: 'DRAFT', declaration: false }); setMessage('Neue Beispielrevision begonnen. Die vorherige Einreichung bleibt im echten Prozess erhalten.') }}>Neue Revision erstellen</Button>}/> : null}
       {claim.status === 'COMPLETED' ? <ClaimCreditEntry reference={`BEISPIEL-GS-${claimNumber.slice(-2)}`} onOpen={() => navigate(`credits:${claimNumber}`)}/> : null}
-      <section className="data-section submitted-claim-section"><h2>Eingereichte Positionen</h2><div className="table-wrap"><table><thead><tr><th>PZN</th><th>Artikel</th><th>Charge</th><th>Bestand</th></tr></thead><tbody>{claim.items.map(item => <tr key={item.id}><td>{item.pzn}</td><td>{previewProductNames[item.pzn]}</td><td>{item.charge}</td><td>{item.quantity} Packungen</td></tr>)}</tbody></table></div></section>
-      {claim.comment.trim() ? <section className="data-section submitted-claim-section"><h2>Kommentar</h2><p>{claim.comment}</p></section> : null}
-      <section className="data-section submitted-claim-section"><h2>Nachweise</h2>{claim.evidenceFiles.length ? <div className="document-list">{claim.evidenceFiles.map((file, index) => <div key={`${file.name}-${index}`}><Icon name="file" size={18}/><span>{file.name}</span>{evidenceUrls[index] ? <a className="text-button" href={evidenceUrls[index]} download={file.name}>Herunterladen</a> : null}</div>)}</div> : <p className="muted">Für diesen Beispielvorgang liegt keine echte Datei vor.</p>}</section>
+      <div className="sample-detail-grid"><div className="sample-detail-main" ref={submittedMainRef}>
+        <section className="data-section"><h2>Gemeldete Positionen · Revision 1</h2><div className="table-wrap"><table><thead><tr><th>PZN</th><th>Artikel</th><th>Charge</th><th>Bestand zum {term}</th></tr></thead><tbody>{claim.items.map(item => <tr key={item.id}><td>{item.pzn}</td><td>{previewProductNames[item.pzn] || '–'}</td><td>{item.charge}</td><td>{item.quantity} Packungen</td></tr>)}</tbody></table></div></section>
+        <div className="submitted-info-grid">
+          <section className="data-section"><h2>Nachweise</h2>{claim.evidenceFiles.length ? claim.evidenceFiles.map((file, index) => <div className="sample-evidence" key={`${file.name}-${index}`}><span className="sample-evidence-icon"><Icon name="file" size={22}/></span><div><strong>{file.name}</strong><span>Revision 1 · ausgewählter Beispielnachweis</span></div>{evidenceUrls[index] ? <a className="sample-evidence-download" href={evidenceUrls[index]} download={file.name} aria-label={`${file.name} herunterladen`}><Icon name="download" size={18}/></a> : null}</div>) : <p className="muted">Für diesen Beispielvorgang liegt keine Datei vor.</p>}</section>
+          <section className="data-section"><h2>Einreichung</h2><dl className="submitted-facts"><div><dt>Ansprechpartner der Apotheke</dt><dd>{members.find(member => member.email === (claim.contactEmail || currentEmail))?.name || '–'}</dd></div><div><dt>Eingereicht am</dt><dd>{claim.submittedAt || 'In dieser Sitzung'}</dd></div><div><dt>Revision</dt><dd>1 von 1</dd></div></dl><p className="submitted-confirmation"><Icon name="check" size={17}/> Richtigkeit der Angaben bestätigt</p>{claim.comment.trim() ? <p className="submitted-comment">{claim.comment}</p> : null}</section>
+        </div>
+      </div><TimelinePanel subtitle="Chronologie dieses fiktiven Vorgangs" height={timelineHeight} events={[
+        ...(claim.status === 'REJECTED' ? [{ key: 'rejected', timeLabel: 'In dieser Sitzung', title: 'Korrektur erforderlich', description: claim.reason || 'Die Beispielmeldung wurde abgelehnt.', tone: 'issue' as const }] : claim.status === 'APPROVED' || claim.status === 'COMPLETED' ? [{ key: `status-${claim.status}`, timeLabel: 'In dieser Sitzung', title: claim.status === 'COMPLETED' ? 'Gutschrift bereitgestellt' : 'Fachlich freigegeben', description: 'Dieser Status wurde in der Vorschau simuliert.', tone: 'current' as const }] : []),
+        { key: 'submitted', timeLabel: claim.submittedAt || 'In dieser Sitzung', title: 'Meldung eingereicht', description: `${claim.items.length} ${claim.items.length === 1 ? 'Position' : 'Positionen'} und ${claim.evidenceFiles.length} ${claim.evidenceFiles.length === 1 ? 'Nachweis' : 'Nachweise'} eingereicht.`, revision: 'Revision 1', tone: claim.status === 'MANUAL_REVIEW' ? 'current' as const : 'done' as const },
+        { key: 'term', timeLabel: term, title: 'Stichtag verfügbar', description: 'Für diesen Stichtag konnte eine Meldung erfasst werden.', tone: 'done' as const }
+      ]}/></div>
     </>}
   </div>
 }
