@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import type { PreviewClaim, PreviewItem, PreviewMember } from './PreviewApp'
 import { Button, Icon } from './ui'
 import { ClaimCreditEntry } from './ClaimCreditEntry'
+import { createDemoCreditPdf } from './demo-credit-pdf'
 import { DiscardDraftDialog } from './DiscardDraftDialog'
 import { DeclarationRequiredDialog } from './DeclarationRequiredDialog'
 import { EvidenceFiles, useEvidenceUrls } from './EvidenceFiles'
@@ -44,6 +45,7 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
   const [fileError, setFileError] = useState('')
   const [discardOpen, setDiscardOpen] = useState(false)
   const [declarationDialogOpen, setDeclarationDialogOpen] = useState(false)
+  const [creditUrl, setCreditUrl] = useState('')
   const editorRef = useRef<HTMLDivElement>(null)
   const firstPznRef = useRef<HTMLInputElement>(null)
   const declarationRef = useRef<HTMLInputElement>(null)
@@ -72,6 +74,13 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
     submit()
   }
   const evidenceUrls = useEvidenceUrls(claim.evidenceFiles)
+  useEffect(() => {
+    if (claim.status !== 'COMPLETED') return
+    const reference = `BEISPIEL-GS-${claimNumber.slice(-2)}`
+    const url = URL.createObjectURL(createDemoCreditPdf({ claimNumber, reference, provided: 'In dieser Sitzung', termDate: term.split('.').reverse().join('-'), positions: claim.items.map(item => ({ pzn: item.pzn, article: previewProductNames[item.pzn] || '–', charge: item.charge, quantity: Number(item.quantity) })) }))
+    setCreditUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [claim.status, claim.items, claimNumber, term])
   useEffect(() => {
     if (claim.status === 'DRAFT' && !claim.items.length) firstPznRef.current?.focus({ preventScroll: true })
   }, [term])
@@ -114,7 +123,7 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
     </> : <>
       <ClaimDetailHeading title={`Meldung für den ${term}`} reference={claimNumber} status={claim.status} statusLabel={claim.status === 'COMPLETED' ? 'Ausgezahlt · Demo' : claim.status === 'MANUAL_REVIEW' ? 'Eingereicht' : undefined}/>
       {claim.status === 'REJECTED' ? <CorrectionFeedback reason={claim.reason} action={<Button onClick={() => { updateClaim({ status: 'DRAFT', declaration: false }); setMessage('Neue Beispielrevision begonnen. Die vorherige Einreichung bleibt im echten Prozess erhalten.') }}>Neue Revision erstellen</Button>}/> : null}
-      {claim.status === 'COMPLETED' ? <ClaimCreditEntry reference={`BEISPIEL-GS-${claimNumber.slice(-2)}`} onOpen={() => navigate(`credits:${claimNumber}`)}/> : null}
+      {claim.status === 'COMPLETED' ? <ClaimCreditEntry reference={`BEISPIEL-GS-${claimNumber.slice(-2)}`} download={creditUrl ? { url: creditUrl, filename: `Muster-Gutschrift-${claimNumber}.pdf`, mime: 'application/pdf' } : undefined}/> : null}
       <div className="sample-detail-grid"><div className="sample-detail-main">
         <section className="data-section"><h2>Gemeldete Positionen · Revision 1</h2><div className="table-wrap"><table><thead><tr><th>PZN</th><th>Artikel</th><th>Charge</th><th>Bestand zum {term}</th></tr></thead><tbody>{claim.items.map(item => <tr key={item.id}><td>{item.pzn}</td><td>{previewProductNames[item.pzn] || '–'}</td><td>{item.charge}</td><td>{item.quantity} Packungen</td></tr>)}</tbody></table></div></section>
         <div className="submitted-info-grid">

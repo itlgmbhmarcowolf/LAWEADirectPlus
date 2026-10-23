@@ -3,6 +3,7 @@ import type { Status } from './types'
 import { Button, Empty, Icon, PageTitle, StatusPill } from './ui'
 import { createDemoEvidencePdf } from './demo-evidence-pdf'
 import { ClaimCreditEntry } from './ClaimCreditEntry'
+import { createDemoCreditPdf } from './demo-credit-pdf'
 import { CorrectionFeedback } from './CorrectionFeedback'
 import { SampleCorrectionFlow, type SampleCorrection } from './SampleCorrectionFlow'
 import { useEvidenceUrls } from './EvidenceFiles'
@@ -62,6 +63,7 @@ export function PreviewSampleClaimDetail({ claim, navigate, contacts, correction
   const correctionDeadline = claim.correctionDeadline ? `${new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Berlin' }).format(new Date(claim.correctionDeadline))} Uhr` : ''
   const [evidenceUrl, setEvidenceUrl] = useState('')
   const [previousEvidenceUrl, setPreviousEvidenceUrl] = useState('')
+  const [creditUrl, setCreditUrl] = useState('')
   const correctionEvidenceUrls = useEvidenceUrls(correction?.evidenceFiles || emptyEvidenceFiles)
   useEffect(() => {
     const url = URL.createObjectURL(createDemoEvidencePdf(claim, detail))
@@ -70,6 +72,12 @@ export function PreviewSampleClaimDetail({ claim, navigate, contacts, correction
     setPreviousEvidenceUrl(previousUrl)
     return () => { URL.revokeObjectURL(url); if (previousUrl) URL.revokeObjectURL(previousUrl) }
   }, [claim.number])
+  useEffect(() => {
+    if (!claim.creditReference) return
+    const url = URL.createObjectURL(createDemoCreditPdf({ claimNumber: claim.number, reference: claim.creditReference, provided: detail.provided, termDate: claim.termDate, positions: detail.positions }))
+    setCreditUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [claim.number, claim.creditReference])
   const displayStatus = correction?.phase === 'draft' ? 'DRAFT' : correction?.phase === 'submitted' ? 'MANUAL_REVIEW' : claim.status
   const statusText = correction?.phase === 'draft' ? 'Korrektur in Bearbeitung · Demo' : correction?.phase === 'submitted' ? 'Erneut eingereicht · Demo' : claim.status === 'COMPLETED' ? 'Gutschrift bereitgestellt · Demo' : claim.status === 'MANUAL_REVIEW' ? 'In Prüfung' : 'Korrektur erforderlich'
   const timelineEvents: SampleEvent[] = correction?.phase === 'submitted'
@@ -79,7 +87,7 @@ export function PreviewSampleClaimDetail({ claim, navigate, contacts, correction
     <button className="back-link" onClick={() => navigate('dashboard')}>← Zurück zur Übersicht</button>
     <ClaimDetailHeading title={`Meldung für den ${label(claim.termDate)}`} reference={claim.number} status={displayStatus} statusLabel={statusText}/>
     {claim.status === 'REJECTED' ? <CorrectionFeedback reason={rejectionReason} deadline={correction?.phase !== 'submitted' ? correctionDeadline || 'Kein Datum hinterlegt' : undefined} expired={!correctionOpen} action={!correction ? <Button onClick={onStartCorrection} disabled={!correctionOpen} icon="arrow">Korrektur starten</Button> : undefined}/> : null}
-    {claim.creditReference ? <ClaimCreditEntry reference={claim.creditReference} provided={detail.provided} onOpen={() => navigate(`credits:${claim.number}`)}/> : null}
+    {claim.creditReference ? <ClaimCreditEntry reference={claim.creditReference} provided={detail.provided} download={creditUrl ? { url: creditUrl, filename: `Muster-Gutschrift-${claim.number}.pdf`, mime: 'application/pdf' } : undefined}/> : null}
     {correction?.phase === 'draft' ? <SampleCorrectionFlow value={correction} contacts={contacts} deadlineOpen={correctionOpen} onChange={onChangeCorrection} onSubmit={onSubmitCorrection}/> : null}
     {correction?.phase === 'submitted' ? <section className="data-section sample-correction-submitted"><h2>Erneut eingereichte Angaben · Revision 2</h2><div className="table-wrap"><table><thead><tr><th>PZN</th><th>Artikel</th><th>Charge</th><th>Bestand</th></tr></thead><tbody>{correction.positions.map((position, index) => <tr key={`${position.pzn}-${index}`}><td>{position.pzn}</td><td>{position.article}</td><td>{position.charge}</td><td>{position.quantity} Packungen</td></tr>)}</tbody></table></div><p><strong>Ansprechpartner:</strong> {contacts.find(contact => contact.email === correction.contactEmail)?.name || correction.contactEmail}</p><p><strong>Erläuterung:</strong> {correction.comment || 'Angaben korrigiert'}</p><div className="document-list">{correction.evidenceFiles.map((file, index) => <div key={`${file.name}-${index}`}><Icon name="file" size={17}/><span>{file.name}</span>{correctionEvidenceUrls[index] ? <a className="text-button" href={correctionEvidenceUrls[index]} download={file.name}>Herunterladen</a> : null}</div>)}</div></section> : null}
     <div className="sample-detail-grid"><div className="sample-detail-main">

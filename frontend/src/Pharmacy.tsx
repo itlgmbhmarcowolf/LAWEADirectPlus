@@ -114,6 +114,8 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
   const [declarationDialogOpen, setDeclarationDialogOpen] = useState(false)
   const [showValidation, setShowValidation] = useState(false)
   const [serverIssue, setServerIssue] = useState('')
+  const [creditDocument, setCreditDocument] = useState<{ url: string; mime: string } | null>(null)
+  const [creditDocumentError, setCreditDocumentError] = useState(false)
   const validationRef = useRef<HTMLDivElement>(null)
   const firstPznRef = useRef<HTMLInputElement>(null)
   const declarationRef = useRef<HTMLInputElement>(null)
@@ -124,6 +126,21 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
   const savePromiseRef = useRef<Promise<void> | null>(null)
   const load = async () => { const result = await api<ClaimDetail>(`/claims/${id}`); setDetail(result); setDraft(result.claim.draft); latestRef.current = result.claim.draft; savedRef.current = JSON.stringify(result.claim.draft); versionRef.current = result.claim.version; setSaveState('Gespeichert') }
   useEffect(() => { load().catch(e => setError(e.message)) }, [id])
+  const creditDocumentId = data.credits?.find(item => item.claim_id === id)?.document_id
+  useEffect(() => {
+    if (!creditDocumentId) { setCreditDocument(null); return }
+    let active = true
+    let url = ''
+    setCreditDocument(null)
+    setCreditDocumentError(false)
+    fetchDocument(`/documents/${creditDocumentId}`).then(blob => {
+      if (!active) return
+      if (!['application/pdf', 'image/jpeg', 'image/png'].includes(blob.type)) throw new Error('Für dieses Dateiformat ist keine Vorschau verfügbar.')
+      url = URL.createObjectURL(blob)
+      setCreditDocument({ url, mime: blob.type })
+    }).catch(() => { if (active) setCreditDocumentError(true) })
+    return () => { active = false; if (url) URL.revokeObjectURL(url) }
+  }, [creditDocumentId])
   useEffect(() => { if (detail?.claim.id === id && detail.claim.status === 'DRAFT' && draft && !draft.items.length) firstPznRef.current?.focus({ preventScroll: true }) }, [id, detail?.claim.id, detail?.claim.status])
   const change = (next: Draft) => { setDraft(next); setServerIssue(''); latestRef.current = next; setDirtyKey(v => v + 1); setSaveState('Ungespeicherte Änderungen') }
   const save = async () => {
@@ -249,7 +266,7 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
       {discardOpen ? <DiscardDraftDialog term={dateLabel(detail.term.date)} busy={busy} onCancel={() => setDiscardOpen(false)} onConfirm={cancel}/> : null}
     </> : <>
       {claim.status === 'REJECTED' ? <CorrectionFeedback reason={claim.rejection_reason} deadline={`${dateTime(detail.term.closes_at)} Uhr`} expired={!termOpen(detail.term)} action={<Button onClick={revise} disabled={busy || !termOpen(detail.term)} icon="arrow">Neue Revision erstellen</Button>}/> : null}
-      {credit ? <ClaimCreditEntry reference={credit.reference} provided={dateTime(credit.published_at)} onOpen={() => navigate('credits:' + claim.id)}/> : null}
+      {credit ? <ClaimCreditEntry reference={credit.reference} provided={dateTime(credit.published_at)} download={creditDocument ? { url: creditDocument.url, filename: `Gutschrift-${claim.number}.${creditDocument.mime === 'image/jpeg' ? 'jpg' : creditDocument.mime === 'image/png' ? 'png' : 'pdf'}`, mime: creditDocument.mime } : undefined} downloadError={creditDocumentError}/> : null}
       <section className="data-section submitted-claim-section"><h2>Eingereichte Positionen</h2><div className="table-wrap"><table><thead><tr><th>PZN</th><th>Artikel</th><th>Charge</th><th>Bestand</th></tr></thead><tbody>{draft.items.map((item, index) => <tr key={index}><td>{item.pzn}</td><td>{data.products.find(p => p.pzn === item.pzn)?.name || '–'}</td><td>{item.charge}</td><td>{item.quantity} Packungen</td></tr>)}</tbody></table></div></section>
       <div className="submitted-info-grid">
         <section className="data-section submitted-claim-section"><h2>Nachweise</h2>{documents.length ? <div className="document-list">{documents.map(doc => <div key={doc.id}><Icon name="file" size={18}/><span>{doc.original_name}</span><button className="text-button" onClick={() => download(`/documents/${doc.id}`, doc.original_name).catch(e => setError(e.message))}>Herunterladen</button></div>)}</div> : <p className="muted">Keine Nachweise vorhanden.</p>}</section>
