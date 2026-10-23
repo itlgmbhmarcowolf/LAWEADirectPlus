@@ -42,7 +42,7 @@ const openTerms = [
 ] as const
 // UI-Annahme für die statische Vorschau: ältere fiktive Termine zeigen das Nachladen,
 // begründen ohne eigene Meldung aber keine nachträgliche Einreichungsberechtigung.
-const emptyAccountHistory: DashboardTerm[] = [1, 2, 3, 4].flatMap(month => [1, 15].map(day => {
+const sparseAccountHistory: DashboardTerm[] = [1, 2, 3, 4].flatMap(month => [1, 15].map(day => {
   const iso = `2026-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
   return { iso, date: `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.2026`, status: null, target: `term:${iso}`, disabled: true }
 }))
@@ -146,13 +146,15 @@ export function PreviewApp() {
     }
     setConfirmSubmit(true)
   }
-  const visibleSamples = scenario === 'many' ? sampleClaims : scenario === 'few' ? sampleClaims.filter(item => ['2026-08-01', '2026-08-15', '2026-09-01'].includes(item.termDate)) : []
-  const availableTerms = openTerms.filter(term => scenario !== 'few' || term.iso >= '2026-07-01')
+  // UI-Annahme: Das Konto mit wenigen Meldungen zeigt ebenfalls sechs Monate,
+  // mit einer kleinen Auswahl bereits eingereichter fiktiver Vorgänge.
+  const visibleSamples = scenario === 'many' ? sampleClaims : scenario === 'few' ? sampleClaims.filter(item => ['2026-05-15', '2026-06-01', '2026-08-01', '2026-08-15', '2026-09-01'].includes(item.termDate)) : []
+  const availableTerms = openTerms
   const credits = [...openTerms.filter(term => claims[term.iso].status === 'COMPLETED').map(term => ({ claimNumber: term.number, reference: `BEISPIEL-GS-${term.number.slice(-2)}`, provided: 'In dieser Sitzung', termDate: term.iso })), ...sampleCredits.filter(credit => visibleSamples.some(claim => claim.number === credit.claimNumber))]
   const dashboardTerms = [...new Map([
     ...availableTerms.map(term => ({ iso: term.iso, date: term.date, status: claims[term.iso].status === 'DRAFT' && !hasDraftData(claims[term.iso]) ? null : claims[term.iso].status, target: `term:${term.iso}` })),
     ...visibleSamples.map(item => ({ iso: item.termDate, date: new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${item.termDate}T12:00:00Z`)), status: sampleCorrections[item.number]?.phase === 'draft' ? 'DRAFT' as Status : sampleCorrections[item.number]?.phase === 'submitted' ? 'MANUAL_REVIEW' as Status : item.status, target: `term:${item.termDate}` })),
-    ...(scenario === 'empty' ? emptyAccountHistory : [])
+    ...(scenario === 'many' ? [] : sparseAccountHistory)
   ].map(item => [item.iso, item] as const)).values()]
   if (!signedIn) return <PreviewLogin onAuthenticated={(nextRole, newProfile, nextScenario = 'many', accountEmail) => { const email = newProfile?.email || accountEmail || (nextRole === 'PHARMACY_STAFF' ? 'mitarbeiterin@beispiel.test' : 'apotheke@beispiel.test'); setScenario(nextScenario); setClaims(restoredClaims(nextScenario, email)); setSampleCorrections({}); setProfile(newProfile || null); setMembers(newProfile ? [{ name: newProfile.name, email: newProfile.email, admin: true, status: 'Aktiv' }] : nextScenario === 'many' ? initialMembers() : [{ name: 'Demo Apotheke', email: accountEmail || 'neu@beispiel.test', admin: true, status: 'Aktiv' }]); setSignedInEmail(email); setViewAsEmail(null); setRole(nextRole); resetPage(nextRole.startsWith('PHARMACY') ? pageFromRoute() : nextRole === 'REVIEWER' ? 'review' : 'finance'); setSignedIn(true) }}/>
 
