@@ -5,8 +5,12 @@ import { ClaimCreditEntry } from './ClaimCreditEntry'
 import { DiscardDraftDialog } from './DiscardDraftDialog'
 import { DeclarationRequiredDialog } from './DeclarationRequiredDialog'
 import { EvidenceFiles, useEvidenceUrls } from './EvidenceFiles'
+import { TimelinePanel } from './TimelinePanel'
 import './preview-claim-editor.css'
 import './claim-review.css'
+import './sample-claim-detail.css'
+import './claim-detail-surface.css'
+import './draft-detail-grid.css'
 
 type Props = {
   claim: PreviewClaim
@@ -74,6 +78,7 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
     <button className="back-link" onClick={() => navigate('dashboard')}>← Zurück zur Übersicht</button>
     {editable ? <>
       <header className="preview-claim-heading"><h1>Meldung für den {term} erfassen</h1></header>
+      <div className="draft-detail-grid"><div className="draft-detail-main">
 
       <section className="editor-section preview-claim-section" aria-labelledby="preview-positions-title">
         <h2 id="preview-positions-title">Positionen</h2>
@@ -99,6 +104,7 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
         <label className="field"><span id="preview-comment-title">Kommentar (optional)</span><textarea rows={3} value={claim.comment} onChange={event => updateClaim({ comment: event.target.value })} placeholder="Falls Sie etwas ergänzen möchten"/></label>
         <div className="preview-claim-declaration"><label className="check-field"><input ref={declarationRef} type="checkbox" checked={claim.declaration} aria-invalid={showValidation && !!declarationError} aria-describedby={showValidation && declarationError ? `${errorId}-declaration` : undefined} onChange={event => updateClaim({ declaration: event.target.checked })}/><span>Ich bestätige die Richtigkeit der Angaben zum Bestand am Stichtag.</span></label>{showValidation && declarationError ? <span className="preview-field-error" id={`${errorId}-declaration`} role="alert">{declarationError}</span> : null}</div>
       </section></div>
+      </div><TimelinePanel subtitle="Chronologie dieses fiktiven Vorgangs" events={[{ key: `term-${term}`, timeLabel: term, title: 'Stichtag verfügbar', description: 'Für diesen Stichtag ist noch keine Meldung eingereicht.', tone: 'current' }]}/></div>
 
       <div className="editor-actions"><Button variant="quiet" onClick={saveDraft}>Entwurf speichern</Button><Button icon="arrow" onClick={checkAndSubmit}>Angaben prüfen</Button><Button variant="secondary" className="discard-draft-trigger" onClick={() => setDiscardOpen(true)}>Entwurf verwerfen</Button></div>
       {declarationDialogOpen ? <DeclarationRequiredDialog onClose={() => { setDeclarationDialogOpen(false); requestAnimationFrame(() => { declarationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); declarationRef.current?.focus({ preventScroll: true }) }) }}/>: null}
@@ -106,10 +112,10 @@ export function PreviewClaimEditor({ claim, term, claimNumber, navigate, updateC
     </> : <>
       <PageTitle title="Meldung im Überblick" subtitle={`${claimNumber} · Senkungstermin ${term}`}/>
       <div className="term-summary"><div><span>Stichtag</span><strong>{term}</strong></div><div><span>Vorgang</span><strong>{claimNumber}</strong></div><div><span>Status</span><strong><StatusPill status={claim.status} label={claim.status === 'COMPLETED' ? 'Ausgezahlt · Demo' : claim.status === 'MANUAL_REVIEW' ? 'Eingereicht' : undefined}/></strong></div></div>
-      <section className="data-section claim-overview"><div className="section-header"><h2>Aktueller Status</h2><StatusPill status={claim.status} label={claim.status === 'COMPLETED' ? 'Ausgezahlt · Demo' : claim.status === 'MANUAL_REVIEW' ? 'Eingereicht' : undefined}/></div><p>{claim.status === 'REJECTED' ? `Rückmeldung: ${claim.reason}` : claim.status === 'MANUAL_REVIEW' ? 'Die eingereichte Beispielversion ist gesperrt und liegt in der fachlichen Prüfung.' : claim.status === 'APPROVED' ? 'Freigegeben. Als nächstes folgt die Abwicklung.' : 'Auszahlung nur als fiktiver Beispielstand dargestellt. Es wurde keine Zahlung ausgeführt.'}</p>{claim.status === 'REJECTED' ? <Button onClick={() => { updateClaim({ status: 'DRAFT', declaration: false }); setMessage('Neue Beispielrevision begonnen. Die vorherige Einreichung bleibt im echten Prozess erhalten.') }}>Neue Revision erstellen</Button> : null}{claim.status === 'COMPLETED' ? <ClaimCreditEntry reference={`BEISPIEL-GS-${claimNumber.slice(-2)}`} onOpen={() => navigate(`credits:${claimNumber}`)}/> : null}</section>
-      <section className="data-section"><h2>Eingereichte Positionen</h2><div className="table-wrap"><table><thead><tr><th>PZN</th><th>Artikel</th><th>Charge</th><th>Bestand</th></tr></thead><tbody>{claim.items.map(item => <tr key={item.id}><td>{item.pzn}</td><td>{previewProductNames[item.pzn]}</td><td>{item.charge}</td><td>{item.quantity} Packungen</td></tr>)}</tbody></table></div></section>
-      {claim.comment.trim() ? <section className="data-section"><h2>Kommentar</h2><p>{claim.comment}</p></section> : null}
-      <section className="data-section"><h2>Nachweise</h2>{claim.evidenceFiles.length ? <div className="document-list">{claim.evidenceFiles.map((file, index) => <div key={`${file.name}-${index}`}><Icon name="file" size={18}/><span>{file.name}</span>{evidenceUrls[index] ? <a className="text-button" href={evidenceUrls[index]} download={file.name}>Herunterladen</a> : null}</div>)}</div> : <p className="muted">Für diesen Beispielvorgang liegt keine echte Datei vor.</p>}</section>
+      <section className="data-section claim-overview submitted-claim-section"><div className="section-header"><h2>Aktueller Status</h2><StatusPill status={claim.status} label={claim.status === 'COMPLETED' ? 'Ausgezahlt · Demo' : claim.status === 'MANUAL_REVIEW' ? 'Eingereicht' : undefined}/></div><p>{claim.status === 'REJECTED' ? `Rückmeldung: ${claim.reason}` : claim.status === 'MANUAL_REVIEW' ? 'Die eingereichte Beispielversion ist gesperrt und liegt in der fachlichen Prüfung.' : claim.status === 'APPROVED' ? 'Freigegeben. Als nächstes folgt die Abwicklung.' : 'Auszahlung nur als fiktiver Beispielstand dargestellt. Es wurde keine Zahlung ausgeführt.'}</p>{claim.status === 'REJECTED' ? <Button onClick={() => { updateClaim({ status: 'DRAFT', declaration: false }); setMessage('Neue Beispielrevision begonnen. Die vorherige Einreichung bleibt im echten Prozess erhalten.') }}>Neue Revision erstellen</Button> : null}{claim.status === 'COMPLETED' ? <ClaimCreditEntry reference={`BEISPIEL-GS-${claimNumber.slice(-2)}`} onOpen={() => navigate(`credits:${claimNumber}`)}/> : null}</section>
+      <section className="data-section submitted-claim-section"><h2>Eingereichte Positionen</h2><div className="table-wrap"><table><thead><tr><th>PZN</th><th>Artikel</th><th>Charge</th><th>Bestand</th></tr></thead><tbody>{claim.items.map(item => <tr key={item.id}><td>{item.pzn}</td><td>{previewProductNames[item.pzn]}</td><td>{item.charge}</td><td>{item.quantity} Packungen</td></tr>)}</tbody></table></div></section>
+      {claim.comment.trim() ? <section className="data-section submitted-claim-section"><h2>Kommentar</h2><p>{claim.comment}</p></section> : null}
+      <section className="data-section submitted-claim-section"><h2>Nachweise</h2>{claim.evidenceFiles.length ? <div className="document-list">{claim.evidenceFiles.map((file, index) => <div key={`${file.name}-${index}`}><Icon name="file" size={18}/><span>{file.name}</span>{evidenceUrls[index] ? <a className="text-button" href={evidenceUrls[index]} download={file.name}>Herunterladen</a> : null}</div>)}</div> : <p className="muted">Für diesen Beispielvorgang liegt keine echte Datei vor.</p>}</section>
     </>}
   </div>
 }

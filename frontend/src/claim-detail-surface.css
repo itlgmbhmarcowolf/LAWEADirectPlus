@@ -1,0 +1,9 @@
+.sample-status-card,.sample-correction-submitted,.sample-detail-main .data-section,.submitted-claim-section{padding:23px 24px 24px;border:1px solid #d9e6eb;border-radius:12px;background:linear-gradient(115deg,#fbfefe,#fff 42%);box-shadow:0 8px 24px rgba(21,58,79,.045)}
+.sample-status-card h2,.sample-correction-submitted h2,.sample-detail-main .data-section>h2,.submitted-claim-section>h2{color:#102e51;font-size:21px;letter-spacing:-.02em}
+.sample-detail-main .table-wrap,.sample-correction-submitted .table-wrap,.submitted-claim-section .table-wrap{border:1px solid #d8e3ec;border-radius:8px}
+.sample-detail-main table th,.sample-correction-submitted table th,.submitted-claim-section table th{padding:11px 12px;background:#f5f9fb}
+.sample-detail-main table td,.sample-correction-submitted table td,.submitted-claim-section table td{padding:11px 12px}
+.sample-detail-main .sample-submission-facts{padding:13px 15px;border:1px solid #dce9ee;border-radius:8px;background:#f5fafb}
+.sample-detail-main .sample-evidence{padding:11px 12px;border:1px solid #dce9ee;border-radius:8px;background:#f8fcfd}
+.sample-detail-main .sample-evidence.previous{margin-top:8px}
+@media(max-width:620px){.sample-status-card,.sample-correction-submitted,.sample-detail-main .data-section,.submitted-claim-section{padding:16px}}

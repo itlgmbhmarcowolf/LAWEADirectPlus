@@ -10,6 +10,7 @@ import { TimelinePanel } from './TimelinePanel'
 import { sampleClaimDetail, sampleClaims, sampleDate } from './sample-claim-data'
 import type { SampleClaim, SampleEvent } from './sample-claim-data'
 import './sample-claim-detail.css'
+import './claim-detail-surface.css'
 
 export { sampleClaims }
 export type OpenPreviewClaim = { number: string; termDate: string; status: Status; hasData: boolean }
@@ -88,7 +89,7 @@ export function PreviewSampleClaimDetail({ claim, navigate, contacts, correction
     <button className="back-link" onClick={() => navigate('dashboard')}>← Zurück zur Übersicht</button>
     <PageTitle title={`Meldung für den ${label(claim.termDate)}`} subtitle={claim.number}/>
     <div className="term-summary"><div><span>Stichtag</span><strong>{label(claim.termDate)}</strong></div><div><span>Vorgang</span><strong>{claim.number}</strong></div><div><span>Status</span><strong><StatusPill status={displayStatus} label={statusText}/></strong></div></div>
-    <section className="data-section claim-overview">
+    <section className="data-section claim-overview sample-status-card">
       <div className="section-header"><h2>Bearbeitungsstand</h2><StatusPill status={displayStatus} label={statusText}/></div>
       <p>{correction?.phase === 'submitted' ? 'Revision 2 wurde erneut eingereicht und liegt zur Prüfung vor. Revision 1 bleibt unverändert.' : correction?.phase === 'draft' ? 'Die Angaben für Revision 2 können jetzt korrigiert und erneut eingereicht werden.' : claim.status === 'COMPLETED' ? `Revision ${detail.revision} ist freigegeben. Die fiktive Gutschrift wurde am ${detail.provided} bereitgestellt; es erfolgte keine Auszahlung.` : claim.status === 'REJECTED' ? 'Revision 1 wurde abgelehnt. Die eingereichte Fassung bleibt im Verlauf erhalten.' : 'Revision 1 liegt zur fachlichen Prüfung vor. Eine Gutschrift ist noch nicht verfügbar.'}</p>
       {claim.status === 'REJECTED' ? <CorrectionFeedback reason={rejectionReason} deadline={correction?.phase !== 'submitted' ? correctionDeadline || 'Kein Datum hinterlegt' : undefined} expired={!correctionOpen} action={!correction ? <Button onClick={onStartCorrection} disabled={!correctionOpen} icon="arrow">Korrektur starten</Button> : undefined}/> : null}

@@ -10,12 +10,16 @@ import { CreditDetailLayout } from './CreditDetailLayout'
 import { ClaimCreditEntry } from './ClaimCreditEntry'
 import { HelpContent } from './HelpContent'
 import { ClaimHistory } from './ClaimHistory'
+import { TimelinePanel } from './TimelinePanel'
 import { DiscardDraftDialog } from './DiscardDraftDialog'
 import { DeclarationRequiredDialog } from './DeclarationRequiredDialog'
 import { CorrectionFeedback } from './CorrectionFeedback'
 import { fileSizeLabel } from './EvidenceFiles'
 import './claim-editor.css'
 import './claim-review.css'
+import './sample-claim-detail.css'
+import './claim-detail-surface.css'
+import './draft-detail-grid.css'
 import './credit-preview.css'
 
 const termOpen = (term: Term) => new Date(term.opens_at).getTime() <= Date.now() && new Date(term.closes_at).getTime() >= Date.now()
@@ -208,6 +212,7 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
     {editable ? <header className="claim-editor-heading"><h1>Meldung für den {shortDate(detail.term.date)} erfassen</h1><span>{claim.revision_no > 1 ? 'Korrektur erneut einreichen bis' : 'Einreichbar bis'} {dateTime(detail.term.closes_at)} Uhr</span></header> : <><PageTitle title={`Meldung für den ${shortDate(detail.term.date)}`} subtitle={claim.number}/><div className="term-summary"><div><span>Stichtag</span><strong>{shortDate(detail.term.date)}</strong></div><div><span>Meldezeitraum</span><strong>bis {shortDate(detail.term.closes_at)}</strong></div><div><span>Vorgang</span><strong>{claim.number}</strong></div></div></>}
     {error ? <Notice tone="error">{error}</Notice> : null}{notice ? <Notice tone="success">{notice}</Notice> : null}
     {editable ? <>
+      <div className="draft-detail-grid"><div className="draft-detail-main">
       <section className="editor-section claim-editor-section" aria-labelledby="claim-positions-title">
         <h2 id="claim-positions-title">Positionen</h2>
         <div className="position-grid position-header"><span>PZN</span><span>Artikelbezeichnung</span><span>Charge</span><span>Bestand in Packungen zum {shortDate(detail.term.date)}</span><span></span></div>
@@ -236,21 +241,22 @@ export function ClaimEditor({ id, data, navigate, refresh, onSubmitted }: { id: 
           <div className="claim-declaration"><label className="check-field"><input ref={declarationRef} type="checkbox" checked={draft.declaration} aria-invalid={showValidation && !!declarationError} onChange={e => change({ ...draft, declaration: e.target.checked })}/><span>Ich bestätige die Richtigkeit der Angaben zum Bestand am Stichtag.</span></label>{showValidation && declarationError ? <span className="claim-field-error" data-validation-error role="alert">{declarationError}</span> : null}</div>
         </section>
       </div>
+      </div><TimelinePanel subtitle="Chronologie dieses Vorgangs" events={[{ key: `term-${detail.term.id}`, timeLabel: shortDate(detail.term.date), title: claim.revision_no > 1 ? 'Korrektur in Bearbeitung' : 'Stichtag verfügbar', description: claim.revision_no > 1 ? 'Für diese Meldung wird eine neue Revision vorbereitet.' : 'Für diesen Stichtag ist noch keine Meldung eingereicht.', revision: claim.revision_no > 1 ? `Revision ${claim.revision_no}` : undefined, tone: 'current' }]}/></div>
       {serverIssue ? <div className="claim-validation" ref={validationRef} role="alert">{serverIssue}</div> : null}
       <div className="editor-actions"><span><Icon name="clock" size={16}/> {saveState}</span><Button variant="quiet" disabled={busy} onClick={() => save().catch(() => {})}>Entwurf speichern</Button><Button disabled={busy} icon="arrow" onClick={async () => { setShowValidation(true); if (!draft.declaration) { setDeclarationDialogOpen(true); return } if (issues.length) { requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-validation-error]')?.scrollIntoView({ behavior: 'smooth', block: 'center' })); return } try { await save(); setConfirm(true) } catch { /* Fehlermeldung wird angezeigt */ } }}>Angaben prüfen</Button><Button variant="secondary" className="discard-draft-trigger" disabled={busy} onClick={() => setDiscardOpen(true)}>Entwurf verwerfen</Button></div>
       {declarationDialogOpen ? <DeclarationRequiredDialog onClose={() => { setDeclarationDialogOpen(false); requestAnimationFrame(() => { declarationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); declarationRef.current?.focus({ preventScroll: true }) }) }}/>: null}
       {discardOpen ? <DiscardDraftDialog term={dateLabel(detail.term.date)} busy={busy} onCancel={() => setDiscardOpen(false)} onConfirm={cancel}/> : null}
     </> : <>
-      <section className="data-section claim-overview">
+      <section className="data-section claim-overview submitted-claim-section">
         <div className="section-header"><h2>Aktueller Status</h2><StatusPill status={claim.status}/></div>
         <p className="muted">Die eingereichte Version ist schreibgeschützt.</p>
         {claim.status === 'REJECTED' ? <CorrectionFeedback reason={claim.rejection_reason} deadline={`${dateTime(detail.term.closes_at)} Uhr`} expired={!termOpen(detail.term)} action={<Button onClick={revise} disabled={busy || !termOpen(detail.term)} icon="arrow">Neue Revision erstellen</Button>}/> : <p>{claim.status === 'MANUAL_REVIEW' ? 'Ihre Meldung wird geprüft. Die eingereichte Version kann nicht verändert werden.' : claim.status === 'APPROVED' ? 'Die Meldung wurde freigegeben. Eine Gutschrift wird nach der Abwicklung bereitgestellt.' : statusLabel[claim.status]}</p>}
         {credit ? <ClaimCreditEntry reference={credit.reference} provided={dateTime(credit.published_at)} onOpen={() => navigate('credits:' + claim.id)}/> : null}
       </section>
-      <section className="data-section"><h2>Eingereichte Positionen</h2><div className="table-wrap"><table><thead><tr><th>PZN</th><th>Artikel</th><th>Charge</th><th>Bestand</th></tr></thead><tbody>{draft.items.map((item, index) => <tr key={index}><td>{item.pzn}</td><td>{data.products.find(p => p.pzn === item.pzn)?.name || '–'}</td><td>{item.charge}</td><td>{item.quantity} Packungen</td></tr>)}</tbody></table></div></section>
-      <section className="data-section"><h2>Einreichung</h2><p>{draft.contactName || '–'} · {dateTime(claim.submitted_at)}</p></section>
-      {draft.comment.trim() ? <section className="data-section"><h2>Kommentar</h2><p>{draft.comment}</p></section> : null}
-      <section className="data-section"><h2>Nachweise</h2>{documents.length ? <div className="document-list">{documents.map(doc => <div key={doc.id}><Icon name="file" size={18}/><span>{doc.original_name}</span><button className="text-button" onClick={() => download(`/documents/${doc.id}`, doc.original_name).catch(e => setError(e.message))}>Herunterladen</button></div>)}</div> : <p className="muted">Keine Nachweise vorhanden.</p>}</section>
+      <section className="data-section submitted-claim-section"><h2>Eingereichte Positionen</h2><div className="table-wrap"><table><thead><tr><th>PZN</th><th>Artikel</th><th>Charge</th><th>Bestand</th></tr></thead><tbody>{draft.items.map((item, index) => <tr key={index}><td>{item.pzn}</td><td>{data.products.find(p => p.pzn === item.pzn)?.name || '–'}</td><td>{item.charge}</td><td>{item.quantity} Packungen</td></tr>)}</tbody></table></div></section>
+      <section className="data-section submitted-claim-section"><h2>Einreichung</h2><p>{draft.contactName || '–'} · {dateTime(claim.submitted_at)}</p></section>
+      {draft.comment.trim() ? <section className="data-section submitted-claim-section"><h2>Kommentar</h2><p>{draft.comment}</p></section> : null}
+      <section className="data-section submitted-claim-section"><h2>Nachweise</h2>{documents.length ? <div className="document-list">{documents.map(doc => <div key={doc.id}><Icon name="file" size={18}/><span>{doc.original_name}</span><button className="text-button" onClick={() => download(`/documents/${doc.id}`, doc.original_name).catch(e => setError(e.message))}>Herunterladen</button></div>)}</div> : <p className="muted">Keine Nachweise vorhanden.</p>}</section>
       <ClaimHistory detail={detail} credit={credit} exportRun={data.exports?.find(run => run.id === claim.export_run_id)}/>
     </>}
     {confirm ? <div className="modal-backdrop" role="presentation"><div className="modal submission-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title"><h2 id="confirm-title">Haben Sie die Angaben überprüft?</h2><p>Wenn Sie die Meldung einreichen, können Sie die Angaben danach nicht mehr verändern.</p><div className="modal-actions"><Button variant="secondary" onClick={() => setConfirm(false)}>Zurück</Button><Button disabled={busy || !draft.declaration} onClick={submit}>Jetzt einreichen</Button></div></div></div> : null}
